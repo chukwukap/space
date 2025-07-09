@@ -16,7 +16,7 @@
     "@livekit/server-sdk": "^2.13.1",
     "@livekit/components-react": "^1.1.0",
     "@livekit/components-styles": "^1.1.0",
-    "livekit-client": "^2.15.2",
+    "@livekit/client": "^2.15.2",
     "next": "^15.3.3",
     "react": "^18",
     "react-dom": "^18",
