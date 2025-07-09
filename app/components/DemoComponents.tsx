@@ -16,6 +16,7 @@ import {
   TransactionStatus,
 } from "@coinbase/onchainkit/transaction";
 import { useNotification } from "@coinbase/onchainkit/minikit";
+import { useRouter } from "next/navigation";
 
 type ButtonProps = {
   children: ReactNode;
@@ -26,7 +27,7 @@ type ButtonProps = {
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
   icon?: ReactNode;
-}
+};
 
 export function Button({
   children,
@@ -76,14 +77,9 @@ type CardProps = {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
-}
+};
 
-function Card({
-  title,
-  children,
-  className = "",
-  onClick,
-}: CardProps) {
+function Card({ title, children, className = "", onClick }: CardProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (onClick && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
@@ -158,22 +154,34 @@ type HomeProps = {
 };
 
 export function Home({ setActiveTab }: HomeProps) {
+  const router = useRouter();
+
+  const handleStartSpace = () => {
+    const roomId = crypto.randomUUID();
+    router.push(`/room/${roomId}`);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <Card title="My First Mini App">
+      <Card title="Audio Spaces">
         <p className="text-[var(--app-foreground-muted)] mb-4">
-          This is a minimalistic Mini App built with OnchainKit components.
+          Launch a LiveKit-powered audio space or join an existing one.
         </p>
-        <Button
-          onClick={() => setActiveTab("features")}
-          icon={<Icon name="arrow-right" size="sm" />}
-        >
-          Explore Features
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            onClick={handleStartSpace}
+            icon={<Icon name="plus" size="sm" />}
+          >
+            Start a Space
+          </Button>
+          <Button variant="outline" onClick={() => setActiveTab("features")}>
+            Explore Features
+          </Button>
+        </div>
       </Card>
 
+      {/* Existing demo components below */}
       <TodoList />
-
       <TransactionCard />
     </div>
   );
@@ -183,7 +191,7 @@ type IconProps = {
   name: "heart" | "star" | "check" | "plus" | "arrow-right";
   size?: "sm" | "md" | "lg";
   className?: string;
-}
+};
 
 export function Icon({ name, size = "md", className = "" }: IconProps) {
   const sizeClasses = {
@@ -283,7 +291,7 @@ type Todo = {
   id: number;
   text: string;
   completed: boolean;
-}
+};
 
 function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([
@@ -386,33 +394,39 @@ function TodoList() {
   );
 }
 
-
 function TransactionCard() {
   const { address } = useAccount();
 
   // Example transaction call - sending 0 ETH to self
-  const calls = useMemo(() => address
-    ? [
-        {
-          to: address,
-          data: "0x" as `0x${string}`,
-          value: BigInt(0),
-        },
-      ]
-    : [], [address]);
+  const calls = useMemo(
+    () =>
+      address
+        ? [
+            {
+              to: address,
+              data: "0x" as `0x${string}`,
+              value: BigInt(0),
+            },
+          ]
+        : [],
+    [address],
+  );
 
   const sendNotification = useNotification();
 
-  const handleSuccess = useCallback(async (response: TransactionResponse) => {
-    const transactionHash = response.transactionReceipts[0].transactionHash;
+  const handleSuccess = useCallback(
+    async (response: TransactionResponse) => {
+      const transactionHash = response.transactionReceipts[0].transactionHash;
 
-    console.log(`Transaction successful: ${transactionHash}`);
+      console.log(`Transaction successful: ${transactionHash}`);
 
-    await sendNotification({
-      title: "Congratulations!",
-      body: `You sent your a transaction, ${transactionHash}!`,
-    });
-  }, [sendNotification]);
+      await sendNotification({
+        title: "Congratulations!",
+        body: `You sent your a transaction, ${transactionHash}!`,
+      });
+    },
+    [sendNotification],
+  );
 
   return (
     <Card title="Make Your First Transaction">
