@@ -155,10 +155,16 @@ type HomeProps = {
 
 export function Home({ setActiveTab }: HomeProps) {
   const router = useRouter();
+  const [joinId, setJoinId] = useState("");
 
   const handleStartSpace = () => {
     const roomId = crypto.randomUUID();
     router.push(`/room/${roomId}`);
+  };
+
+  const handleJoinSpace = () => {
+    if (!joinId.trim()) return;
+    router.push(`/room/${joinId.trim()}`);
   };
 
   return (
@@ -167,16 +173,30 @@ export function Home({ setActiveTab }: HomeProps) {
         <p className="text-[var(--app-foreground-muted)] mb-4">
           Launch a LiveKit-powered audio space or join an existing one.
         </p>
-        <div className="flex gap-3">
-          <Button
-            onClick={handleStartSpace}
-            icon={<Icon name="plus" size="sm" />}
-          >
-            Start a Space
-          </Button>
-          <Button variant="outline" onClick={() => setActiveTab("features")}>
-            Explore Features
-          </Button>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-3">
+            <Button
+              onClick={handleStartSpace}
+              icon={<Icon name="plus" size="sm" />}
+            >
+              Start a Space
+            </Button>
+            <Button variant="outline" onClick={() => setActiveTab("features")}>
+              Explore Features
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Enter room ID..."
+              value={joinId}
+              onChange={(e) => setJoinId(e.target.value)}
+              className="flex-1 px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)] placeholder-[var(--app-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+            />
+            <Button variant="secondary" onClick={handleJoinSpace}>
+              Join
+            </Button>
+          </div>
         </div>
       </Card>
 
