@@ -2,130 +2,136 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ConnectWallet,
-  Wallet,
-  WalletDropdown,
-  WalletDropdownDisconnect,
-} from "@coinbase/onchainkit/wallet";
-
-import {
-  Name,
-  Identity,
-  Address,
-  Avatar,
-  EthBalance,
-} from "@coinbase/onchainkit/identity";
-
+import { ConnectWallet, Wallet } from "@coinbase/onchainkit/wallet";
 import { Button, Icon } from "./components/DemoComponents";
 
 export default function Landing() {
   const router = useRouter();
   const [joinId, setJoinId] = useState("");
+  const [spaces, setSpaces] = useState<
+    { name: string; participants: number; title?: string }[]
+  >([]);
 
-  const [rooms, setRooms] = useState<{ name: string; participants: number }[]>(
-    [],
-  );
-
+  /* ----------------------------------------- */
+  /* Fetch live spaces list every 5 s          */
+  /* ----------------------------------------- */
   useEffect(() => {
-    async function load() {
+    async function fetchSpaces() {
       try {
         const res = await fetch("/api/spaces");
-        if (res.ok) {
-          setRooms(await res.json());
-        }
+        if (res.ok) setSpaces(await res.json());
       } catch {}
     }
-    load();
-    const id = setInterval(load, 5000); // load rooms every 5 seconds
+    fetchSpaces();
+    const id = setInterval(fetchSpaces, 5_000);
     return () => clearInterval(id);
   }, []);
 
+  /* ----------------------------------------- */
+  /* Handlers                                  */
+  /* ----------------------------------------- */
   const handleStart = () => {
-    const title = prompt("Name your Space", "My Space");
+    const title = prompt("Name your Space", "Great Conversation");
     if (!title) return;
-    const spaceId = crypto.randomUUID();
-    router.push(`/space/${spaceId}?title=${encodeURIComponent(title)}`);
+    const id = crypto.randomUUID();
+    router.push(`/space/${id}?title=${encodeURIComponent(title)}`);
   };
 
   const handleJoin = () => {
-    if (joinId.trim()) {
-      router.push(`/space/${joinId.trim()}`);
-    }
+    if (!joinId.trim()) return;
+    router.push(`/space/${joinId.trim()}`);
   };
 
+  /* ----------------------------------------- */
+  /* JSX                                       */
+  /* ----------------------------------------- */
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[var(--app-background)] to-[var(--app-gray)] text-[var(--app-foreground)] p-6">
-      {/* Top Wallet Connect */}
-      <div className="absolute top-4 right-4">
-        <Wallet>
-          <ConnectWallet>
-            <Name />
-          </ConnectWallet>
-          <WalletDropdown>
-            <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-              <Avatar />
-              <Name />
-              <Address />
-              <EthBalance />
-            </Identity>
-            <WalletDropdownDisconnect />
-          </WalletDropdown>
-        </Wallet>
-      </div>
+    <main className="min-h-screen flex flex-col items-center justify-between bg-gradient-to-tr from-purple-900 via-violet-800 to-fuchsia-900 text-white px-4 py-8">
+      {/* Hero */}
+      <section className="flex flex-col items-center mt-12 mb-20 text-center max-w-xl w-full">
+        <h1 className="text-5xl font-extrabold tracking-tight drop-shadow-sm">
+          Spaces
+        </h1>
+        <p className="mt-3 text-lg text-violet-200">
+          Live audio conversations for Farcaster – powered by LiveKit &amp; Base
+          MiniKit.
+        </p>
 
-      <h1 className="text-4xl font-bold mb-2">Spaces</h1>
-      <p className="text-[var(--app-foreground-muted)] mb-8 text-center max-w-md">
-        Spin up live audio rooms - powered by LiveKit & Base MiniKit.
-      </p>
-
-      <div className="flex flex-col gap-4 w-full max-w-sm">
-        <Button onClick={handleStart} icon={<Icon name="plus" size="sm" />}>
-          Start a Space
-        </Button>
-
-        <div className="flex gap-2">
-          <input
-            value={joinId}
-            onChange={(e) => setJoinId(e.target.value)}
-            placeholder="Enter room ID..."
-            className="flex-1 px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
-          />
-          <Button variant="secondary" onClick={handleJoin}>
-            Join
+        {/* CTA buttons */}
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <Button
+            className="w-full sm:w-auto"
+            onClick={handleStart}
+            icon={<Icon name="plus" size="sm" />}
+          >
+            Start a Space
           </Button>
+          <div className="flex gap-2 w-full sm:w-auto bg-white/10 rounded-lg px-2 py-1">
+            <input
+              value={joinId}
+              onChange={(e) => setJoinId(e.target.value)}
+              placeholder="Enter space ID..."
+              className="flex-1 bg-transparent outline-none text-sm placeholder-violet-300"
+            />
+            <Button variant="secondary" size="sm" onClick={handleJoin}>
+              Join
+            </Button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {rooms.length > 0 && (
-        <div className="mt-8 w-full max-w-sm">
-          <h2 className="mb-2 font-semibold">Active Spaces</h2>
-          <ul className="space-y-2">
-            {rooms.map((room) => (
-              <li
-                key={room.name}
-                className="flex items-center justify-between bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg px-3 py-2"
-              >
-                <span className="truncate mr-2">{room.name}</span>
-                <span className="text-xs text-[var(--app-foreground-muted)] mr-auto">
-                  {room.participants} 👤
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => router.push(`/space/${room.name}`)}
-                >
-                  Join
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Live spaces */}
+      <section className="w-full max-w-xl mb-auto">
+        {spaces.length > 0 && (
+          <div className="backdrop-blur bg-white/10 rounded-2xl p-6 shadow-lg">
+            <h2 className="text-lg font-semibold mb-4">Live Now</h2>
+            <ul className="space-y-3 max-h-72 overflow-y-auto pr-2">
+              {spaces.map((s) => (
+                <li key={s.name} className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="font-medium truncate max-w-[14rem]">
+                      {s.title || s.name}
+                    </span>
+                    <span className="text-xs text-violet-200">
+                      {s.participants} listeners
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/space/${s.name}`)}
+                  >
+                    Join
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
 
-      <footer className="mt-8 text-xs text-[var(--app-foreground-muted)]">
-        Built with LiveKit, Base MiniKit & OnchainKit
+      {/* Footer */}
+      <footer className="w-full text-center text-xs text-violet-300 mt-20">
+        Built with LiveKit, Base MiniKit &amp; OnchainKit
       </footer>
-    </div>
+
+      {/* Wallet connect fixed bottom right (mobile friendly) */}
+      <div className="fixed bottom-6 right-6">
+        <WalletButton />
+      </div>
+    </main>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/* Reusable Wallet Button                                            */
+/* ---------------------------------------------------------------- */
+function WalletButton() {
+  return (
+    <Wallet className="backdrop-blur bg-white/10 rounded-full p-3 shadow-lg">
+      <ConnectWallet>
+        <Icon name="check" />
+      </ConnectWallet>
+    </Wallet>
   );
 }
