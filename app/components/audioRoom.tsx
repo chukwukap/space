@@ -12,6 +12,7 @@ import {
 import { Track, Participant } from "livekit-client";
 import "@livekit/components-styles";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface AudioRoomProps {
   token: string;
@@ -68,6 +69,55 @@ function ParticipantList() {
   );
 }
 
+function Header() {
+  const room = useRoomContext();
+  const router = useRouter();
+  const [copied, setCopied] = useState(false);
+
+  const roomUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(roomUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
+
+  const handleLeave = () => {
+    room.disconnect();
+    router.push("/");
+  };
+
+  return (
+    <div className="fixed top-0 left-0 w-full flex items-center justify-between bg-[var(--lk-background)]/80 backdrop-blur shadow px-4 py-2 z-50">
+      <div className="flex items-center gap-2 truncate">
+        <span className="font-semibold">Space:</span>
+        <span className="truncate max-w-[40vw]" title={room.name}>
+          {room.name}
+        </span>
+        <span className="text-xs text-[var(--lk-foreground-muted)]">
+          · {room.remoteParticipants.size + 1} listeners
+        </span>
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleCopy}
+          className="text-sm px-2 py-1 rounded bg-[var(--lk-accent)] text-white hover:opacity-90"
+        >
+          {copied ? "Copied!" : "Copy Link"}
+        </button>
+        <button
+          onClick={handleLeave}
+          className="text-sm px-2 py-1 rounded border border-[var(--lk-border-color)] hover:bg-[var(--lk-border-color)]/20"
+        >
+          Leave
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ConferenceView() {
   // Subscribe to track list for placeholder grid (mainly avatars)
   const tracks = useTracks(
@@ -80,6 +130,7 @@ function ConferenceView() {
 
   return (
     <>
+      <Header />
       <ParticipantList />
       <GridLayout
         tracks={tracks}
