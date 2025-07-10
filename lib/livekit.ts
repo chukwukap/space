@@ -1,4 +1,4 @@
-import { AccessToken, RoomServiceClient } from "@livekit/server-sdk";
+import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
 
 /**
  * LiveKit server-side helper utilities.
@@ -35,10 +35,9 @@ export const roomService = new RoomServiceClient(
  */
 export async function ensureRoom(roomName: string) {
   try {
-    await roomService.getRoom(roomName);
-  } catch {
-    // Room not found – create a new one with default settings.
     await roomService.createRoom({ name: roomName });
+  } catch {
+    // If room already exists, LiveKit returns 409; safe to ignore
   }
 }
 
