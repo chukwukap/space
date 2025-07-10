@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ConnectWallet, Wallet } from "@coinbase/onchainkit/wallet";
 import { Button, Icon } from "./components/DemoComponents";
 import dynamic from "next/dynamic";
+import SpaceCard from "./components/SpaceCard";
 const CreateSpaceSheet = dynamic(
   () => import("./components/CreateSpaceSheet"),
   { ssr: false },
@@ -90,23 +91,7 @@ export default function Landing() {
             <h2 className="text-lg font-semibold mb-4">Live Now</h2>
             <ul className="space-y-3 max-h-72 overflow-y-auto pr-2">
               {spaces.map((s) => (
-                <li key={s.name} className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="font-medium truncate max-w-[14rem]">
-                      {s.title || s.name}
-                    </span>
-                    <span className="text-xs text-violet-200">
-                      {s.participants} listeners
-                    </span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => router.push(`/space/${s.name}`)}
-                  >
-                    Join
-                  </Button>
-                </li>
+                <SpaceCard key={s.name} space={s} />
               ))}
             </ul>
           </div>
