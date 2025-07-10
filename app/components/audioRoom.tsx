@@ -3,13 +3,15 @@
 import {
   LiveKitRoom,
   RoomAudioRenderer,
-  ControlBar,
   useRoomContext,
 } from "@livekit/components-react";
 import { Participant } from "livekit-client";
 import "@livekit/components-styles";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+const InviteSheet = dynamic(() => import("./InviteSheet"), { ssr: false });
+const BottomBar = dynamic(() => import("./BottomBar"), { ssr: false });
 
 interface AudioRoomProps {
   token: string;
@@ -142,6 +144,7 @@ function SpacesLayout() {
  * expose your LiveKit API key/secret on the client.
  */
 export default function AudioRoom({ token, serverUrl, title }: AudioRoomProps) {
+  const [inviteOpen, setInviteOpen] = useState(false);
   return (
     <LiveKitRoom
       token={token}
@@ -152,11 +155,9 @@ export default function AudioRoom({ token, serverUrl, title }: AudioRoomProps) {
     >
       <Header title={title} />
       <SpacesLayout />
+      {inviteOpen && <InviteSheet onClose={() => setInviteOpen(false)} />}
       <RoomAudioRenderer />
-      <ControlBar
-        variation="minimal"
-        style={{ position: "fixed", bottom: 0, width: "100%" }}
-      />
+      <BottomBar onInvite={() => setInviteOpen(true)} />
     </LiveKitRoom>
   );
 }
