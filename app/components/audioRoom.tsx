@@ -2,71 +2,18 @@
 
 import {
   LiveKitRoom,
-  GridLayout,
-  ParticipantTile,
   RoomAudioRenderer,
   ControlBar,
-  useTracks,
   useRoomContext,
 } from "@livekit/components-react";
-import { Track, Participant } from "livekit-client";
+import { Participant } from "livekit-client";
 import "@livekit/components-styles";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface AudioRoomProps {
   token: string;
   serverUrl: string;
-}
-
-// Add ParticipantList component
-function ParticipantList() {
-  const room = useRoomContext();
-  const [, forceRender] = useState({});
-  const [activeSpeakerIds, setActiveSpeakerIds] = useState<Set<string>>(
-    new Set(),
-  );
-
-  // Force re-render on participant changes
-  useEffect(() => {
-    function handleChange() {
-      forceRender({});
-    }
-    room.on("participantConnected", handleChange);
-    room.on("participantDisconnected", handleChange);
-
-    const speakerCb = () => {
-      setActiveSpeakerIds(new Set(room.activeSpeakers.map((p) => p.identity)));
-    };
-    room.on("activeSpeakersChanged", speakerCb);
-
-    return () => {
-      room.off("participantConnected", handleChange);
-      room.off("participantDisconnected", handleChange);
-      room.off("activeSpeakersChanged", speakerCb);
-    };
-  }, [room]);
-
-  const participants: Participant[] = [
-    room.localParticipant,
-    ...Array.from(room.remoteParticipants.values()),
-  ];
-
-  return (
-    <ul className="fixed top-4 right-4 bg-[var(--lk-background)]/80 backdrop-blur-md p-3 rounded-lg shadow space-y-2 w-56 max-h-[70vh] overflow-y-auto text-sm">
-      {participants.map((p) => (
-        <li
-          key={p.identity}
-          className={`flex items-center gap-2 ${activeSpeakerIds.has(p.identity) ? "text-[var(--lk-accent)]" : ""}`}
-        >
-          <span
-            className={`h-2 w-2 rounded-full ${activeSpeakerIds.has(p.identity) ? "bg-[var(--lk-accent)]" : "bg-gray-400"}`}
-          />
-          <span className="truncate">{p.identity}</span>
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 function Header() {
@@ -118,32 +65,73 @@ function Header() {
   );
 }
 
-function ConferenceView() {
-  // Subscribe to track list for placeholder grid (mainly avatars)
-  const tracks = useTracks(
-    [
-      { source: Track.Source.Camera, withPlaceholder: true },
-      { source: Track.Source.ScreenShare, withPlaceholder: false },
-    ],
-    { onlySubscribed: false },
+// Add util for avatar
+function AvatarCircle({
+  p,
+  size = 48,
+  highlight = false,
+}: {
+  p: Participant;
+  size?: number;
+  highlight?: boolean;
+}) {
+  const initials = p.identity.slice(0, 2).toUpperCase();
+  return (
+    <div
+      className={`flex items-center justify-center rounded-full bg-[var(--lk-border-color)] text-sm font-semibold ${highlight ? "ring-2 ring-[var(--lk-accent)]" : ""}`}
+      style={{ width: size, height: size }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+function SpacesLayout() {
+  const room = useRoomContext();
+  const host = room.localParticipant;
+  const speakers = room.activeSpeakers.filter((p) => p !== host);
+  const listeners = Array.from(room.remoteParticipants.values()).filter(
+    (p) => !speakers.includes(p),
   );
 
   return (
-    <>
-      <Header />
-      <ParticipantList />
-      <GridLayout
-        tracks={tracks}
-        style={{ height: "calc(100vh - var(--lk-control-bar-height))" }}
-      >
-        <ParticipantTile />
-      </GridLayout>
-      <RoomAudioRenderer />
-      <ControlBar
-        variation="minimal"
-        style={{ borderTop: "1px solid var(--lk-border-color)" }}
-      />
-    </>
+    <div className="flex flex-col items-center pt-20 pb-24 min-h-screen bg-gradient-to-b from-violet-900 via-purple-800 to-purple-900 text-white overflow-y-auto">
+      {/* Host */}
+      <AvatarCircle p={host as unknown as Participant} size={96} highlight />
+      <p className="mt-2 font-bold">{host.identity}</p>
+
+      {/* Speakers */}
+      {speakers.length > 0 && (
+        <div className="mt-8 w-full overflow-x-auto flex gap-4 px-6">
+          {speakers.map((s) => (
+            <div key={s.identity} className="flex flex-col items-center">
+              <AvatarCircle
+                p={s as Participant}
+                size={64}
+                highlight={room.activeSpeakers.includes(s)}
+              />
+              <span className="text-xs mt-1 truncate w-16 text-center">
+                {s.identity}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Listeners */}
+      {listeners.length > 0 && (
+        <div className="mt-10 grid grid-cols-4 gap-4 px-6 w-full max-w-lg">
+          {listeners.map((l) => (
+            <div key={l.identity} className="flex flex-col items-center">
+              <AvatarCircle p={l as Participant} size={48} />
+              <span className="text-[10px] mt-1 truncate w-12 text-center">
+                {l.identity}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -158,12 +146,16 @@ export default function AudioRoom({ token, serverUrl }: AudioRoomProps) {
       token={token}
       serverUrl={serverUrl}
       data-lk-theme="default"
-      connectOptions={{
-        autoSubscribe: true,
-      }}
+      connectOptions={{ autoSubscribe: true }}
       style={{ height: "100vh", width: "100%" }}
     >
-      <ConferenceView />
+      <Header />
+      <SpacesLayout />
+      <RoomAudioRenderer />
+      <ControlBar
+        variation="minimal"
+        style={{ position: "fixed", bottom: 0, width: "100%" }}
+      />
     </LiveKitRoom>
   );
 }
