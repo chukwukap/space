@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConnectWallet, Wallet } from "@coinbase/onchainkit/wallet";
 import { Button, Icon } from "./components/DemoComponents";
+import dynamic from "next/dynamic";
+const CreateSpaceSheet = dynamic(
+  () => import("./components/CreateSpaceSheet"),
+  { ssr: false },
+);
 
 export default function Landing() {
   const router = useRouter();
@@ -11,6 +16,7 @@ export default function Landing() {
   const [spaces, setSpaces] = useState<
     { name: string; participants: number; title?: string }[]
   >([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   /* ----------------------------------------- */
   /* Fetch live spaces list every 5 s          */
@@ -31,10 +37,7 @@ export default function Landing() {
   /* Handlers                                  */
   /* ----------------------------------------- */
   const handleStart = () => {
-    const title = prompt("Name your Space", "Great Conversation");
-    if (!title) return;
-    const id = crypto.randomUUID();
-    router.push(`/space/${id}?title=${encodeURIComponent(title)}`);
+    setSheetOpen(true);
   };
 
   const handleJoin = () => {
@@ -119,6 +122,7 @@ export default function Landing() {
       <div className="fixed bottom-6 right-6">
         <WalletButton />
       </div>
+      {sheetOpen && <CreateSpaceSheet onClose={() => setSheetOpen(false)} />}
     </main>
   );
 }
