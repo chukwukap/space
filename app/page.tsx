@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  useMiniKit,
-  useAddFrame,
-  useOpenUrl,
-} from "@coinbase/onchainkit/minikit";
+  ConnectWallet,
+  Wallet,
+  WalletDropdown,
+  WalletDropdownDisconnect,
+} from "@coinbase/onchainkit/wallet";
 import {
   Name,
   Identity,
@@ -12,105 +15,70 @@ import {
   Avatar,
   EthBalance,
 } from "@coinbase/onchainkit/identity";
-import {
-  ConnectWallet,
-  Wallet,
-  WalletDropdown,
-  WalletDropdownDisconnect,
-} from "@coinbase/onchainkit/wallet";
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { Button } from "./components/DemoComponents";
-import { Icon } from "./components/DemoComponents";
-import { Home } from "./components/DemoComponents";
-import { Features } from "./components/DemoComponents";
+import { Button, Icon } from "./components/DemoComponents";
 
-export default function App() {
-  const { setFrameReady, isFrameReady, context } = useMiniKit();
-  const [frameAdded, setFrameAdded] = useState(false);
-  const [activeTab, setActiveTab] = useState("home");
+export default function Landing() {
+  const router = useRouter();
+  const [joinId, setJoinId] = useState("");
 
-  const addFrame = useAddFrame();
-  const openUrl = useOpenUrl();
+  const handleStart = () => {
+    const roomId = crypto.randomUUID();
+    router.push(`/room/${roomId}`);
+  };
 
-  useEffect(() => {
-    if (!isFrameReady) {
-      setFrameReady();
+  const handleJoin = () => {
+    if (joinId.trim()) {
+      router.push(`/room/${joinId.trim()}`);
     }
-  }, [setFrameReady, isFrameReady]);
-
-  const handleAddFrame = useCallback(async () => {
-    const frameAdded = await addFrame();
-    setFrameAdded(Boolean(frameAdded));
-  }, [addFrame]);
-
-  const saveFrameButton = useMemo(() => {
-    if (context && !context.client.added) {
-      return (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleAddFrame}
-          className="text-[var(--app-accent)] p-4"
-          icon={<Icon name="plus" size="sm" />}
-        >
-          Save Frame
-        </Button>
-      );
-    }
-
-    if (frameAdded) {
-      return (
-        <div className="flex items-center space-x-1 text-sm font-medium text-[#0052FF] animate-fade-out">
-          <Icon name="check" size="sm" className="text-[#0052FF]" />
-          <span>Saved</span>
-        </div>
-      );
-    }
-
-    return null;
-  }, [context, frameAdded, handleAddFrame]);
+  };
 
   return (
-    <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
-      <div className="w-full max-w-md mx-auto px-4 py-3">
-        <header className="flex justify-between items-center mb-3 h-11">
-          <div>
-            <div className="flex items-center space-x-2">
-              <Wallet className="z-10">
-                <ConnectWallet>
-                  <Name className="text-inherit" />
-                </ConnectWallet>
-                <WalletDropdown>
-                  <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                    <Avatar />
-                    <Name />
-                    <Address />
-                    <EthBalance />
-                  </Identity>
-                  <WalletDropdownDisconnect />
-                </WalletDropdown>
-              </Wallet>
-            </div>
-          </div>
-          <div>{saveFrameButton}</div>
-        </header>
-
-        <main className="flex-1">
-          {activeTab === "home" && <Home setActiveTab={setActiveTab} />}
-          {activeTab === "features" && <Features setActiveTab={setActiveTab} />}
-        </main>
-
-        <footer className="mt-2 pt-4 flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-[var(--ock-text-foreground-muted)] text-xs"
-            onClick={() => openUrl("https://base.org/builders/minikit")}
-          >
-            Built on Base with MiniKit
-          </Button>
-        </footer>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[var(--app-background)] to-[var(--app-gray)] text-[var(--app-foreground)] p-6">
+      {/* Top Wallet Connect */}
+      <div className="absolute top-4 right-4">
+        <Wallet>
+          <ConnectWallet>
+            <Name />
+          </ConnectWallet>
+          <WalletDropdown>
+            <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+              <Avatar />
+              <Name />
+              <Address />
+              <EthBalance />
+            </Identity>
+            <WalletDropdownDisconnect />
+          </WalletDropdown>
+        </Wallet>
       </div>
+
+      <h1 className="text-4xl font-bold mb-2">Spaces</h1>
+      <p className="text-[var(--app-foreground-muted)] mb-8 text-center max-w-md">
+        Spin up live audio rooms on Farcaster – powered by LiveKit & Base
+        MiniKit.
+      </p>
+
+      <div className="flex flex-col gap-4 w-full max-w-sm">
+        <Button onClick={handleStart} icon={<Icon name="plus" size="sm" />}>
+          Start a Space
+        </Button>
+
+        <div className="flex gap-2">
+          <input
+            value={joinId}
+            onChange={(e) => setJoinId(e.target.value)}
+            placeholder="Enter room ID..."
+            className="flex-1 px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+          />
+          <Button variant="secondary" onClick={handleJoin}>
+            Join
+          </Button>
+        </div>
+      </div>
+
+      <footer className="mt-8 text-xs text-[var(--app-foreground-muted)]">
+        Built with LiveKit, Base MiniKit & OnchainKit
+      </footer>
     </div>
   );
 }
