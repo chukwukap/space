@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ConnectWallet,
@@ -20,6 +20,23 @@ import { Button, Icon } from "./components/DemoComponents";
 export default function Landing() {
   const router = useRouter();
   const [joinId, setJoinId] = useState("");
+  const [rooms, setRooms] = useState<{ name: string; participants: number }[]>(
+    [],
+  );
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch("/api/rooms");
+        if (res.ok) {
+          setRooms(await res.json());
+        }
+      } catch {}
+    }
+    load();
+    const id = setInterval(load, 5000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleStart = () => {
     const roomId = crypto.randomUUID();
@@ -75,6 +92,32 @@ export default function Landing() {
           </Button>
         </div>
       </div>
+
+      {rooms.length > 0 && (
+        <div className="mt-8 w-full max-w-sm">
+          <h2 className="mb-2 font-semibold">Active Spaces</h2>
+          <ul className="space-y-2">
+            {rooms.map((room) => (
+              <li
+                key={room.name}
+                className="flex items-center justify-between bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg px-3 py-2"
+              >
+                <span className="truncate mr-2">{room.name}</span>
+                <span className="text-xs text-[var(--app-foreground-muted)] mr-auto">
+                  {room.participants} 👤
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/room/${room.name}`)}
+                >
+                  Join
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <footer className="mt-8 text-xs text-[var(--app-foreground-muted)]">
         Built with LiveKit, Base MiniKit & OnchainKit
