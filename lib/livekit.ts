@@ -46,13 +46,13 @@ export async function ensureRoom(roomName: string) {
  * room. The token grants the user permission to publish & subscribe (host
  * determines actual permissions client-side).
  */
-export function generateAccessToken({
+export async function generateAccessToken({
   roomName,
   userId,
 }: {
   roomName: string;
   userId: string;
-}) {
+}): Promise<string> {
   if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
     throw new Error(
       "LiveKit credentials are not configured. Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET env vars.",
@@ -70,5 +70,5 @@ export function generateAccessToken({
     canSubscribe: true,
   });
 
-  return at.toJwt();
+  return await at.toJwt();
 }

@@ -15,7 +15,7 @@ export default async function RoomPage({ params }: RoomPageProps) {
   const userId = randomUUID();
 
   await ensureRoom(roomName);
-  const token = generateAccessToken({ roomName, userId });
+  const token = await generateAccessToken({ roomName, userId });
 
   return (
     <AudioRoom
