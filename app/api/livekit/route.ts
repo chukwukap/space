@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateAccessToken, ensureRoom } from "@/lib/livekit";
+import { generateAccessToken, ensureRoom, livekitWsUrl } from "@/lib/livekit";
 
 /**
  * POST /api/livekit
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         token,
-        url: process.env.NEXT_PUBLIC_LIVEKIT_WS_URL,
+        url: process.env.NEXT_PUBLIC_LIVEKIT_WS_URL ?? livekitWsUrl,
       },
       { status: 200 },
     );

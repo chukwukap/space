@@ -28,6 +28,9 @@ export const roomService = new RoomServiceClient(
   LIVEKIT_API_SECRET,
 );
 
+export const livekitWsUrl: string =
+  process.env.NEXT_PUBLIC_LIVEKIT_WS_URL || LIVEKIT_URL.replace(/^http/, "ws");
+
 /**
  * Ensures that a room exists. If it does not, it will be created with the
  * provided name. LiveKit Cloud will auto-create rooms on first join, but we
