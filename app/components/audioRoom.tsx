@@ -7,17 +7,69 @@ import {
   RoomAudioRenderer,
   ControlBar,
   useTracks,
+  useRoomContext,
 } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { Track, Participant } from "livekit-client";
 import "@livekit/components-styles";
+import { useEffect, useState } from "react";
 
 interface AudioRoomProps {
   token: string;
   serverUrl: string;
 }
 
+// Add ParticipantList component
+function ParticipantList() {
+  const room = useRoomContext();
+  const [, forceRender] = useState({});
+  const [activeSpeakerIds, setActiveSpeakerIds] = useState<Set<string>>(
+    new Set(),
+  );
+
+  // Force re-render on participant changes
+  useEffect(() => {
+    function handleChange() {
+      forceRender({});
+    }
+    room.on("participantConnected", handleChange);
+    room.on("participantDisconnected", handleChange);
+
+    const speakerCb = () => {
+      setActiveSpeakerIds(new Set(room.activeSpeakers.map((p) => p.identity)));
+    };
+    room.on("activeSpeakersChanged", speakerCb);
+
+    return () => {
+      room.off("participantConnected", handleChange);
+      room.off("participantDisconnected", handleChange);
+      room.off("activeSpeakersChanged", speakerCb);
+    };
+  }, [room]);
+
+  const participants: Participant[] = [
+    room.localParticipant,
+    ...Array.from(room.remoteParticipants.values()),
+  ];
+
+  return (
+    <ul className="fixed top-4 right-4 bg-[var(--lk-background)]/80 backdrop-blur-md p-3 rounded-lg shadow space-y-2 w-56 max-h-[70vh] overflow-y-auto text-sm">
+      {participants.map((p) => (
+        <li
+          key={p.identity}
+          className={`flex items-center gap-2 ${activeSpeakerIds.has(p.identity) ? "text-[var(--lk-accent)]" : ""}`}
+        >
+          <span
+            className={`h-2 w-2 rounded-full ${activeSpeakerIds.has(p.identity) ? "bg-[var(--lk-accent)]" : "bg-gray-400"}`}
+          />
+          <span className="truncate">{p.identity}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function ConferenceView() {
-  // Subscribe to all camera (placeholder) and screen share tracks.
+  // Subscribe to track list for placeholder grid (mainly avatars)
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -28,15 +80,14 @@ function ConferenceView() {
 
   return (
     <>
+      <ParticipantList />
       <GridLayout
         tracks={tracks}
         style={{ height: "calc(100vh - var(--lk-control-bar-height))" }}
       >
         <ParticipantTile />
       </GridLayout>
-      {/* Playback incoming audio */}
       <RoomAudioRenderer />
-      {/* Control bar – hide video & screen share toggles via props */}
       <ControlBar
         variation="minimal"
         style={{ borderTop: "1px solid var(--lk-border-color)" }}
