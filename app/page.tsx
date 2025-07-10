@@ -8,6 +8,7 @@ import {
   WalletDropdown,
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
+
 import {
   Name,
   Identity,
@@ -15,11 +16,13 @@ import {
   Avatar,
   EthBalance,
 } from "@coinbase/onchainkit/identity";
+
 import { Button, Icon } from "./components/DemoComponents";
 
 export default function Landing() {
   const router = useRouter();
   const [joinId, setJoinId] = useState("");
+
   const [rooms, setRooms] = useState<{ name: string; participants: number }[]>(
     [],
   );
@@ -27,25 +30,26 @@ export default function Landing() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/rooms");
+        const res = await fetch("/api/spaces");
         if (res.ok) {
           setRooms(await res.json());
         }
       } catch {}
     }
     load();
-    const id = setInterval(load, 5000);
+    const id = setInterval(load, 5000); // load rooms every 5 seconds
     return () => clearInterval(id);
   }, []);
 
   const handleStart = () => {
-    const roomId = crypto.randomUUID();
-    router.push(`/room/${roomId}`);
+    const spaceId = crypto.randomUUID();
+    console.log("roomId======>>>", spaceId);
+    router.push(`/space/${spaceId}`);
   };
 
   const handleJoin = () => {
     if (joinId.trim()) {
-      router.push(`/room/${joinId.trim()}`);
+      router.push(`/space/${joinId.trim()}`);
     }
   };
 
@@ -71,8 +75,7 @@ export default function Landing() {
 
       <h1 className="text-4xl font-bold mb-2">Spaces</h1>
       <p className="text-[var(--app-foreground-muted)] mb-8 text-center max-w-md">
-        Spin up live audio rooms on Farcaster – powered by LiveKit & Base
-        MiniKit.
+        Spin up live audio rooms - powered by LiveKit & Base MiniKit.
       </p>
 
       <div className="flex flex-col gap-4 w-full max-w-sm">
@@ -109,7 +112,7 @@ export default function Landing() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => router.push(`/room/${room.name}`)}
+                  onClick={() => router.push(`/space/${room.name}`)}
                 >
                   Join
                 </Button>
