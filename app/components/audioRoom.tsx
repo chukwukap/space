@@ -14,9 +14,10 @@ import { useRouter } from "next/navigation";
 interface AudioRoomProps {
   token: string;
   serverUrl: string;
+  title?: string;
 }
 
-function Header() {
+function Header({ title }: { title?: string }) {
   const room = useRoomContext();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
@@ -39,7 +40,7 @@ function Header() {
   return (
     <div className="fixed top-0 left-0 w-full flex items-center justify-between bg-[var(--lk-background)]/80 backdrop-blur shadow px-4 py-2 z-50">
       <div className="flex items-center gap-2 truncate">
-        <span className="font-semibold">Space:</span>
+        <span className="font-semibold">{title ?? "Space"}</span>
         <span className="truncate max-w-[40vw]" title={room.name}>
           {room.name}
         </span>
@@ -140,7 +141,7 @@ function SpacesLayout() {
  * SECURITY: The token is generated server-side and passed as a prop. Do not
  * expose your LiveKit API key/secret on the client.
  */
-export default function AudioRoom({ token, serverUrl }: AudioRoomProps) {
+export default function AudioRoom({ token, serverUrl, title }: AudioRoomProps) {
   return (
     <LiveKitRoom
       token={token}
@@ -149,7 +150,7 @@ export default function AudioRoom({ token, serverUrl }: AudioRoomProps) {
       connectOptions={{ autoSubscribe: true }}
       style={{ height: "100vh", width: "100%" }}
     >
-      <Header />
+      <Header title={title} />
       <SpacesLayout />
       <RoomAudioRenderer />
       <ControlBar

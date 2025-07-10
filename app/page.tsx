@@ -42,9 +42,10 @@ export default function Landing() {
   }, []);
 
   const handleStart = () => {
+    const title = prompt("Name your Space", "My Space");
+    if (!title) return;
     const spaceId = crypto.randomUUID();
-    console.log("roomId======>>>", spaceId);
-    router.push(`/space/${spaceId}`);
+    router.push(`/space/${spaceId}?title=${encodeURIComponent(title)}`);
   };
 
   const handleJoin = () => {
