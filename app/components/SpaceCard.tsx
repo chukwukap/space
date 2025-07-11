@@ -24,6 +24,14 @@ export default function SpaceCard({ space }: SpaceCardProps) {
         {space.title || "Untitled Space"}
       </h3>
       <div className="flex items-center gap-2 text-sm">
+        <div className="flex -space-x-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-6 h-6 rounded-full bg-violet-400 border-2 border-violet-600"
+            />
+          ))}
+        </div>
         <span>{space.participants} listening</span>
       </div>
     </div>
