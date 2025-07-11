@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SpaceStatus {
+  LIVE
+  ENDED
+}
+
+enum Role {
+  HOST
+  COHOST
+  SPEAKER
+  LISTENER
+}
+
+enum ReactionType {
+  HEART
+  LAUGH
+  CLAP
+  FIRE
+  LIKE
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  fid         Int      @unique // Farcaster FID
+  address     String   @unique // Primary wallet address
+  displayName String?
+  username    String? // @handle
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  hostedSpaces Space[]       @relation("HostedSpaces")
+  participants Participant[]
+  tipsSent     Tip[]         @relation("tipsSent")
+  tipsReceived Tip[]         @relation("tipsReceived")
+  reactions    Reaction[]
+}
+
+model Space {
+  id        String      @id @default(uuid())
+  title     String
+  hostId    Int
+  host      User        @relation("HostedSpaces", fields: [hostId], references: [id])
+  status    SpaceStatus @default(LIVE)
+  recording Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  endedAt   DateTime?
+
+  // Relations
+  participants Participant[]
+  tips         Tip[]
+  reactions    Reaction[]
+
+  @@index([hostId])
+}
+
+model Participant {
+  id       String    @id @default(uuid())
+  spaceId  String
+  userId   Int
+  role     Role
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+
+  // Relations
+  space Space @relation(fields: [spaceId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([spaceId, userId])
+  @@index([spaceId])
+  @@index([userId])
+}
+
+model Tip {
+  id          String   @id @default(uuid())
+  spaceId     String
+  fromId      Int
+  toId        Int
+  amount      Decimal  @db.Decimal(18, 6)
+  tokenSymbol String // e.g. "USDC", "ETH"
+  txHash      String   @unique
+  createdAt   DateTime @default(now())
+
+  // Relations
+  space    Space     @relation(fields: [spaceId], references: [id])
+  from     User      @relation("tipsSent", fields: [fromId], references: [id])
+  to       User      @relation("tipsReceived", fields: [toId], references: [id])
+  reaction Reaction?
+
+  @@index([spaceId])
+  @@index([fromId])
+  @@index([toId])
+}
+
+model Reaction {
+  id        String       @id @default(uuid())
+  spaceId   String
+  userId    Int
+  type      ReactionType
+  tipId     String?
+  createdAt DateTime     @default(now())
+
+  // Relations
+  space Space @relation(fields: [spaceId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+  tip   Tip?  @relation(fields: [tipId], references: [id])
+
+  @@unique([tipId])
+  @@index([spaceId])
+  @@index([userId])
+}

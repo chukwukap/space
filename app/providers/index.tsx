@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 import { base } from "wagmi/chains";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
+import { UserProvider } from "./userProvider";
 
 export function Providers(props: { children: ReactNode }) {
   return (
@@ -18,7 +19,7 @@ export function Providers(props: { children: ReactNode }) {
         },
       }}
     >
-      {props.children}
+      <UserProvider>{props.children}</UserProvider>
     </MiniKitProvider>
   );
 }

@@ -8,68 +8,77 @@ import React, {
 } from "react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
-import { Participant } from "@/lib/types";
+import { Participant as User } from "@/lib/types"; // Rename import for clarity
 
-interface ParticipantContextType {
-  participant: Participant | null;
-  participantLoading: boolean;
-  participantError: string | null;
-  refreshParticipant: () => Promise<void>;
+/**
+ * Context type for user state management.
+ */
+interface UserContextType {
+  user: User | null;
+  userLoading: boolean;
+  userError: string | null;
+  refreshUser: () => Promise<void>;
 }
 
-interface ParticipantProviderProps {
+interface UserProviderProps {
   children: ReactNode;
 }
 
-const ParticipantContext = createContext<ParticipantContextType>({
-  participant: null,
-  participantLoading: false,
-  participantError: null,
-  refreshParticipant: async () => {},
+/**
+ * UserContext provides user state and actions throughout the app.
+ */
+const UserContext = createContext<UserContextType>({
+  user: null,
+  userLoading: false,
+  userError: null,
+  refreshUser: async () => {},
 });
 
-export function ParticipantProvider({ children }: ParticipantProviderProps) {
+/**
+ * UserProvider manages user onboarding and state, supporting both Farcaster and wallet-only users.
+ * Security: All user data is handled securely and never exposed to the client unless necessary.
+ */
+export function UserProvider({ children }: UserProviderProps) {
   const { context } = useMiniKit();
   const { address: walletAddress, isConnected } = useAccount();
-  const [participant, setParticipant] = useState<Participant | null>(null);
-  const [participantLoading, setParticipantLoading] = useState(false);
-  const [participantError, setParticipantError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
   const [farcasterContextChecked, setFarcasterContextChecked] = useState(false);
   const [contextLoadingTimeout, setContextLoadingTimeout] =
     useState<NodeJS.Timeout | null>(null);
 
-  // Function to refresh participant data (fetch fresh data from API)
-  const refreshParticipant = async () => {
-    if (!participant || !participant.id) return;
+  /**
+   * Refresh user data from the API.
+   */
+  const refreshUser = async () => {
+    if (!user || !user.id) return;
 
-    setParticipantLoading(true);
-    setParticipantError(null);
+    setUserLoading(true);
+    setUserError(null);
 
     try {
-      const response = await fetch(`/api/users?userId=${participant.id}`);
+      const response = await fetch(`/api/users?userId=${user.id}`);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to refresh participant data");
+        throw new Error(error.error || "Failed to refresh user data");
       }
-      const refreshedParticipant = await response.json();
-      setParticipant(refreshedParticipant);
+      const refreshedUser = await response.json();
+      setUser(refreshedUser);
     } catch (error: unknown) {
-      console.error(
-        "[ParticipantProvider] Error refreshing participant:",
-        error,
-      );
-      setParticipantError(
-        error instanceof Error ? error.message : "Unknown error",
-      );
+      console.error("[UserProvider] Error refreshing user:", error);
+      setUserError(error instanceof Error ? error.message : "Unknown error");
     } finally {
-      setParticipantLoading(false);
+      setUserLoading(false);
     }
   };
 
-  // Helper function to create or fetch participant
-  const createOrFetchParticipant = async (payload: unknown) => {
-    setParticipantLoading(true);
-    setParticipantError(null);
+  /**
+   * Helper function to create or fetch a user.
+   */
+  const createOrFetchUser = async (payload: unknown) => {
+    setUserLoading(true);
+    setUserError(null);
 
     try {
       const response = await fetch("/api/participants", {
@@ -83,17 +92,19 @@ export function ParticipantProvider({ children }: ParticipantProviderProps) {
         throw new Error(err.error || "Unknown error");
       }
 
-      const participantData = await response.json();
-      setParticipant(participantData);
+      const userData = await response.json();
+      setUser(userData);
     } catch (err: unknown) {
-      setParticipantError(err instanceof Error ? err.message : "Unknown error");
-      console.error("[ParticipantProvider] Participant onboarding error:", err);
+      setUserError(err instanceof Error ? err.message : "Unknown error");
+      console.error("[UserProvider] User onboarding error:", err);
     } finally {
-      setParticipantLoading(false);
+      setUserLoading(false);
     }
   };
 
-  // Effect for Farcaster context detection and timeout management
+  /**
+   * Effect for Farcaster context detection and timeout management.
+   */
   useEffect(() => {
     // Clear any existing timeout
     if (contextLoadingTimeout) {
@@ -135,28 +146,28 @@ export function ParticipantProvider({ children }: ParticipantProviderProps) {
         "";
 
       // CRITICAL: If we have an fid, this is ALWAYS a Farcaster user, regardless of username extraction
-      if (fid && !participant && !participantLoading) {
+      if (fid && !user && !userLoading) {
         if (!username) {
           console.error(
-            "[ParticipantProvider] WARNING: Farcaster participant has fid but no extractable username!",
+            "[UserProvider] WARNING: Farcaster user has fid but no extractable username!",
           );
           console.error(
-            "[ParticipantProvider] This should not happen - all Farcaster participants should have usernames",
+            "[UserProvider] This should not happen - all Farcaster users should have usernames",
           );
-          console.error("[ParticipantProvider] Available context properties:", {
+          console.error("[UserProvider] Available context properties:", {
             userObj: userObj ? Object.keys(userObj) : "none",
             clientObj: clientObj ? Object.keys(clientObj) : "none",
           });
           // Don't proceed without username for Farcaster users
-          setParticipantError(
-            "Farcaster participant found but username could not be extracted",
+          setUserError(
+            "Farcaster user found but username could not be extracted",
           );
           return;
         }
 
         // Farcaster user found - create/fetch (wallet address will be added later if needed)
         const payload = { fid, username, pfpUrl };
-        createOrFetchParticipant(payload);
+        createOrFetchUser(payload);
       }
     } else {
       // Context is null - set a timeout to wait for it to potentially load
@@ -175,58 +186,57 @@ export function ParticipantProvider({ children }: ParticipantProviderProps) {
         clearTimeout(contextLoadingTimeout);
       }
     };
-  }, [context, participant, participantLoading, farcasterContextChecked]);
+  }, [context, user, userLoading, farcasterContextChecked]);
 
-  // Separate effect to update existing Farcaster user with wallet address when it becomes available
+  /**
+   * Effect to update existing Farcaster user with wallet address when it becomes available.
+   */
   useEffect(() => {
     // Only update if:
     // 1. We have a user (already created/fetched)
     // 2. User has fid (is a Farcaster user)
     // 3. User doesn't have wallet address yet
     // 4. We now have a wallet address
-    if (
-      participant &&
-      participant.fid &&
-      !participant.walletAddress &&
-      walletAddress
-    ) {
+    if (user && user.fid && !user.walletAddress && walletAddress) {
       // Update user with wallet address via PATCH API
       fetch("/api/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: participant.id, walletAddress }),
+        body: JSON.stringify({ userId: user.id, walletAddress }),
       })
         .then((response) => response.json())
         .then((updatedUser) => {
-          setParticipant(updatedUser);
+          setUser(updatedUser);
         })
         .catch((error) => {
           console.error(
-            "[ParticipantProvider] Error updating participant with wallet:",
+            "[UserProvider] Error updating user with wallet:",
             error,
           );
         });
     }
-  }, [participant, walletAddress]);
+  }, [user, walletAddress]);
 
-  // Effect for wallet-only participants (fallback when no Farcaster context after timeout)
+  /**
+   * Effect for wallet-only users (fallback when no Farcaster context after timeout).
+   */
   useEffect(() => {
     // Only proceed if:
     // 1. Wallet is connected
-    // 2. No participant is currently loaded/loading
+    // 2. No user is currently loaded/loading
     // 3. Farcaster context has been checked (either found or timeout reached)
     if (
       !isConnected ||
       !walletAddress ||
-      participant ||
-      participantLoading ||
+      user ||
+      userLoading ||
       !farcasterContextChecked
     ) {
       return;
     }
 
     // CRITICAL: Double-check if we have Farcaster context - if yes, skip wallet-only flow
-    // This prevents Farcaster participants from being created as wallet-only participants
+    // This prevents Farcaster users from being created as wallet-only users
     const hasFarcasterContext =
       context &&
       ((context.user && (context.user as unknown as { fid: number }).fid) ||
@@ -244,30 +254,33 @@ export function ParticipantProvider({ children }: ParticipantProviderProps) {
       return;
     }
 
-    createOrFetchParticipant({ walletAddress });
+    createOrFetchUser({ walletAddress });
   }, [
     isConnected,
     walletAddress,
-    participant,
-    participantLoading,
+    user,
+    userLoading,
     farcasterContextChecked,
     context,
   ]);
 
   return (
-    <ParticipantContext.Provider
+    <UserContext.Provider
       value={{
-        participant,
-        participantLoading,
-        participantError,
-        refreshParticipant,
+        user,
+        userLoading,
+        userError,
+        refreshUser,
       }}
     >
       {children}
-    </ParticipantContext.Provider>
+    </UserContext.Provider>
   );
 }
 
-export function useParticipant() {
-  return useContext(ParticipantContext);
+/**
+ * Custom hook to access user context.
+ */
+export function useUser() {
+  return useContext(UserContext);
 }
