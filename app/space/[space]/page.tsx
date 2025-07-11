@@ -1,4 +1,4 @@
-import AudioRoom from "@/app/components/audioRoom";
+import AudioRoom from "@/app/components/spaceRoom";
 import { ensureRoom, generateAccessToken, livekitWsUrl } from "@/lib/livekit";
 import { randomUUID } from "crypto";
 
@@ -9,13 +9,19 @@ export default async function SpacePage({
   searchParams,
 }: {
   params: { space: string };
-  searchParams: { title?: string };
+  searchParams: { title?: string; fid?: string; username?: string };
 }) {
-  const spaceName = params.space;
+  const { space: spaceName } = params;
+
   console.log("spaceName", spaceName);
   const title = searchParams.title
     ? decodeURIComponent(searchParams.title)
     : undefined;
+
+  console.log("title", title);
+
+  const fid = searchParams.fid ? Number(searchParams.fid) : undefined;
+  const username = searchParams.username;
 
   const userId = randomUUID();
 

@@ -9,7 +9,7 @@ import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
 const {
   LIVEKIT_API_KEY = "",
   LIVEKIT_API_SECRET = "",
-  LIVEKIT_URL = "https://your-subdomain.livekit.cloud",
+  LIVEKIT_URL = "https://spaces.vercel.app",
 } = process.env as Record<string, string>;
 
 if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {

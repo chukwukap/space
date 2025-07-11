@@ -11,9 +11,11 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { SpaceSummary } from "@/lib/types";
+import { useUser } from "./providers/userProvider";
 
 export default function Landing() {
   const router = useRouter();
+  const user = useUser();
   // const [joinId, setJoinId] = useState("");
   const [spaces, setSpaces] = useState<SpaceSummary[]>([
     {
@@ -125,7 +127,9 @@ export default function Landing() {
               onClick={() => {
                 if (!title.trim()) return;
                 const id = crypto.randomUUID();
-                router.push(`/space/${id}?title=${encodeURIComponent(title)}`);
+                router.push(
+                  `/space/${id}?title=${encodeURIComponent(title)}&fid=${user.user?.fid}&username=${user.user?.username}`,
+                );
               }}
               disabled={!title.trim()}
             >
