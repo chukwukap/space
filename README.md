@@ -1,14 +1,14 @@
-# 🎙️ Farcaster Spaces
+# 🎙️ Space
 
 **Talk. Earn. Own it.**  
-Spaces lets you host live audio shows inside Farcaster, turn applause into crypto tips, and grow an audience you actually control.
+Space lets you host live audio shows inside Farcaster, turn applause into crypto tips, and grow an audience you actually control.
 
 ---
 
 ## The Story
 
 Creators have always owned the conversation—until the platform steps between and skims the value.  
-Spaces makes the middleman vanish. Your voice goes straight to your community; their love flows straight to your wallet. No gatekeepers, no ads, no algorithm rolling the dice on your reach.
+Space makes the middleman vanish. Your voice goes straight to your community; their love flows straight to your wallet. No gatekeepers, no ads, no algorithm rolling the dice on your reach.
 
 > "In my first Space I made more in 30 minutes than a month of ad revenue." – **@0xPodcast**
 
@@ -16,7 +16,7 @@ Spaces makes the middleman vanish. Your voice goes straight to your community; t
 
 ## Motivation
 
-Big platforms keep the profits and the people. Spaces flips the script by putting **wallet-to-wallet rewards** and **portable audiences** into the hands of every host.
+Big platforms keep the profits and the people. Space flips the script by putting **wallet-to-wallet rewards** and **portable audiences** into the hands of every host.
 
 ---
 
@@ -57,7 +57,7 @@ Big platforms keep the profits and the people. Spaces flips the script by puttin
 
 ## How It Works (30-Second Version)
 
-1. Spaces launches a live audio room.
+1. Space launches a live audio room.
 2. A Farcaster Frame appears in everyone’s feed with _Join_ & _Tip_ buttons.
 3. Listeners drop emojis; each emoji equals a tiny crypto tip.
 4. Bigger supporters send direct tips without leaving the Frame.
