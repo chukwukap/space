@@ -1,5 +1,6 @@
 import { roomService as spaceService } from "@/lib/livekit";
 import { SpaceSummary } from "@/lib/types";
+import { prisma } from "@/lib/prisma";
 
 export const revalidate = 0;
 
@@ -31,4 +32,54 @@ export async function GET() {
   );
 
   return Response.json(data);
+}
+
+export async function POST(request: Request) {
+  try {
+    const {
+      title,
+      hostId,
+      recording = false,
+    } = (await request.json()) as {
+      title?: string;
+      hostId?: number;
+      recording?: boolean;
+    };
+
+    if (!title || !hostId) {
+      return new Response(
+        JSON.stringify({ error: "title and hostId required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const id = crypto.randomUUID();
+
+    // Ensure LiveKit room exists
+    await spaceService.createRoom({ name: id, metadata: title });
+
+    // Persist in DB
+    const space = await prisma.space.create({
+      data: {
+        id,
+        title,
+        hostId,
+        recording,
+        status: "LIVE",
+      },
+    });
+
+    return new Response(JSON.stringify(space), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("[POST /api/spaces]", error);
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 }
