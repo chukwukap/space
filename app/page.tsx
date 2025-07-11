@@ -2,19 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon } from "./components/DemoComponents";
-import dynamic from "next/dynamic";
+import { Icon, Button } from "./components/DemoComponents";
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { SpaceSummary } from "@/lib/types";
-const CreateSpaceSheet = dynamic(
-  () => import("./components/CreateSpaceSheet"),
-  { ssr: false },
-);
 
 export default function Landing() {
   const router = useRouter();
   // const [joinId, setJoinId] = useState("");
   const [spaces, setSpaces] = useState<SpaceSummary[]>([]);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  // Drawer-controlled form state
+  const [title, setTitle] = useState("");
+  const [record, setRecord] = useState(false);
 
   /* ----------------------------------------- */
   /* Fetch live spaces list every 5 s          */
@@ -89,15 +93,51 @@ export default function Landing() {
         ))}
       </section>
 
-      {/* Floating “create” button */}
-      <button
-        className="absolute bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl"
-        onClick={() => setSheetOpen(true)}
-      >
-        <Icon name="plus" className="w-7 h-7" />
-      </button>
+      {/* Create Space Drawer */}
+      <Drawer shouldScaleBackground>
+        <DrawerTrigger asChild>
+          <button className="absolute bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl">
+            <Icon name="plus" className="w-7 h-7" />
+          </button>
+        </DrawerTrigger>
 
-      {sheetOpen && <CreateSpaceSheet onClose={() => setSheetOpen(false)} />}
+        <DrawerContent className="bg-[var(--app-background)] pb-8 px-6">
+          {/* Drag handle */}
+          <div className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-gray-500/40" />
+
+          <DrawerHeader className="text-center mb-4">
+            <DrawerTitle>Create your Space</DrawerTitle>
+          </DrawerHeader>
+
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="What do you want to talk about?"
+            className="w-full px-4 py-2 rounded-lg border bg-transparent mb-4"
+          />
+
+          <label className="flex items-center gap-2 mb-6 cursor-pointer select-none text-sm">
+            <input
+              type="checkbox"
+              checked={record}
+              onChange={(e) => setRecord(e.target.checked)}
+            />
+            Record this Space (coming soon)
+          </label>
+
+          <Button
+            className="w-full"
+            onClick={() => {
+              if (!title.trim()) return;
+              const id = crypto.randomUUID();
+              router.push(`/space/${id}?title=${encodeURIComponent(title)}`);
+            }}
+            disabled={!title.trim()}
+          >
+            Start your Space
+          </Button>
+        </DrawerContent>
+      </Drawer>
 
       <nav className="absolute bottom-0 left-0 w-full bg-black border-t border-white/10 flex justify-around items-center py-2 z-10 max-w-lg mx-auto">
         <NavButton icon="star" label="Home" />
