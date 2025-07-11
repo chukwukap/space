@@ -29,7 +29,7 @@ const SPACES: SpaceSummary[] = [
     hostName: "Wen ALTseason?",
     hostRole: "Host",
     hostBio:
-      "Squad of Chads | Masters of MEMEs, Virality, Altcoins and Marketing. We’ve worked with 3…",
+      "Squad of Chads | Masters of MEMEs, Virality, Altcoins and Marketing. We've worked with 3…",
     avatars: ["/public/icon.png", "/public/hero.png"],
   },
   {

@@ -1,13 +1,9 @@
 "use client";
 import { useRouter } from "next/navigation";
+import { SpaceSummary } from "@/lib/types";
 
 interface SpaceCardProps {
-  space: {
-    name: string;
-    title?: string;
-    participants: number;
-    identities?: string[]; // up to 3 participant identities for avatars
-  };
+  space: SpaceSummary;
 }
 
 // Derive a deterministic background colour from a string (simple hash)
@@ -37,7 +33,7 @@ export default function SpaceCard({ space }: SpaceCardProps) {
   return (
     <div
       className="bg-violet-600/90 hover:bg-violet-600 transition-colors rounded-2xl p-4 shadow-md text-white cursor-pointer"
-      onClick={() => router.push(`/space/${space.name}`)}
+      onClick={() => router.push(`/space/${space.id}`)}
     >
       <div className="text-xs uppercase mb-2 flex items-center gap-1">
         <span className="inline-block w-1 h-1 rounded-full bg-red-500 animate-pulse" />
@@ -48,8 +44,8 @@ export default function SpaceCard({ space }: SpaceCardProps) {
       </h3>
       <div className="flex items-center gap-2 text-sm">
         <div className="flex -space-x-2">
-          {(space.identities && space.identities.length > 0
-            ? space.identities
+          {(space.avatars && space.avatars.length > 0
+            ? space.avatars
             : ["", "", ""]
           )
             .slice(0, 3)
@@ -64,7 +60,7 @@ export default function SpaceCard({ space }: SpaceCardProps) {
               ),
             )}
         </div>
-        <span>{space.participants} listening</span>
+        <span>{space.listeners} listening</span>
       </div>
     </div>
   );
