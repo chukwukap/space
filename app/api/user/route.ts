@@ -1,550 +1,178 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateUsername } from "@/lib/utils";
-import { Prisma } from "@prisma/client";
 
-// Utility to deeply convert BigInt values to strings
-function deepBigIntToString(obj: unknown): unknown {
-  if (typeof obj === "bigint") return obj.toString();
-  if (Array.isArray(obj)) return obj.map(deepBigIntToString);
-  if (obj && typeof obj === "object") {
-    return Object.fromEntries(
-      Object.entries(obj).map(([k, v]) => [k, deepBigIntToString(v)]),
-    );
-  }
-  return obj;
+/* ------------------------------------------------------------------ */
+/* Helpers                                                             */
+/* ------------------------------------------------------------------ */
+function sanitizeString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value : undefined;
 }
 
+/* ------------------------------------------------------------------ */
+/* GET /api/user                                                       */
+/* ------------------------------------------------------------------ */
+// Query params supported: id, fid, address, username
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
+    const id = sanitizeString(searchParams.get("id"));
+    const fid = sanitizeString(searchParams.get("fid"));
+    const address = sanitizeString(searchParams.get("address"));
+    const username = sanitizeString(searchParams.get("username"));
 
-    if (!userId) {
+    if (!id && !fid && !address && !username) {
       return NextResponse.json(
-        { error: "userId is required" },
+        { error: "Provide one of id, fid, address or username" },
         { status: 400 },
       );
     }
 
-    // Fetch user with tips included
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        tips: {
-          include: {
-            novel: {
-              select: {
-                id: true,
-                title: true,
-              },
-            },
-            chapter: {
-              select: {
-                id: true,
-                title: true,
-              },
-            },
-          },
-          orderBy: {
-            date: "desc",
-          },
-          take: 5,
+    const ors: unknown[] = [];
+    if (id) ors.push({ id: Number(id) });
+    if (fid) ors.push({ fid: Number(fid) });
+    if (address) ors.push({ address: address.toLowerCase() });
+    if (username)
+      ors.push({
+        username: {
+          equals: username,
+          mode: "insensitive",
         },
-      },
+      });
+
+    const user = await prisma.user.findFirst({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      where: { OR: ors as any },
+      include: { tipsSent: true, tipsReceived: true },
     });
 
-    if (!user) {
+    if (!user)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error("[GET /api/user]", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* POST /api/user                                                      */
+/* ------------------------------------------------------------------ */
+// Upsert user. Accepts: fid, address, username, avatarUrl, displayName
+export async function POST(req: NextRequest) {
+  try {
+    const { fid, address, username, avatarUrl, displayName } = await req.json();
+
+    if (!fid && !address && !username) {
+      return NextResponse.json(
+        {
+          error:
+            "At least one unique identifier (fid, address or username) required",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Normalise address to lowercase
+    const normAddress: string | undefined = address
+      ? address.toLowerCase()
+      : undefined;
+
+    // Try to locate existing user
+    const ors2: unknown[] = [];
+    if (fid) ors2.push({ fid: Number(fid) });
+    if (normAddress) ors2.push({ address: normAddress });
+    if (username)
+      ors2.push({
+        username: {
+          equals: username,
+          mode: "insensitive",
+        },
+      });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing = await prisma.user.findFirst({
+      where: { OR: ors2 as any },
+    });
+
+    let user: unknown;
+    if (existing) {
+      user = await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          avatarUrl: sanitizeString(avatarUrl),
+          displayName: sanitizeString(displayName),
+          address: normAddress ?? existing.address,
+          username: username ?? existing.username,
+        },
+        include: { tipsSent: true, tipsReceived: true },
+      });
+    } else {
+      user = await prisma.user.create({
+        data: {
+          fid: fid ? Number(fid) : undefined,
+          address: normAddress,
+          username,
+          displayName: sanitizeString(displayName),
+          avatarUrl: sanitizeString(avatarUrl),
+        },
+        include: { tipsSent: true, tipsReceived: true },
+      });
     }
 
     return NextResponse.json(user);
   } catch (error) {
-    console.error("[GET /api/users] Error:", error);
+    console.error("[POST /api/user]", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const { fid, username, pfpUrl, walletAddress, usernames, userIds } =
-      await req.json();
-
-    // Batch user profile fetch by userIds
-    if (Array.isArray(userIds)) {
-      const users = await prisma.user.findMany({
-        where: {
-          id: { in: userIds },
-        },
-        select: {
-          id: true,
-          username: true,
-          pfpUrl: true,
-        },
-      });
-      return NextResponse.json(users);
-    }
-
-    // Batch user profile fetch by usernames (case-insensitive)
-    if (Array.isArray(usernames)) {
-      const users = await prisma.user.findMany({
-        where: {
-          username: {
-            in: usernames,
-            mode: "insensitive",
-          },
-        },
-        select: {
-          id: true,
-          username: true,
-          pfpUrl: true,
-        },
-      });
-      return NextResponse.json(users);
-    }
-
-    // Validate input: either (fid AND username) OR walletAddress must be provided
-    if ((!fid || !username) && !walletAddress) {
-      return NextResponse.json(
-        {
-          error: "Either (fid and username) or walletAddress is required",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Helper function to check wallet address uniqueness
-    const checkWalletAddressUniqueness = async (
-      addressToCheck: string,
-    ): Promise<boolean> => {
-      const existingUser = await prisma.user.findFirst({
-        where: { walletAddress: addressToCheck },
-      });
-      return !existingUser; // Returns true if wallet address is unique
-    };
-
-    let user = null;
-
-    // First, try to find user by fid if provided (most specific)
-    if (fid) {
-      user = await prisma.user.findUnique({
-        where: { fid: Number(fid) },
-        include: {
-          tips: {
-            include: {
-              novel: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-              chapter: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-            },
-            orderBy: {
-              date: "desc",
-            },
-            take: 5,
-          },
-        },
-      });
-    }
-
-    // If no user found by fid, try by walletAddress
-    if (!user && walletAddress) {
-      user = await prisma.user.findFirst({
-        where: { walletAddress: walletAddress },
-        include: {
-          tips: {
-            include: {
-              novel: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-              chapter: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-            },
-            orderBy: {
-              date: "desc",
-            },
-            take: 5,
-          },
-        },
-      });
-    }
-
-    // If no user found by fid or walletAddress, try by username as fallback
-    if (!user && username) {
-      user = await prisma.user.findUnique({
-        where: { username: username },
-        include: {
-          tips: {
-            include: {
-              novel: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-              chapter: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-            },
-            orderBy: {
-              date: "desc",
-            },
-            take: 5,
-          },
-        },
-      });
-    }
-
-    // Handle existing user without wallet address - update with current wallet
-    if (user && !user.walletAddress && walletAddress) {
-      // Check if this wallet address is already associated with another user
-      const isWalletUnique = await checkWalletAddressUniqueness(walletAddress);
-      if (!isWalletUnique) {
-        const conflictingUser = await prisma.user.findFirst({
-          where: { walletAddress: walletAddress },
-        });
-        return NextResponse.json(
-          {
-            error:
-              "This wallet address is already associated with another user",
-            conflictingUser: {
-              id: conflictingUser?.id,
-              username: conflictingUser?.username,
-            },
-          },
-          { status: 409 },
-        );
-      }
-
-      // Update user with wallet address
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { walletAddress: walletAddress },
-        include: {
-          tips: {
-            include: {
-              novel: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-              chapter: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-            },
-            orderBy: {
-              date: "desc",
-            },
-            take: 5,
-          },
-        },
-      });
-    }
-
-    // If user exists, return them (no need to create)
-    if (user) {
-      return NextResponse.json(user);
-    }
-
-    // If not found, create the user
-    const userData: Record<string, unknown> = {};
-
-    // Handle Farcaster user creation
-    if (fid && username) {
-      // Double-check that fid doesn't exist before creating
-      const existingUserWithFid = await prisma.user.findUnique({
-        where: { fid: Number(fid) },
-      });
-
-      if (existingUserWithFid) {
-        return NextResponse.json(existingUserWithFid);
-      }
-
-      userData.fid = Number(fid);
-      userData.username = username;
-      if (pfpUrl) userData.pfpUrl = pfpUrl;
-      if (walletAddress) {
-        // Check wallet address uniqueness before creating
-        const isWalletUnique =
-          await checkWalletAddressUniqueness(walletAddress);
-        if (!isWalletUnique) {
-          const conflictingUser = await prisma.user.findFirst({
-            where: { walletAddress: walletAddress },
-          });
-          return NextResponse.json(
-            {
-              error:
-                "This wallet address is already associated with another user",
-              conflictingUser: {
-                id: conflictingUser?.id,
-                username: conflictingUser?.username,
-              },
-            },
-            { status: 409 },
-          );
-        }
-        userData.walletAddress = walletAddress;
-      }
-    }
-    // Handle wallet-only user creation
-    else if (walletAddress) {
-      // Check wallet address uniqueness before creating
-      const isWalletUnique = await checkWalletAddressUniqueness(walletAddress);
-      if (!isWalletUnique) {
-        const conflictingUser = await prisma.user.findFirst({
-          where: { walletAddress: walletAddress },
-        });
-        return NextResponse.json(
-          {
-            error:
-              "This wallet address is already associated with another user",
-            conflictingUser: {
-              id: conflictingUser?.id,
-              username: conflictingUser?.username,
-            },
-          },
-          { status: 409 },
-        );
-      }
-
-      userData.walletAddress = walletAddress;
-      // Generate unique username for wallet-only user
-      try {
-        userData.username = generateUsername();
-      } catch (error) {
-        console.error("[POST /api/users] Username generation failed:", error);
-        return NextResponse.json(
-          {
-            error: "Failed to generate unique username",
-          },
-          { status: 500 },
-        );
-      }
-    }
-
-    try {
-      const newUser = await prisma.user.create({
-        data: userData,
-      });
-
-      // Fetch the created user with tips included
-      user = await prisma.user.findUnique({
-        where: { id: newUser.id },
-        include: {
-          tips: {
-            include: {
-              novel: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-              chapter: {
-                select: {
-                  id: true,
-                  title: true,
-                },
-              },
-            },
-            orderBy: {
-              date: "desc",
-            },
-            take: 5,
-          },
-        },
-      });
-    } catch (error: Prisma.PrismaClientKnownRequestError) {
-      // Handle unique constraint violations specifically
-      if (error.code === "P2002" && error.meta?.target?.includes("fid")) {
-        // If there's a unique constraint violation on fid, fetch the existing user
-        const existingUser = await prisma.user.findUnique({
-          where: { fid: Number(fid) },
-          include: {
-            tips: {
-              include: {
-                novel: {
-                  select: {
-                    id: true,
-                    title: true,
-                  },
-                },
-                chapter: {
-                  select: {
-                    id: true,
-                    title: true,
-                  },
-                },
-              },
-              orderBy: {
-                date: "desc",
-              },
-              take: 5,
-            },
-          },
-        });
-
-        if (existingUser) {
-          return NextResponse.json(existingUser);
-        }
-      }
-
-      // Re-throw if it's not a fid constraint violation or if user still not found
-      throw error;
-    }
-
-    const response = NextResponse.json(user);
-    return response;
-  } catch (error) {
-    console.error("[POST /api/users] Error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
-    );
-  }
-}
-
+/* ------------------------------------------------------------------ */
+/* PATCH /api/user                                                     */
+/* ------------------------------------------------------------------ */
+// Accepts userId and fields to update (address, avatarUrl, displayName, username)
 export async function PATCH(req: NextRequest) {
   try {
-    const {
-      userId,
-      spendLimit,
-      chapterTipAmount,
-      novelId,
-      spendPermission,
-      spendPermissionSignature,
-      walletAddress,
-      hasAddedMiniapp,
-    } = await req.json();
+    const { userId, address, avatarUrl, displayName, username } =
+      await req.json();
 
-    if (!userId) {
+    if (!userId)
       return NextResponse.json(
         { error: "userId is required" },
         { status: 400 },
       );
-    }
 
-    // Helper function to check wallet address uniqueness
-    const checkWalletAddressUniqueness = async (
-      addressToCheck: string,
-      excludeUserId: string,
-    ): Promise<boolean> => {
-      const existingUser = await prisma.user.findFirst({
-        where: {
-          walletAddress: addressToCheck,
-          id: { not: excludeUserId }, // Exclude current user
-        },
-      });
-      return !existingUser; // Returns true if wallet address is unique
-    };
+    const data: Record<string, unknown> = {};
+    if (address) data.address = (address as string).toLowerCase();
+    if (avatarUrl) data.avatarUrl = sanitizeString(avatarUrl);
+    if (displayName) data.displayName = sanitizeString(displayName);
+    if (username) data.username = username;
 
-    // Find the user
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Build update data
-    const updateData: Record<string, unknown> = {};
-    if (typeof spendLimit === "number") {
-      updateData.spendLimit = spendLimit;
-    }
-    if (typeof chapterTipAmount === "number") {
-      updateData.chapterTipAmount = chapterTipAmount;
-    }
-    if (typeof hasAddedMiniapp === "boolean") {
-      updateData.hasAddedMiniapp = hasAddedMiniapp;
-    }
-    if (spendPermission) {
-      const safePermission = deepBigIntToString(spendPermission);
-      updateData.spendPermission = safePermission;
-    }
-    if (spendPermissionSignature) {
-      updateData.spendPermissionSignature = spendPermissionSignature;
-    }
-    if (walletAddress) {
-      // Check if this wallet address is already associated with another user
-      const isWalletUnique = await checkWalletAddressUniqueness(
-        walletAddress,
-        userId,
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json(
+        { error: "No valid fields to update" },
+        { status: 400 },
       );
-      if (!isWalletUnique) {
-        const conflictingUser = await prisma.user.findFirst({
-          where: {
-            walletAddress: walletAddress,
-            id: { not: userId }, // Exclude current user
-          },
-        });
-        return NextResponse.json(
-          {
-            error:
-              "This wallet address is already associated with another user",
-            conflictingUser: {
-              id: conflictingUser?.id,
-              username: conflictingUser?.username,
-            },
-          },
-          { status: 409 },
-        );
-      }
-
-      updateData.walletAddress = walletAddress;
     }
 
-    let updatedUser = user;
-    if (Object.keys(updateData).length > 0) {
-      try {
-        updatedUser = await prisma.user.update({
-          where: { id: userId },
-          data: updateData,
-        });
-      } catch (updateError) {
-        console.error(
-          "[PATCH /api/users] Prisma update error details:",
-          updateError,
-        );
-        throw updateError; // Re-throw to trigger the outer catch
-      }
-    }
+    const updated = await prisma.user.update({
+      where: { id: Number(userId) },
+      data,
+    });
 
-    // Optionally handle bookmarks (legacy)
-    if (novelId) {
-      if (!user.bookmarks.includes(novelId)) {
-        updatedUser = await prisma.user.update({
-          where: { id: userId },
-          data: { bookmarks: { push: novelId } },
-        });
-      }
-    }
-
-    return NextResponse.json(updatedUser);
-  } catch (e) {
-    console.error("[PATCH /api/users] Error:", e);
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("[PATCH /api/user]", error);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Unknown error" },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }
