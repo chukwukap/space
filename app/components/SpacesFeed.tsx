@@ -1,6 +1,13 @@
 "use client";
 
 import { Icon } from "./DemoComponents";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+const CreateSpaceSheet = dynamic(() => import("./CreateSpaceSheet"), {
+  ssr: false,
+});
 
 interface SpaceSummary {
   id: string;
@@ -37,6 +44,13 @@ const SPACES: SpaceSummary[] = [
 ];
 
 export default function SpacesFeed() {
+  const router = useRouter();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const handleCardClick = (id: string) => {
+    router.push(`/space/${id}`);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-black text-white pb-16">
       <Header />
@@ -50,17 +64,23 @@ export default function SpacesFeed() {
       {/* Live space cards */}
       <section className="mt-6 space-y-6 px-4 flex-1 overflow-y-auto">
         {SPACES.map((s) => (
-          <SpaceCard key={s.id} space={s} />
+          <SpaceCard
+            key={s.id}
+            space={s}
+            onClick={() => handleCardClick(s.id)}
+          />
         ))}
       </section>
 
       {/* Floating “create” button */}
       <button
         className="fixed bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl"
-        // TODO: open create sheet
+        onClick={() => setSheetOpen(true)}
       >
         <Icon name="plus" className="w-7 h-7" />
       </button>
+
+      {sheetOpen && <CreateSpaceSheet onClose={() => setSheetOpen(false)} />}
 
       <BottomNav />
     </div>
@@ -76,11 +96,17 @@ function Header() {
   );
 }
 
-function SpaceCard({ space }: { space: SpaceSummary }) {
+function SpaceCard({
+  space,
+  onClick,
+}: {
+  space: SpaceSummary;
+  onClick: () => void;
+}) {
   return (
     <article
       className="rounded-2xl bg-violet-600/90 hover:bg-violet-600 transition-colors p-4 space-y-4"
-      // TODO: onClick navigate to room
+      onClick={onClick}
     >
       <div className="flex items-center gap-2 text-xs uppercase font-semibold">
         <Icon name="mic" className="text-white/70" />

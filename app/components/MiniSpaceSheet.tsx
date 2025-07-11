@@ -61,7 +61,8 @@ export default function MiniSpaceSheet({
         </div>
 
         {/* title */}
-        <h3 className="text-lg font-semibold mb-4 leading-snug text-white">
+        <h3 className="flex items-center gap-2 text-lg font-semibold mb-4 leading-snug text-white">
+          <PencilIcon className="w-5 h-5 text-gray-400" />
           {title}
         </h3>
 
@@ -184,6 +185,25 @@ function DotsVerticalIcon({ className = "w-5 h-5" }: { className?: string }) {
       <circle cx="12" cy="5" r="2" />
       <circle cx="12" cy="12" r="2" />
       <circle cx="12" cy="19" r="2" />
+    </svg>
+  );
+}
+
+function PencilIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth="2"
+      stroke="currentColor"
+      className={className}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.862 3.487l2.651 2.65a1.5 1.5 0 010 2.122l-9.193 9.194a3 3 0 01-1.06.662l-3.378 1.125a.75.75 0 01-.949-.949l1.125-3.378a3 3 0 01.662-1.06l9.193-9.193a1.5 1.5 0 012.122 0z"
+      />
     </svg>
   );
 }
