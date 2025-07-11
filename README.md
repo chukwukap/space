@@ -1,134 +1,88 @@
-# 🎙️ Farcaster Spaces – Audio Rooms, Tipping & Frames
+# Farcaster Spaces: Host & Tip Audio Rooms on Farcaster
 
-> A Twitter-Spaces experience rebuilt for the Farcaster social graph. Start live audio rooms, invite speakers, tip hosts – all from inside Warpcast Frames.
+Farcaster Spaces is a mini-app that lets anyone start **live audio rooms** (like Twitter Spaces) inside Warpcast and tip hosts or speakers directly—on-chain, transparently, with creator-first economics. Built for the Base Hackathon, Spaces reimagines live social audio by leveraging **LiveKit**, **Base MiniKit** tipping contracts, and deep **Farcaster Frames** integration.
 
-## ✨ Features
+## Motivation
 
-|                           |                                                                                         |
-| ------------------------- | --------------------------------------------------------------------------------------- |
-| 🟣 **Start a Space**      | One click to create a LiveKit room and broadcast the link (or Frame) to Farcaster.      |
-| 🎧 **Join & Speak**       | Listeners become speakers with on-chain mic requests.                                   |
-| 💸 **Tipping**            | Send USDC (or any ERC-20) tips to hosts & speakers via Base MiniKit – gasless optional. |
-| ❤️ **Reactions**          | Emoji reactions double as micro-tips (e.g. $0.05).                                      |
-| 🎞 **Frames Integration** | “Join”, “Tip” & live metadata rendered directly in Warpcast.                            |
-| 🔔 **Notifications**      | Optional push when followed hosts go live (Upstash Redis).                              |
+Today’s social-audio platforms are closed, ad-driven, and take a large cut from creators:
 
-## 🏗 Tech Stack
+- No native crypto rails for direct support
+- Limited reach outside the walled garden
+- Centralised infra and opaque algorithms
 
-| Layer          | Tech                                                                       |
-| -------------- | -------------------------------------------------------------------------- |
-| Realtime Media | **LiveKit Cloud**, `livekit-client`, `@livekit/components-react`           |
-| Web Framework  | **Next.js 15** (App Router, RSC)                                           |
-| UI & Styling   | Tailwind CSS 3, Radix UI, Vaul Drawer                                      |
-| Wallet / Chain | `wagmi`, `viem`, **Base MiniKit**                                          |
-| Farcaster      | `@farcaster/frame-sdk`, **OnchainKit**                                     |
-| Data           | **Prisma + Postgres** (users, spaces, tips), Upstash Redis (notifications) |
+**Farcaster Spaces** fixes this by running on open protocols (Frames + EVM), enabling direct wallet-to-wallet tips, and giving hosts full ownership over their audience and content.
 
-## 🔃 Architecture Diagram
+## Key Features
 
-```mermaid
-flowchart TD
-  A[Warpcast Frame] -->|Join / Tip| B(Next.js API Route)
-  B --> C[LiveKit Cloud]
-  B --> D[(Postgres + Prisma)]
-  B --> E[[Base MiniKit Contracts]]
-  B --> F[Upstash Redis]
-  C --> G[Client Room UI]
-```
+- **Start a Space Instantly:** Create a LiveKit room and share the join Frame in one tap.
+- **Join & Speak:** Listeners can request the mic; hosts approve on-chain.
+- **Wallet-Based Tipping:** Send USDC (or any ERC-20) tips to hosts/speakers via Base MiniKit.
+- **Reactions = Micro-Tips:** Hearts, laughs, 🔥 all map to small preset tip amounts.
+- **Invite Drawer:** Search & invite Farcaster friends without leaving the room.
+- **Notifications:** Followers get an optional push when a host they follow goes live.
 
-## 🚀 Quick Start
+## User Flow
 
-```bash
-# 1. Install deps (pnpm preferred)
-pnpm install
+1. **Add Spaces to Farcaster:** User opens the mini-app and adds it to their sidebar.
+2. **Configure Wallet Permissions:** User grants spend permissions for tipping (optional).
+3. **Start a Space:** Set a title → Creates LiveKit room + Frame link.
+4. **Invite & Speak:** Host invites friends; listeners request to speak.
+5. **Tip & React:** Audience tips or reacts (micro-tips) during the show.
+6. **Leave & Settle:** When the host ends the Space funds are already in their wallet.
 
-# 2. Configure environment
-cp .env.example .env.local  # & fill values (see below)
+## Data Model
 
-# 3. Generate Prisma client & DB
-pnpm prisma migrate dev --name init
+- **User**
+  - fid (Farcaster)
+  - wallet `address`
+  - `displayName`, `avatarUrl`
+  - `hostedSpaces`, `participants`
+  - `tipsSent`, `tipsReceived`
+- **Space**
+  - `id` (UUID)
+  - `title`, `status`, `recording`
+  - `hostId → User`
+  - `participants`, `tips`, `reactions`
+- **Participant**
+  - `spaceId`, `userId`
+  - `role` (HOST / SPEAKER / LISTENER)
+  - `joinedAt`, `leftAt`
+- **Tip**
+  - `fromId`, `toId`, `spaceId`
+  - `amount`, `tokenSymbol`, `txHash`
+- **Reaction**
+  - `userId`, `spaceId`, `type`, `tipId?`
 
-# 4. Run dev server
-pnpm dev
-# ➜ http://localhost:3000
-```
+See `prisma/schema.prisma` for the full schema.
 
-### `.env.local` Template
+## Tech Stack
 
-```dotenv
-# — LiveKit —
-LIVEKIT_URL=https://your-project.livekit.cloud
-LIVEKIT_API_KEY=lk_...
-LIVEKIT_API_SECRET=...
-NEXT_PUBLIC_LIVEKIT_WS_URL=wss://your-project.livekit.cloud
+- **Frontend:** Next.js 15, React Server Components, Tailwind CSS, Radix UI
+- **Realtime Audio:** LiveKit Cloud, `@livekit/components-react`
+- **Blockchain:** Base MiniKit contracts, wagmi, viem
+- **Backend/Data:** PostgreSQL + Prisma, Upstash Redis (notifications)
+- **Other:** Farcaster Frames (OnchainKit), Vaul Drawer UX, ESLint + Prettier
 
-# — Database —
-DATABASE_URL=postgresql://user:pass@localhost:5432/spaces
+## Getting Started
 
-# — Base MiniKit / OnchainKit —
-NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME=Farcaster Spaces
-NEXT_PUBLIC_URL=http://localhost:3000
-NEXT_PUBLIC_ICON_URL=https://yourcdn/icon.png
-NEXT_PUBLIC_ONCHAINKIT_API_KEY=...
+1. **Install dependencies:**
+   ```sh
+   pnpm install
+   ```
+2. **Run database migrations & generate client:**
+   ```sh
+   pnpm prisma migrate dev --name init
+   ```
+3. **Run the development server:**
+   ```sh
+   pnpm dev
+   ```
+4. **Open in browser:** Visit <http://localhost:3000> and click **Start a Space**.
 
-# Frame account-association headers (generated via `npx create-onchain --manifest`)
-FARCASTER_HEADER=
-FARCASTER_PAYLOAD=
-FARCASTER_SIGNATURE=
+## Extending the Project
 
-# — Redis (optional) —
-REDIS_URL=
-REDIS_TOKEN=
-```
-
-## 📂 Project Structure
-
-```
-miniapp/
-├─ app/                 # Next.js routes (RSC + client)
-│  ├─ page.tsx          # Landing – Live list & CTA
-│  ├─ space/[id]/       # In-room UI (LiveKit)
-│  └─ api/              # Serverless endpoints
-│     ├─ livekit/       # Token issuing
-│     ├─ spaces/        # Fetch live rooms
-│     ├─ user/          # User CRUD
-│     └─ ...
-├─ components/          # Reusable UI (drawer, buttons)
-├─ lib/                 # Server / client helpers
-├─ prisma/              # Schema & migrations
-├─ public/              # Images / OG assets
-└─ tailwind.config.ts
-```
-
-## 🛠 Scripts
-
-| Command                   | Purpose                               |
-| ------------------------- | ------------------------------------- |
-| `pnpm dev`                | Start local dev server (Hot Reloader) |
-| `pnpm build`              | Production build                      |
-| `pnpm start`              | Run built app                         |
-| `pnpm prisma migrate dev` | Run new DB migration                  |
-| `pnpm lint`               | ESLint + Prettier                     |
-
-## 🔐 Security Notes
-
-1. **Never** expose `LIVEKIT_API_SECRET` to the client – token generation stays server-side.
-2. Rate-limit critical endpoints (`/api/livekit`, tipping) in production.
-3. Use Vercel/Cloudflare secrets for env management.
-4. Sanitize user-generated content and follow OWASP best practices.
-
-## 🛣 Roadmap
-
-- [x] MVP: start/join spaces, invite sheet, tipping schema
-- [ ] Full tipping workflow via Base MiniKit
-- [ ] OG Frame image with live listeners count
-- [ ] Host analytics dashboard
-- [ ] Mobile PWA wrapper (Expo)
-
-## 🤝 Contributing
-
-PRs & issues are welcome – feel free to open one! Please follow the Airbnb + Prettier ESLint rules and commit with Conventional Commits.
-
-## 📝 License
-
-MIT © 2025 Farcaster Spaces contributors
+- Integrate gasless tips via Base’s relayer.
+- Add live listener count to OG Frame image.
+- Implement host analytics (top tippers, time-in-room).
+- Ship a mobile PWA wrapper for native push and background audio.
+- Enable token-gated rooms (NFT or ERC-20 holders).
