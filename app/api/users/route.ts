@@ -115,9 +115,9 @@ export async function POST(req: NextRequest) {
     } else {
       user = await prisma.user.create({
         data: {
-          fid: fid ? Number(fid) : undefined,
-          address: normAddress,
-          username,
+          fid: fid ? Number(fid) : 0,
+          address: normAddress ?? "",
+          username: username ?? "",
           displayName: sanitizeString(displayName),
           avatarUrl: sanitizeString(avatarUrl),
         },
