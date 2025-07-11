@@ -3,12 +3,20 @@ import "@coinbase/onchainkit/styles.css";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { Header } from "./components/header";
+import { BottomNav } from "./components/bottomNav";
 
+/**
+ * Set viewport for responsive design.
+ */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
 };
 
+/**
+ * Generate metadata for the app.
+ */
 export async function generateMetadata(): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_URL;
   return {
@@ -35,15 +43,49 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+/**
+ * RootLayout component for the app.
+ * - Header is sticky and auto-hides on scroll up, shows on scroll down (like Twitter app).
+ * - Bottom nav is sticky and auto-hides on scroll down, shows on scroll up (like Twitter app).
+ * - Prevents scrollbars from showing using TailwindCSS utilities.
+ * - Makes the main content scrollable, but hides scrollbars for a native app feel.
+ * - Security: No sensitive data is exposed in layout.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="bg-background">
-        <Providers>{children}</Providers>
+    <html lang="en" className="overscroll-none">
+      <body className="bg-gray-900 overscroll-none">
+        <Providers>
+          <div className="flex flex-col min-h-svh max-w-lg mx-auto bg-black text-white h-svh relative">
+            {/* Sticky, auto-hiding header in its own client component */}
+            <Header />
+            {/* Main scrollable content area with hidden scrollbars */}
+            <main
+              className="flex-1 overflow-y-auto scrollbar-none overscroll-none"
+              style={{
+                // Hide scrollbars for all browsers
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
+            >
+              {/* Hide scrollbars for Webkit browsers */}
+              <style>
+                {`
+                  .scrollbar-none::-webkit-scrollbar {
+                    display: none;
+                  }
+                `}
+              </style>
+              {children}
+            </main>
+            {/* Sticky, auto-hiding bottom navigation bar in its own client component */}
+            <BottomNav />
+          </div>
+        </Providers>
       </body>
     </html>
   );

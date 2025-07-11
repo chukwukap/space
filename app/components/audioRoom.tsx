@@ -156,7 +156,7 @@ function SpacesLayout() {
  * expose your LiveKit API key/secret on the client.
  */
 export default function AudioRoom({ token, serverUrl, title }: AudioRoomProps) {
-  const [inviteOpen, setInviteOpen] = useState(false);
+  // const [inviteOpen, setInviteOpen] = useState(false);
   return (
     <LiveKitRoom
       token={token}
@@ -167,9 +167,9 @@ export default function AudioRoom({ token, serverUrl, title }: AudioRoomProps) {
     >
       <Header title={title} />
       <SpacesLayout />
-      {inviteOpen && <InviteSheet onClose={() => setInviteOpen(false)} />}
+      {/* {inviteOpen && <InviteSheet onClose={() => setInviteOpen(false)} />} */}
       <RoomAudioRenderer />
-      <BottomBar onInvite={() => setInviteOpen(true)} />
+      {/* <BottomBar onInvite={() => setInviteOpen(true)} /> */}
     </LiveKitRoom>
   );
 }

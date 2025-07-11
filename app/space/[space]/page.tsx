@@ -12,9 +12,11 @@ export default async function SpacePage({
   searchParams: { title?: string };
 }) {
   const spaceName = params.space;
+  console.log("spaceName", spaceName);
   const title = searchParams.title
     ? decodeURIComponent(searchParams.title)
     : undefined;
+
   const userId = randomUUID();
 
   await ensureRoom(spaceName);

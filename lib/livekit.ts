@@ -75,11 +75,3 @@ export async function generateAccessToken({
 
   return await at.toJwt();
 }
-
-export async function listActiveRooms() {
-  try {
-    return await roomService.listRooms();
-  } catch {
-    return [];
-  }
-}

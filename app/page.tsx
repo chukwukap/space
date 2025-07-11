@@ -15,7 +15,28 @@ import { SpaceSummary } from "@/lib/types";
 export default function Landing() {
   const router = useRouter();
   // const [joinId, setJoinId] = useState("");
-  const [spaces, setSpaces] = useState<SpaceSummary[]>([]);
+  const [spaces, setSpaces] = useState<SpaceSummary[]>([
+    {
+      id: "1",
+      title:
+        "Will Pump.fun TGE Suck Solana's Liquidity? Or it's Letsbonk Meta now?",
+      listeners: 3711,
+      hostName: "Wen ALTseason?",
+      hostRole: "Host",
+      hostBio:
+        "Squad of Chads | Masters of MEMEs, Virality, Altcoins and Marketing. We've worked with 3…",
+      avatars: ["/public/icon.png", "/public/hero.png"],
+    },
+    {
+      id: "2",
+      title: "Indias biggest Mass hero 🔥",
+      listeners: 1073,
+      hostName: "Lohith Reddy🦋🍷",
+      hostRole: "Host",
+      hostBio: "Gangster! Founder of LR Media",
+      avatars: ["/public/icon.png", "/public/logo.png"],
+    },
+  ]);
   // Drawer-controlled form state
   const [title, setTitle] = useState("");
   const [record, setRecord] = useState(false);
@@ -26,36 +47,14 @@ export default function Landing() {
   useEffect(() => {
     async function fetchSpaces() {
       try {
-        // const res = await fetch("/api/spaces");
-        // if (res.ok) setSpaces(await res.json());
-
-        setSpaces([
-          {
-            id: "1",
-            title:
-              "Will Pump.fun TGE Suck Solana's Liquidity? Or it's Letsbonk Meta now?",
-            listeners: 3711,
-            hostName: "Wen ALTseason?",
-            hostRole: "Host",
-            hostBio:
-              "Squad of Chads | Masters of MEMEs, Virality, Altcoins and Marketing. We've worked with 3…",
-            avatars: ["/public/icon.png", "/public/hero.png"],
-          },
-          {
-            id: "2",
-            title: "Indias biggest Mass hero 🔥",
-            listeners: 1073,
-            hostName: "Lohith Reddy🦋🍷",
-            hostRole: "Host",
-            hostBio: "Gangster! Founder of LR Media",
-            avatars: ["/public/icon.png", "/public/logo.png"],
-          },
-        ]);
+        const res = await fetch("/api/spaces");
+        const data = await res.json();
+        if (res.ok) setSpaces((prev) => [...prev, ...data]);
       } catch {}
     }
     fetchSpaces();
-    const id = setInterval(fetchSpaces, 5_000);
-    return () => clearInterval(id);
+    // const id = setInterval(fetchSpaces, 5_000);
+    // return () => clearInterval(id);
   }, []);
 
   /* ----------------------------------------- */
@@ -74,9 +73,7 @@ export default function Landing() {
   /* JSX                                       */
   /* ----------------------------------------- */
   return (
-    <main className="flex flex-col min-h-screen bg-black text-white pb-16 max-w-lg mx-auto relative">
-      <Header />
-
+    <div className="flex flex-col min-h-screen ">
       {/* Section heading */}
       <section className="px-6 mt-6">
         <h2 className="text-2xl font-extrabold">Happening Now</h2>
@@ -94,63 +91,50 @@ export default function Landing() {
       </section>
 
       {/* Create Space Drawer */}
-      <Drawer shouldScaleBackground>
+      <Drawer shouldScaleBackground={false}>
         <DrawerTrigger asChild>
           <button className="absolute bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl">
             <Icon name="plus" className="w-7 h-7" />
           </button>
         </DrawerTrigger>
 
-        <DrawerContent className="bg-[var(--app-background)] pb-8 px-6">
-          {/* Drag handle */}
-          <div className="mx-auto mt-4 h-1.5 w-10 rounded-full bg-gray-500/40" />
+        <DrawerContent className="bg-[var(--app-background)] rounded-t-2xl border border-white/10 px-0 pb-10 text-white">
+          <div className="w-full max-w-lg mx-auto px-6 pt-6 flex flex-col gap-4">
+            <DrawerHeader className="text-center mb-4">
+              <DrawerTitle>Create your Space</DrawerTitle>
+            </DrawerHeader>
 
-          <DrawerHeader className="text-center mb-4">
-            <DrawerTitle>Create your Space</DrawerTitle>
-          </DrawerHeader>
-
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="What do you want to talk about?"
-            className="w-full px-4 py-2 rounded-lg border bg-transparent mb-4"
-          />
-
-          <label className="flex items-center gap-2 mb-6 cursor-pointer select-none text-sm">
             <input
-              type="checkbox"
-              checked={record}
-              onChange={(e) => setRecord(e.target.checked)}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="What do you want to talk about?"
+              className="w-full px-4 py-2 rounded-lg border bg-transparent mb-4"
             />
-            Record this Space (coming soon)
-          </label>
 
-          <Button
-            className="w-full"
-            onClick={() => {
-              if (!title.trim()) return;
-              const id = crypto.randomUUID();
-              router.push(`/space/${id}?title=${encodeURIComponent(title)}`);
-            }}
-            disabled={!title.trim()}
-          >
-            Start your Space
-          </Button>
+            <label className="flex items-center gap-2 mb-6 cursor-pointer select-none text-sm">
+              <input
+                type="checkbox"
+                checked={record}
+                onChange={(e) => setRecord(e.target.checked)}
+              />
+              Record this Space (coming soon)
+            </label>
+
+            <Button
+              className="w-full"
+              onClick={() => {
+                if (!title.trim()) return;
+                const id = crypto.randomUUID();
+                router.push(`/space/${id}?title=${encodeURIComponent(title)}`);
+              }}
+              disabled={!title.trim()}
+            >
+              Start your Space
+            </Button>
+          </div>
         </DrawerContent>
       </Drawer>
-
-      <nav className="absolute bottom-0 left-0 w-full bg-black border-t border-white/10 flex justify-around items-center py-2 z-10 max-w-lg mx-auto">
-        <NavButton icon="star" label="Home" />
-        <NavButton icon="chat" label="Search" />
-        <div className="absolute -mt-8 left-1/2 -translate-x-1/2">
-          <button className="bg-black border-4 border-black rounded-full p-3 shadow-lg">
-            <Icon name="star" size="lg" />
-          </button>
-        </div>
-        <NavButton icon="users" label="People" />
-        <NavButton icon="share" label="Inbox" />
-      </nav>
-    </main>
+    </div>
   );
 }
 
@@ -166,15 +150,6 @@ export default function Landing() {
 //     </Wallet>
 //   );
 // }
-
-function Header() {
-  return (
-    <header className="flex items-center px-4 py-3 gap-3">
-      <div className="w-8 h-8 rounded-full bg-gray-600" />
-      <h1 className="text-2xl font-bold flex-1">Spaces</h1>
-    </header>
-  );
-}
 
 function SpaceCard({
   space,
@@ -220,20 +195,5 @@ function SpaceCard({
       </div>
       <p className="text-xs text-white/80 line-clamp-2">{space.hostBio}</p>
     </article>
-  );
-}
-
-function NavButton({
-  icon,
-  label,
-}: {
-  icon: Parameters<typeof Icon>[0]["name"];
-  label: string;
-}) {
-  return (
-    <button className="flex flex-col items-center text-white/80 hover:text-white">
-      <Icon name={icon} />
-      <span className="text-[10px] mt-0.5">{label}</span>
-    </button>
   );
 }

@@ -7,3 +7,11 @@ export interface SpaceSummary {
   hostBio: string;
   avatars: string[]; // up to two avatars
 }
+
+export interface Participant {
+  id: string;
+  fid?: number;
+  username?: string;
+  walletAddress?: string;
+  pfpUrl?: string;
+}
