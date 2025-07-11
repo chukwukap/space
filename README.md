@@ -5,18 +5,27 @@ Space lets you host live audio shows inside Farcaster, turn applause into crypto
 
 ---
 
+## Vision
+
+A world where **every voice is its own economy**. Space is building the sound layer for web-native communities: borderless, permissionless, and powered by the wallets we already carry.
+
+---
+
 ## The Story
 
 Creators have always owned the conversation—until the platform steps between and skims the value.  
 Space makes the middleman vanish. Your voice goes straight to your community; their love flows straight to your wallet. No gatekeepers, no ads, no algorithm rolling the dice on your reach.
 
-> "In my first Space I made more in 30 minutes than a month of ad revenue." – **@0xPodcast**
+> “In my first Space I made more in 30 minutes than a month of ad revenue.” – **@0xPodcast**
 
 ---
 
-## Motivation
+## Brand Pillars
 
-Big platforms keep the profits and the people. Space flips the script by putting **wallet-to-wallet rewards** and **portable audiences** into the hands of every host.
+🔓 **Ownership** — Every interaction settles on-chain. The room—and revenue—belong to you.  
+⚡ **Instant Gratification** — Go live in seconds, receive tips in milliseconds.  
+🌐 **Borderless** — Anyone with a Farcaster passport can listen, speak, or tip.  
+🎉 **Fun by Default** — Emojis, reactions, and real-time sound effects make tipping addictive.
 
 ---
 
@@ -24,10 +33,19 @@ Big platforms keep the profits and the people. Space flips the script by putting
 
 🎤 **Instant Rooms** — Press _Start_, you’re live.  
 💸 **Tips Built-In** — Hearts and emojis translate into USDC you keep.  
-🪄 **In-Frame Experience** — No app-switching; all magic happens inside Warpcast.  
-🎟 **Invite Drawer** — Pull friends on stage in one swipe.  
+🪄 **No App-Switching** — Everything happens inside Warpcast—join, react, tip.  
+🎟 **Invite Drawer** — Pull friends on stage with one swipe.  
 🔔 **Go-Live Alerts** — Fans get pinged the second you speak.  
 💾 **Instant Replay** — Missed the live? Catch the recording and still tip.
+
+---
+
+## Use Cases
+
+• **Creator AMAs** — Monetise Q&A sessions with superfans.  
+• **DAO Town Halls** — Pay contributors for speaking, reward listeners for feedback.  
+• **Launch Parties** — Celebrate a token drop and let the hype fund itself.  
+• **IRL Events** — Pipe the stage to the timeline and let the remote crowd tip along.
 
 ---
 
@@ -55,12 +73,12 @@ Big platforms keep the profits and the people. Space flips the script by putting
 
 ---
 
-## How It Works (30-Second Version)
+## How It Works in 30 Seconds
 
 1. Space launches a live audio room.
 2. A Farcaster Frame appears in everyone’s feed with _Join_ & _Tip_ buttons.
-3. Listeners drop emojis; each emoji equals a tiny crypto tip.
-4. Bigger supporters send direct tips without leaving the Frame.
+3. Listeners drop emojis; every emoji is a tiny crypto tip.
+4. Super-fans send larger tips, still inside the Frame.
 5. You end the room—funds are already in your wallet.
 
 ---
@@ -68,31 +86,35 @@ Big platforms keep the profits and the people. Space flips the script by putting
 ## FAQ
 
 **Is there a fee?**  
-Zero. The full amount goes to the host or speaker you tip.
+Zero. All tips go to the host or speaker you choose.
 
 **Do I need a wallet?**  
-Listeners can tip with any Farcaster-connected wallet. Just sign once, then tap emojis forever.
+Just once. Sign in with any Farcaster-connected wallet; after that, tips are one-tap.
 
 **Can I record?**  
-Yes—turn on _Record Space_ before you go live. Replays earn tips too.
+Yes—toggle _Record Space_ before you go live. Replays keep earning.
 
 **What tokens can I accept?**  
 USDC today, more ERC-20s soon.
 
 ---
 
-## Coming Soon
+## Public Roadmap
 
-🚀 **Gasless Tips** — we’ll cover gas so every penny hits your pocket.  
-🔐 **Token-Gated Talks** — reward holders with exclusive chats.  
-📊 **Creator Dashboard** — top supporters & airtime stats at a glance.  
-📱 **Mobile PWA** — background audio + push notifications on the go.
+| Quarter | Drop                  | Details                                                |
+| ------- | --------------------- | ------------------------------------------------------ |
+| Q3 2025 | **Gasless Tips**      | Sponsored relayer covers gas for micro-tips.           |
+| Q3 2025 | **Token-Gated Rooms** | Limit entry to NFT or ERC-20 holders.                  |
+| Q4 2025 | **Creator Dashboard** | Revenue analytics, top fans, conversion funnels.       |
+| Q4 2025 | **Mobile PWA**        | Background audio, push notifications, offline replays. |
+
+> Got a killer idea? Open a PR or ping us on Warpcast.
 
 ---
 
 ## Get In Early
 
-Early hosts earn **OG Room Tokens**—your badge as a founding voice.  
+Early hosts earn **OG Room Tokens**—proof you were here before it was cool.  
 Follow **@FarcasterSpaces** on Warpcast for drops, AMAs, and feature votes.
 
 Let’s make audio social—and sovereign.
