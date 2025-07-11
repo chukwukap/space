@@ -1,13 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useFarcasterViewer } from "@/lib/farcaster";
 import { Button } from "./DemoComponents";
 
 export default function CreateSpaceSheet({ onClose }: { onClose: () => void }) {
   const router = useRouter();
+  const viewer = useFarcasterViewer();
   const [title, setTitle] = useState("");
   const [record, setRecord] = useState(false);
+
+  // Pre-fill title with viewer name once available
+  useEffect(() => {
+    if (!title && viewer?.username) {
+      setTitle(`${viewer.username}'s Space`);
+    }
+  }, [viewer, title]);
 
   const handleStart = () => {
     if (!title.trim()) return;

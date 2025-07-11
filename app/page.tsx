@@ -6,6 +6,7 @@ import { ConnectWallet, Wallet } from "@coinbase/onchainkit/wallet";
 import { Button, Icon } from "./components/DemoComponents";
 import dynamic from "next/dynamic";
 import SpaceCard from "./components/SpaceCard";
+import { useFarcasterViewer } from "@/lib/farcaster";
 const CreateSpaceSheet = dynamic(
   () => import("./components/CreateSpaceSheet"),
   { ssr: false },
@@ -13,6 +14,7 @@ const CreateSpaceSheet = dynamic(
 
 export default function Landing() {
   const router = useRouter();
+  const viewer = useFarcasterViewer();
   const [joinId, setJoinId] = useState("");
   const [spaces, setSpaces] = useState<
     {
@@ -57,6 +59,11 @@ export default function Landing() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-between bg-gradient-to-tr from-purple-900 via-violet-800 to-fuchsia-900 text-white px-4 py-8">
       {/* Hero */}
+      {viewer?.username && (
+        <span className="absolute top-4 right-4 text-sm text-violet-200">
+          Welcome, {viewer.username} 👋
+        </span>
+      )}
       <section className="flex flex-col items-center mt-12 mb-20 text-center max-w-xl w-full">
         <h1 className="text-5xl font-extrabold tracking-tight drop-shadow-sm">
           Spaces
