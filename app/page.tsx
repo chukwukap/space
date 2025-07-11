@@ -15,7 +15,12 @@ export default function Landing() {
   const router = useRouter();
   const [joinId, setJoinId] = useState("");
   const [spaces, setSpaces] = useState<
-    { name: string; participants: number; title?: string }[]
+    {
+      name: string;
+      participants: number;
+      title?: string;
+      identities?: string[];
+    }[]
   >([]);
   const [sheetOpen, setSheetOpen] = useState(false);
 
