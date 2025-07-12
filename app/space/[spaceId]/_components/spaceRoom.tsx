@@ -23,6 +23,15 @@ import { useSpaceStore } from "./spaceStore";
 import ReactionOverlay from "./ReactionOverlay";
 import BottomBar from "./bottomBar";
 import HandRaiseQueue from "./HandRaiseQueue";
+import { Address, Hex, parseUnits } from "viem";
+import {
+  useAccount,
+  useChainId,
+  useConnect,
+  useConnectors,
+  useSignTypedData,
+} from "wagmi";
+import { spendPermissionManagerAddress } from "@/lib/abi/SpendPermissionManager";
 
 const InviteSheet = dynamic(() => import("./inviteSheet"), { ssr: false });
 const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
@@ -45,6 +54,11 @@ function SpaceLayout() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   // Host hand-raise queue panel state
   const [queueOpen, setQueueOpen] = useState(false);
+  const account = useAccount();
+  const chainId = useChainId();
+  const { connectAsync } = useConnect();
+  const connectors = useConnectors();
+  const { signTypedDataAsync } = useSignTypedData();
 
   const getParticipantBySid = (sid: string | null) => {
     if (!sid) return undefined;
@@ -267,6 +281,82 @@ function SpaceLayout() {
     };
   }, [room]);
 
+  const handleReaction = async () => {
+    // optimistic UI update & broadcast to room
+    setLikes((c) => c + 1);
+    sendData({ type: "reaction" });
+
+    try {
+      let addr = account.address as Address | undefined;
+      if (!addr) {
+        const res = await connectAsync({ connector: connectors[0] });
+        addr = res.accounts[0] as Address;
+      }
+
+      if (!addr) return; // user rejected wallet connection
+
+      /** ---------------------------------------------------------
+       * Build SpendPermission struct – allow 1 unit per reaction
+       * -------------------------------------------------------- */
+      const spendPerm = {
+        account: addr,
+        spender: process.env.NEXT_PUBLIC_SPENDER_ADDRESS as Address,
+        token: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // Native ETH per EIP-7528
+        allowance: parseUnits("1", 18), // 1 wei-denominated unit
+        period: 86_400, // 24h
+        start: 0,
+        end: 281_474_976_710_655, // max uint48
+        salt: BigInt(Date.now()), // cheap uniqueness
+        extraData: "0x" as Hex,
+      } as const;
+
+      /** ---------------------------------------------------------
+       * Sign permission off-chain (EIP-712)
+       * -------------------------------------------------------- */
+      const signature = (await signTypedDataAsync({
+        domain: {
+          name: "Spend Permission Manager",
+          version: "1",
+          chainId,
+          verifyingContract: spendPermissionManagerAddress,
+        },
+        types: {
+          SpendPermission: [
+            { name: "account", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "token", type: "address" },
+            { name: "allowance", type: "uint160" },
+            { name: "period", type: "uint48" },
+            { name: "start", type: "uint48" },
+            { name: "end", type: "uint48" },
+            { name: "salt", type: "uint256" },
+            { name: "extraData", type: "bytes" },
+          ],
+        },
+        primaryType: "SpendPermission",
+        message: spendPerm,
+      })) as Hex;
+
+      /** ---------------------------------------------------------
+       * Relay to backend –  spend 1 unit via relayer wallet
+       * -------------------------------------------------------- */
+      const replacer = (k: string, v: unknown) =>
+        typeof v === "bigint" ? v.toString() : v;
+
+      await fetch("/api/collect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          { spendPermission: spendPerm, signature },
+          replacer,
+        ),
+      });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[micro-tip] failed", err);
+    }
+  };
+
   // If the room does not exist, show a gentle error message
   if (!room) {
     return (
@@ -421,7 +511,7 @@ function SpaceLayout() {
         isSpeaker={!isLocalMuted}
         onToggleMic={toggleMic}
         onRaiseHand={raiseHand}
-        onReaction={() => sendData({ type: "reaction" })}
+        onReaction={handleReaction}
         likes={likes}
         handRaiseCount={handRaisedCount}
         isHost={isHost}
