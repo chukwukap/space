@@ -17,7 +17,7 @@ import {
   Share2 as ShareIcon,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
-import { Participant as LKParticipant } from "livekit-client";
+import { Participant as LKParticipant, RoomEvent } from "livekit-client";
 import "@livekit/components-styles";
 import dynamic from "next/dynamic";
 import { AvatarWithControls } from "./avatar";
@@ -100,8 +100,18 @@ function SpaceLayout({ title }: { title?: string }) {
    * ----------------------------------------------------------------- */
   const isLocalMuted = room.localParticipant.isMicrophoneEnabled === false;
 
+  /* Rerender on active speaker change */
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    const cb = () => forceUpdate((c) => c + 1);
+    room.on(RoomEvent.ActiveSpeakersChanged, cb);
+    return () => {
+      room.off(RoomEvent.ActiveSpeakersChanged, cb);
+    };
+  }, [room]);
+
   const toggleMic = useCallback(() => {
-    room.localParticipant.setMicrophoneEnabled(isLocalMuted);
+    room.localParticipant.setMicrophoneEnabled(!isLocalMuted);
   }, [room, isLocalMuted]);
 
   const raiseHand = useCallback(() => {
@@ -253,6 +263,7 @@ function SpaceLayout({ title }: { title?: string }) {
           size={56}
           isSpeaking={host.isSpeaking}
           isHost
+          remoteMuted={!host.isMicrophoneEnabled}
         />
         {/* Speakers */}
         {speakers.map((s) => (
@@ -271,6 +282,7 @@ function SpaceLayout({ title }: { title?: string }) {
                 : undefined
             }
             isSpeaking={s.isSpeaking}
+            remoteMuted={!s.isMicrophoneEnabled}
           />
         ))}
         {/* Listeners */}
