@@ -21,6 +21,9 @@ import {
   Crown as CrownIcon,
   User as UserIcon,
   PlusCircle as InviteIcon,
+  VolumeX as MuteRemoteIcon,
+  Volume2 as UnmuteRemoteIcon,
+  UserMinus as DemoteIcon,
 } from "lucide-react";
 
 type AvatarWithControlsProps = {
@@ -28,12 +31,16 @@ type AvatarWithControlsProps = {
   size?: number;
   isHost?: boolean;
   isLocal?: boolean;
-  isMuted?: boolean;
   isSpeaking?: boolean;
   isHandRaised?: boolean;
   photoUrl?: string;
   /** Callback for host to invite this participant to speak */
   onInvite?: () => void;
+  /** Host control: mute/unmute remote speaker */
+  onToggleRemoteMute?: () => void;
+  remoteMuted?: boolean;
+  /** Host control: demote speaker to listener */
+  onDemote?: () => void;
 };
 
 export function AvatarWithControls({
@@ -41,11 +48,13 @@ export function AvatarWithControls({
   size = 64,
   isHost = false,
   isLocal = false,
-  isMuted,
   isSpeaking,
   isHandRaised,
   photoUrl,
   onInvite,
+  onToggleRemoteMute,
+  onDemote,
+  remoteMuted,
 }: AvatarWithControlsProps) {
   // Derive initials if no photo
   const initials = useMemo(() => {
@@ -68,8 +77,8 @@ export function AvatarWithControls({
 
   // Determine mute state securely
   const muted =
-    typeof isMuted === "boolean"
-      ? isMuted
+    typeof remoteMuted === "boolean"
+      ? remoteMuted
       : typeof (p as Participant).isMicrophoneEnabled === "boolean"
         ? !(p as Participant).isMicrophoneEnabled
         : false;
@@ -181,7 +190,7 @@ export function AvatarWithControls({
         )}
       </span>
 
-      {/* Invite to speak button (visible to host when participant has hand raised) */}
+      {/* Invite to speak button */}
       {onInvite && (
         <button
           onClick={onInvite}
@@ -189,6 +198,31 @@ export function AvatarWithControls({
           title="Invite to Speak"
         >
           <InviteIcon className="w-5 h-5 text-violet-600" />
+        </button>
+      )}
+
+      {/* Host moderation controls (mute/unmute, demote) */}
+      {onToggleRemoteMute && (
+        <button
+          onClick={onToggleRemoteMute}
+          className="absolute -top-2 -right-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
+          title={muted ? "Unmute Speaker" : "Mute Speaker"}
+        >
+          {muted ? (
+            <UnmuteRemoteIcon className="w-5 h-5 text-red-600" />
+          ) : (
+            <MuteRemoteIcon className="w-5 h-5 text-red-600" />
+          )}
+        </button>
+      )}
+
+      {onDemote && (
+        <button
+          onClick={onDemote}
+          className="absolute -top-2 -left-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
+          title="Move to Listener"
+        >
+          <DemoteIcon className="w-5 h-5 text-yellow-600" />
         </button>
       )}
 

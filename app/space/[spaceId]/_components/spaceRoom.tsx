@@ -58,6 +58,20 @@ function SpaceLayout({ title }: { title?: string }) {
     (p) => !activeSpeakers.includes(p),
   );
 
+  // Determine if local participant is host (fallback to first participant)
+  const isHost = host?.identity === participants[0]?.identity;
+
+  const handRaiseList = listeners.filter((l) => {
+    try {
+      const meta = l.metadata ? JSON.parse(l.metadata) : {};
+      return !!meta.handRaised;
+    } catch {
+      return false;
+    }
+  });
+
+  const handRaisedCount = handRaiseList.length;
+
   /** ------------------------------------------------------------------
    * Helper – send data messages
    * ----------------------------------------------------------------- */
@@ -104,6 +118,42 @@ function SpaceLayout({ title }: { title?: string }) {
    * Data message handler (invite, reactions, etc.)
    * ----------------------------------------------------------------- */
   const [likes, setLikes] = useState(0);
+  const [hearts, setHearts] = useState<Array<{ id: number; left: number }>>([]);
+
+  /* Connection state banner */
+  const [networkState, setNetworkState] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onStateChanged = () => {
+      const state = room.state;
+      if (state !== "connected") {
+        setNetworkState(state);
+      } else {
+        setNetworkState(null);
+      }
+    };
+    onStateChanged();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (room as any).on("stateChanged", onStateChanged);
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (room as any).off("stateChanged", onStateChanged);
+    };
+  }, [room]);
+
+  // Trigger heart burst when likes increases
+  useEffect(() => {
+    if (!likes) return;
+    const id = Date.now();
+    setHearts((prev) => [
+      ...prev,
+      { id, left: Math.random() * 80 + 10 }, // random horizontal position
+    ]);
+    const timer = setTimeout(() => {
+      setHearts((prev) => prev.filter((h) => h.id !== id));
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [likes]);
 
   useEffect(() => {
     const handleData = (payload: Uint8Array) => {
@@ -119,6 +169,24 @@ function SpaceLayout({ title }: { title?: string }) {
           case "reaction":
             setLikes((c) => c + 1);
             break;
+          case "muteRequest":
+            if (msg.sid === room.localParticipant.sid) {
+              room.localParticipant.setMicrophoneEnabled(false);
+            }
+            break;
+          case "demoteSpeaker":
+            if (msg.sid === room.localParticipant.sid) {
+              room.localParticipant.setMicrophoneEnabled(false);
+              // Clear handRaised and other speaker metadata to move back to listener view
+              try {
+                const meta = room.localParticipant.metadata
+                  ? JSON.parse(room.localParticipant.metadata)
+                  : {};
+                delete meta.handRaised;
+                room.localParticipant.setMetadata(JSON.stringify(meta));
+              } catch {}
+            }
+            break;
           default:
             break;
         }
@@ -133,7 +201,18 @@ function SpaceLayout({ title }: { title?: string }) {
 
   return (
     <div className="gap-4 min-h-screen bg-gray-950">
-      <header className="flex justify-between px-4 py-2 bg-black/80 backdrop-blur z-50">
+      {/* Network banner */}
+      {networkState && (
+        <div className="fixed top-0 left-0 w-full bg-yellow-600 text-center text-sm py-1 z-50">
+          {networkState === "reconnecting"
+            ? "Reconnecting…"
+            : networkState === "disconnected"
+              ? "Disconnected. Rejoining…"
+              : networkState}
+        </div>
+      )}
+
+      <header className="flex justify-between px-4 py-2 bg-black/80 backdrop-blur z-40">
         <div className="flex items-center gap-3">
           <span className="bg-red-600/90 rounded px-1.5 py-0.5 text-[10px] font-semibold">
             REC
@@ -168,6 +247,16 @@ function SpaceLayout({ title }: { title?: string }) {
             key={s.identity}
             p={s as LKParticipant}
             size={56}
+            onToggleRemoteMute={
+              isHost
+                ? () => sendData({ type: "muteRequest", sid: s.sid })
+                : undefined
+            }
+            onDemote={
+              isHost
+                ? () => sendData({ type: "demoteSpeaker", sid: s.sid })
+                : undefined
+            }
           />
         ))}
         {/* Listeners */}
@@ -194,12 +283,14 @@ function SpaceLayout({ title }: { title?: string }) {
                   return false;
                 }
               })();
-              if (!isHand) return undefined;
+              if (!isHand || !isHost) return undefined;
               return () => {
                 // Send invite to speak message to participant
                 sendData({ type: "inviteSpeak", sid: l.sid });
               };
             })()}
+            onToggleRemoteMute={undefined}
+            onDemote={undefined}
           />
         ))}
       </div>
@@ -234,7 +325,48 @@ function SpaceLayout({ title }: { title?: string }) {
         onRaiseHand={raiseHand}
         onReaction={() => sendData({ type: "reaction" })}
         likes={likes}
+        handRaiseCount={handRaisedCount}
+        isHost={isHost}
       />
+
+      {/* Floating hearts overlay */}
+      <ReactionOverlay hearts={hearts} />
+    </div>
+  );
+}
+
+function ReactionOverlay({
+  hearts,
+}: {
+  hearts: Array<{ id: number; left: number }>;
+}) {
+  return (
+    <div className="pointer-events-none fixed inset-0 overflow-hidden z-40">
+      {hearts.map((h) => (
+        <span
+          key={h.id}
+          style={{ left: `${h.left}%` }}
+          className="absolute bottom-10 text-pink-500 animate-heart-burst"
+        >
+          ❤
+        </span>
+      ))}
+      {/* Tailwind keyframes via arbitrary value */}
+      <style jsx>{`
+        @keyframes heart-burst {
+          0% {
+            transform: translateY(0) scale(0.8);
+            opacity: 0.9;
+          }
+          100% {
+            transform: translateY(-200px) scale(1.4);
+            opacity: 0;
+          }
+        }
+        .animate-heart-burst {
+          animation: heart-burst 2.5s ease-in forwards;
+        }
+      `}</style>
     </div>
   );
 }
@@ -302,12 +434,16 @@ function BottomBar({
   onRaiseHand,
   onReaction,
   likes,
+  handRaiseCount,
+  isHost,
 }: {
   isSpeaker: boolean;
   onToggleMic: () => void;
   onRaiseHand: () => void;
   onReaction: () => void;
   likes: number;
+  handRaiseCount: number;
+  isHost: boolean;
 }) {
   return (
     <footer className="fixed bottom-0 left-0 w-full bg-black/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50">
@@ -322,6 +458,13 @@ function BottomBar({
         <BarButton label="Request" icon={HandIcon} onClick={onRaiseHand} />
       )}
       <BarButton label={String(likes)} icon={HeartIcon} onClick={onReaction} />
+      {isHost && handRaiseCount > 0 && (
+        <BarButton
+          label={`Queue(${handRaiseCount})`}
+          icon={HandIcon}
+          onClick={() => {}}
+        />
+      )}
       <BarButton
         label="Share"
         icon={ShareIcon}
