@@ -72,7 +72,7 @@ export default function Landing() {
    * Security: Relies on backend validation and does not expose sensitive data.
    */
   async function handleCreateSpace() {
-    if (!title.trim() || !user.user?.fid) return;
+    if (!title.trim()) return; // TODO: add back !user.user?.fid
     setCreating(true);
     setCreateError(null);
 
@@ -84,7 +84,7 @@ export default function Landing() {
         },
         body: JSON.stringify({
           title: title.trim(),
-          hostId: String(user.user.fid),
+          hostId: String(user.user?.fid), // TODO: add back !user.user?.fid
           recording: record,
         }),
       });
@@ -101,7 +101,7 @@ export default function Landing() {
       const livekitRoom = await res.json();
       // Navigate to the new space using the room name from backend
       router.push(
-        `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}&fid=${user.user.fid}&username=${user.user.username}`,
+        `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}&fid=${user.user?.fid}&username=${user.user?.username}`, // TODO: add back !user.user?.fid
       );
     } catch (error: unknown) {
       console.error(error);
@@ -142,7 +142,7 @@ export default function Landing() {
           </button>
         </DrawerTrigger>
 
-        <DrawerContent className="bg-[var(--app-background)] rounded-t-2xl border border-white/10 px-0 pb-10 text-white h-full">
+        <DrawerContent className="bg-[var(--app-background)] rounded-t-2xl border border-white/10 px-0 pb-10 text-white">
           <div className="w-full max-w-lg mx-auto px-6 pt-6 flex flex-col gap-4">
             <DrawerHeader className="text-center mb-4">
               <DrawerTitle>Create your Space</DrawerTitle>
@@ -158,7 +158,6 @@ export default function Landing() {
 
             <label className="flex items-center gap-2 mb-6 cursor-pointer select-none text-sm">
               <input
-                disabled
                 type="checkbox"
                 checked={record}
                 onChange={(e) => setRecord(e.target.checked)}
@@ -176,7 +175,7 @@ export default function Landing() {
             <Button
               className="w-full"
               onClick={handleCreateSpace}
-              disabled={!title.trim() || creating || !user.user?.fid}
+              disabled={!title.trim() || creating} // TODO: add back !user.user?.fid
               aria-busy={creating}
             >
               {creating ? "Starting..." : "Start your Space"}
