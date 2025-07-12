@@ -1,4 +1,4 @@
-import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
+import { RoomServiceClient } from "livekit-server-sdk";
 
 /**
  * LiveKit server-side helper utilities.
@@ -36,42 +36,54 @@ export const livekitWsUrl: string =
  * provided name. LiveKit Cloud will auto-create rooms on first join, but we
  * create them proactively so we can apply custom settings in the future.
  */
-export async function ensureRoom(roomName: string) {
+export async function ensureRoom(roomId: string) {
   try {
-    await roomService.createRoom({ name: roomName });
+    await roomService.createRoom({
+      name: roomId,
+      metadata: JSON.stringify({ title: "test", creator: "test" }),
+    });
   } catch {
     // If room already exists, LiveKit returns 409; safe to ignore
   }
 }
 
-/**
- * Generates a signed JWT that allows a user to join the specified LiveKit
- * room. The token grants the user permission to publish & subscribe (host
- * determines actual permissions client-side).
- */
-export async function generateAccessToken({
-  roomName,
-  userId,
-}: {
-  roomName: string;
-  userId: string;
-}): Promise<string> {
-  if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-    throw new Error(
-      "LiveKit credentials are not configured. Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET env vars.",
-    );
-  }
-
-  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-    identity: userId,
+export async function createRoom(title: string, creator: string) {
+  const roomId = crypto.randomUUID();
+  const room = await roomService.createRoom({
+    name: roomId,
+    metadata: JSON.stringify({ title, creator }),
   });
-
-  at.addGrant({
-    roomJoin: true,
-    room: roomName,
-    canPublish: true,
-    canSubscribe: true,
-  });
-
-  return await at.toJwt();
+  return room;
 }
+
+// /**
+//  * Generates a signed JWT that allows a user to join the specified LiveKit
+//  * room. The token grants the user permission to publish & subscribe (host
+//  * determines actual permissions client-side).
+//  */
+// export async function generateAccessToken({
+//   roomName,
+//   userId,
+// }: {
+//   roomName: string;
+//   userId: string;
+// }): Promise<string> {
+//   if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+//     throw new Error(
+//       "LiveKit credentials are not configured. Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET env vars.",
+//     );
+//   }
+
+//   const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+//     identity: userId,
+//   });
+
+//   at.addGrant({
+//     roomJoin: true,
+//     room: roomName,
+//     canPublish: true,
+//     canSubscribe: true,
+//   });
+
+//   return await at.toJwt();
+// }

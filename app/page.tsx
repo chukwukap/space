@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon, Button } from "./components/DemoComponents";
 import {
   Drawer,
   DrawerTrigger,
@@ -12,6 +11,8 @@ import {
 } from "@/components/ui/drawer";
 import { SpaceSummary } from "@/lib/types";
 import { useUser } from "./providers/userProvider";
+import { Button } from "@/components/ui/button";
+import { Mic, Mic2Icon } from "lucide-react";
 
 export default function Landing() {
   const router = useRouter();
@@ -96,11 +97,11 @@ export default function Landing() {
       <Drawer shouldScaleBackground={false}>
         <DrawerTrigger asChild>
           <button className="absolute bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl">
-            <Icon name="plus" className="w-7 h-7" />
+            <Mic2Icon className="w-7 h-7" />
           </button>
         </DrawerTrigger>
 
-        <DrawerContent className="bg-[var(--app-background)] rounded-t-2xl border border-white/10 px-0 pb-10 text-white">
+        <DrawerContent className="bg-[var(--app-background)] rounded-t-2xl border border-white/10 px-0 pb-10 text-white h-full">
           <div className="w-full max-w-lg mx-auto px-6 pt-6 flex flex-col gap-4">
             <DrawerHeader className="text-center mb-4">
               <DrawerTitle>Create your Space</DrawerTitle>
@@ -168,7 +169,7 @@ function SpaceCard({
       onClick={onClick}
     >
       <div className="flex items-center gap-2 text-xs uppercase font-semibold">
-        <Icon name="mic" className="text-white/70" />
+        <Mic name="mic" className="text-white/70" />
         LIVE
       </div>
 

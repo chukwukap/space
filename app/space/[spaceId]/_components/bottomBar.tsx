@@ -1,7 +1,8 @@
 "use client";
-import { Icon } from "./DemoComponents";
+
 import { useState } from "react";
 import { useRoomContext } from "@livekit/components-react";
+import { Heart, MessageCircle, Mic2Icon, Share, Users } from "lucide-react";
 
 export default function BottomBar({ onInvite }: { onInvite: () => void }) {
   const [micOn, setMicOn] = useState(false);
@@ -17,29 +18,29 @@ export default function BottomBar({ onInvite }: { onInvite: () => void }) {
         }}
         className="flex flex-col items-center text-white"
       >
-        <Icon name="mic" />
+        <Mic2Icon />
         <span className="text-[10px] mt-1">{micOn ? "Mic on" : "Mic off"}</span>
       </button>
       <button
         onClick={onInvite}
         className="flex flex-col items-center text-white"
       >
-        <Icon name="users" />
+        <Users />
         <span className="text-[10px] mt-1">Invite</span>
       </button>
       <button
         className={`flex flex-col items-center ${liked ? "text-pink-400" : "text-white"}`}
         onClick={() => setLiked(!liked)}
       >
-        <Icon name="heart" />
+        <Heart />
         <span className="text-[10px] mt-1">Like</span>
       </button>
       <button className="flex flex-col items-center text-white">
-        <Icon name="share" />
+        <Share name="share" />
         <span className="text-[10px] mt-1">Share</span>
       </button>
       <button className="flex flex-col items-center text-white">
-        <Icon name="chat" />
+        <MessageCircle name="chat" />
         <span className="text-[10px] mt-1">0</span>
       </button>
     </div>

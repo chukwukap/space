@@ -1,7 +1,7 @@
 "use client";
 
+import { Star } from "lucide-react";
 import React, { useRef, useEffect, useState } from "react";
-import { Icon } from "../components/DemoComponents";
 
 export function BottomNav() {
   // Track previous scroll position and nav visibility
@@ -51,7 +51,7 @@ export function BottomNav() {
           className="bg-black border-4 border-black rounded-full p-3 shadow-lg"
           aria-label="Main Action"
         >
-          <Icon name="star" size="lg" />
+          <Star name="star" size="lg" />
         </button>
       </div>
       <NavButton icon="users" label="People" />
@@ -64,12 +64,12 @@ function NavButton({
   icon,
   label,
 }: {
-  icon: Parameters<typeof Icon>[0]["name"];
+  icon: Parameters<typeof Star>[0]["name"];
   label: string;
 }) {
   return (
     <button className="flex flex-col items-center text-white/80 hover:text-white">
-      <Icon name={icon} />
+      <Star name={icon} />
       <span className="text-[10px] mt-0.5">{label}</span>
     </button>
   );

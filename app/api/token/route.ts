@@ -5,11 +5,11 @@ import { AccessToken } from "livekit-server-sdk";
 export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
-  const room = req.nextUrl.searchParams.get("room");
-  const username = req.nextUrl.searchParams.get("username");
-  if (!room) {
+  const roomName = req.nextUrl.searchParams.get("roomName");
+  const username = req.nextUrl.searchParams.get("name");
+  if (!roomName) {
     return NextResponse.json(
-      { error: 'Missing "room" query parameter' },
+      { error: 'Missing "roomName" query parameter' },
       { status: 400 },
     );
   } else if (!username) {
@@ -35,7 +35,12 @@ export async function GET(req: NextRequest) {
   }
 
   const at = new AccessToken(apiKey, apiSecret, { identity: username });
-  at.addGrant({ room, roomJoin: true, canPublish: true, canSubscribe: true });
+  at.addGrant({
+    room: roomName,
+    roomJoin: true,
+    canPublish: true,
+    canSubscribe: true,
+  });
 
   return NextResponse.json(
     { token: await at.toJwt() },

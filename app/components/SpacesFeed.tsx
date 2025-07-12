@@ -1,11 +1,11 @@
 "use client";
 
-import { Icon } from "./DemoComponents";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { Mic, Plus, Star } from "lucide-react";
 
-const CreateSpaceSheet = dynamic(() => import("./CreateSpaceSheet"), {
+const CreateSpaceSheet = dynamic(() => import("./createSpaceSheet"), {
   ssr: false,
 });
 
@@ -77,7 +77,7 @@ export default function SpacesFeed() {
         className="fixed bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl"
         onClick={() => setSheetOpen(true)}
       >
-        <Icon name="plus" className="w-7 h-7" />
+        <Plus name="plus" className="w-7 h-7" />
       </button>
 
       {sheetOpen && <CreateSpaceSheet onClose={() => setSheetOpen(false)} />}
@@ -109,7 +109,7 @@ function SpaceCard({
       onClick={onClick}
     >
       <div className="flex items-center gap-2 text-xs uppercase font-semibold">
-        <Icon name="mic" className="text-white/70" />
+        <Mic name="mic" className="text-white/70" />
         LIVE
       </div>
 
@@ -150,7 +150,7 @@ function BottomNav() {
       <NavButton icon="chat" label="Search" />
       <div className="relative -mt-8">
         <button className="bg-black border-4 border-black rounded-full p-3 shadow-lg">
-          <Icon name="star" size="lg" />
+          <Star name="star" size="lg" />
         </button>
       </div>
       <NavButton icon="users" label="People" />
@@ -163,12 +163,12 @@ function NavButton({
   icon,
   label,
 }: {
-  icon: Parameters<typeof Icon>[0]["name"];
+  icon: Parameters<typeof Star>[0]["name"];
   label: string;
 }) {
   return (
     <button className="flex flex-col items-center text-white/80 hover:text-white">
-      <Icon name={icon} />
+      <Star name={icon} />
       <span className="text-[10px] mt-0.5">{label}</span>
     </button>
   );

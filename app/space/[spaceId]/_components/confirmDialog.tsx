@@ -1,5 +1,5 @@
 "use client";
-import { Button } from "./DemoComponents";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   title: string;
@@ -17,9 +17,8 @@ export default function ConfirmDialog({
   onCancel,
 }: Props) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
-      <div className="relative bg-[var(--app-background)] rounded-xl p-6 w-80 shadow-lg animate-fade-in">
+    <div className="z-50 flex items-center justify-center ">
+      <div className=" bg-gray-700 rounded-xl p-6 w-80 shadow-lg animate-fade-in">
         <h3 className="font-semibold text-lg mb-2 text-center text-white">
           {title}
         </h3>

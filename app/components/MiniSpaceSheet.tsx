@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "./DemoComponents";
+import { Heart, MessageCircle, Mic, Share, Users } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -96,7 +96,7 @@ export default function MiniSpaceSheet({
               onClick={() => setMicOn((v) => !v)}
               className="flex flex-col items-center text-white"
             >
-              <Icon name="mic" />
+              <Mic name="mic-filled" />
               <span className="text-[10px] mt-1">
                 {micOn ? "Mic on" : "Mic off"}
               </span>
@@ -104,7 +104,7 @@ export default function MiniSpaceSheet({
 
             {/* LISTENERS */}
             <button className="flex flex-col items-center text-white">
-              <Icon name="users" />
+              <Users name="users-filled" />
               <span className="text-[10px] mt-1">
                 {listeners.toLocaleString()}
               </span>
@@ -115,19 +115,19 @@ export default function MiniSpaceSheet({
               onClick={() => setLiked((v) => !v)}
               className={`flex flex-col items-center ${liked ? "text-pink-400" : "text-white"}`}
             >
-              <Icon name="heart" />
+              <Heart name="heart-filled" />
               <span className="text-[10px] mt-1">Like</span>
             </button>
 
             {/* SHARE */}
             <button className="flex flex-col items-center text-white">
-              <Icon name="share" />
+              <Share name="share-2" />
               <span className="text-[10px] mt-1">Share</span>
             </button>
 
             {/* CHAT */}
             <button className="flex flex-col items-center text-white">
-              <Icon name="chat" />
+              <MessageCircle name="message-circle" />
               <span className="text-[10px] mt-1">0</span>
             </button>
           </div>
