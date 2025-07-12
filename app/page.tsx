@@ -101,7 +101,7 @@ export default function Landing() {
       const livekitRoom = await res.json();
       // Navigate to the new space using the room name from backend
       router.push(
-        `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}&fid=${user.user?.fid}&username=${user.user?.username}`, // TODO: add back !user.user?.fid
+        `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`, // TODO: add back !user.user?.fid
       );
     } catch (error: unknown) {
       console.error(error);
@@ -129,7 +129,11 @@ export default function Landing() {
           <SpaceCard
             key={s.name}
             space={s}
-            onClick={() => router.push(`/space/${s.name}`)}
+            onClick={() =>
+              router.push(
+                `/space/${s.name}?title=${encodeURIComponent(s.title)}`,
+              )
+            }
           />
         ))}
       </section>

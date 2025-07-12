@@ -13,7 +13,7 @@ export default async function SpacePage({
   const { spaceId } = await params;
 
   const { title } = await searchParams;
-  const decodedTitle = title ? decodeURIComponent(title) : "";
+  const decodedTitle = title ? decodeURIComponent(title) : "N/A";
 
   await ensureRoom(spaceId);
 
