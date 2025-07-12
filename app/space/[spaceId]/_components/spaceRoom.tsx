@@ -23,6 +23,7 @@ import dynamic from "next/dynamic";
 import { AvatarWithControls } from "./avatar";
 import { useUser } from "@/app/providers/userProvider";
 import { useRouter } from "next/navigation";
+import { useSpaceStore } from "./spaceStore";
 
 const InviteSheet = dynamic(() => import("./inviteSheet"), { ssr: false });
 const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
@@ -39,6 +40,7 @@ interface SpaceRoomProps {
  */
 function SpaceLayout({ title }: { title?: string }) {
   const room = useRoomContext();
+  const spaceStore = useSpaceStore();
   const participants = useParticipants();
   console.log("participants", participants[0]);
   const router = useRouter();
@@ -46,15 +48,19 @@ function SpaceLayout({ title }: { title?: string }) {
   // Host hand-raise queue panel state
   const [queueOpen, setQueueOpen] = useState(false);
 
-  // Host is always the local participant
-  const host = room.localParticipant;
+  const getParticipantBySid = (sid: string | null) => {
+    if (!sid) return undefined;
+    if (room.localParticipant.sid === sid) return room.localParticipant;
+    return room.remoteParticipants.get(sid);
+  };
+
+  const host = getParticipantBySid(spaceStore.hostSid) ?? room.localParticipant;
   // Active speakers are those currently speaking
   const activeSpeakers = room.activeSpeakers;
   // All remote participants in the room
   const remoteParticipants = Array.from(room.remoteParticipants.values());
 
-  // Speakers are remote participants who are currently speaking
-  const speakers = remoteParticipants.filter((p) => activeSpeakers.includes(p));
+  const speakers = [...spaceStore.speakers.values()];
   // Listeners are remote participants who are not currently speaking
   const listeners = remoteParticipants.filter(
     (p) => !activeSpeakers.includes(p),
@@ -63,19 +69,12 @@ function SpaceLayout({ title }: { title?: string }) {
   // Determine if local participant is host (fallback to first participant)
   const isHost = host?.identity === participants[0]?.identity;
 
-  const handRaiseList = listeners.filter((l) => {
-    try {
-      const meta = l.metadata ? JSON.parse(l.metadata) : {};
-      return !!meta.handRaised;
-    } catch {
-      return false;
-    }
-  });
+  const handRaiseList = [...spaceStore.handQueue.values()];
 
   const handRaisedCount = handRaiseList.length;
 
   /* Participant count */
-  const participantCount = remoteParticipants.length + 1; // host included
+  const participantCount = room.remoteParticipants.size + 1; // + local
 
   /** ------------------------------------------------------------------
    * Helper – send data messages
@@ -107,6 +106,52 @@ function SpaceLayout({ title }: { title?: string }) {
     room.on(RoomEvent.ActiveSpeakersChanged, cb);
     return () => {
       room.off(RoomEvent.ActiveSpeakersChanged, cb);
+    };
+  }, [room]);
+
+  useEffect(() => {
+    // initialize recording flag from room metadata
+    try {
+      const meta = room.metadata ? JSON.parse(room.metadata) : {};
+      spaceStore.setRecording(!!meta.recording);
+    } catch {}
+
+    // set initial host
+    spaceStore.setHost(room.localParticipant.sid);
+
+    const handleParticipantConnected = (p: LKParticipant) => {
+      // Speaker if has publish permission (mic enabled)
+      if (p.isMicrophoneEnabled) spaceStore.addSpeaker(p);
+    };
+    const handleParticipantDisconnected = (p: LKParticipant) => {
+      spaceStore.removeSpeaker(p.sid);
+      spaceStore.dequeueHand(p.sid);
+      if (spaceStore.hostSid === p.sid) {
+        // promote first speaker or first participant
+        const next =
+          [...spaceStore.speakers.keys()][0] ||
+          room.remoteParticipants.keys().next().value;
+        spaceStore.setHost(next ?? room.localParticipant.sid);
+      }
+    };
+    const handleMetadataChanged = (p: LKParticipant) => {
+      try {
+        const meta = p.metadata ? JSON.parse(p.metadata) : {};
+        if (meta.handRaised) spaceStore.enqueueHand(p);
+        else spaceStore.dequeueHand(p.sid);
+      } catch {}
+    };
+
+    room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
+    room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
+    room.on(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
+    return () => {
+      room.off(RoomEvent.ParticipantConnected, handleParticipantConnected);
+      room.off(
+        RoomEvent.ParticipantDisconnected,
+        handleParticipantDisconnected,
+      );
+      room.off(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
     };
   }, [room]);
 
@@ -229,9 +274,7 @@ function SpaceLayout({ title }: { title?: string }) {
 
       <header className="flex justify-between px-4 py-2 bg-black/80 backdrop-blur z-40">
         <div className="flex items-center gap-3">
-          <span className="bg-red-600/90 rounded px-1.5 py-0.5 text-[10px] font-semibold">
-            REC
-          </span>
+          {recordingBadge}
           <span className="text-xs text-gray-300">
             {participantCount} · listeners
           </span>
