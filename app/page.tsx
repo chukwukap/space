@@ -18,10 +18,7 @@ import { Room } from "livekit-server-sdk";
 /**
  * Space type extends Room with additional metadata fields.
  */
-type Space = Room & {
-  title: string;
-  hostId: string;
-};
+type Space = Room & SpaceMetadata;
 
 export default function Landing() {
   const router = useRouter();

@@ -99,7 +99,7 @@ USDC today, more ERC-20s soon.
 
 ---
 
-## Public Roadmap
+<!-- ## Public Roadmap
 
 | Quarter | Drop                  | Details                                                |
 | ------- | --------------------- | ------------------------------------------------------ |
@@ -108,7 +108,7 @@ USDC today, more ERC-20s soon.
 | Q4 2025 | **Creator Dashboard** | Revenue analytics, top fans, conversion funnels.       |
 | Q4 2025 | **Mobile PWA**        | Background audio, push notifications, offline replays. |
 
-> Got a killer idea? Open a PR or ping us on Warpcast.
+> Got a killer idea? Open a PR or ping us on Warpcast. -->
 
 ---
 
