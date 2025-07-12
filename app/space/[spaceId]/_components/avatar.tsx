@@ -20,6 +20,7 @@ import {
   HandMetal as HandIcon,
   Crown as CrownIcon,
   User as UserIcon,
+  PlusCircle as InviteIcon,
 } from "lucide-react";
 
 type AvatarWithControlsProps = {
@@ -31,6 +32,8 @@ type AvatarWithControlsProps = {
   isSpeaking?: boolean;
   isHandRaised?: boolean;
   photoUrl?: string;
+  /** Callback for host to invite this participant to speak */
+  onInvite?: () => void;
 };
 
 export function AvatarWithControls({
@@ -42,6 +45,7 @@ export function AvatarWithControls({
   isSpeaking,
   isHandRaised,
   photoUrl,
+  onInvite,
 }: AvatarWithControlsProps) {
   // Derive initials if no photo
   const initials = useMemo(() => {
@@ -176,6 +180,17 @@ export function AvatarWithControls({
           />
         )}
       </span>
+
+      {/* Invite to speak button (visible to host when participant has hand raised) */}
+      {onInvite && (
+        <button
+          onClick={onInvite}
+          className="absolute -bottom-2 -left-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
+          title="Invite to Speak"
+        >
+          <InviteIcon className="w-5 h-5 text-violet-600" />
+        </button>
+      )}
 
       {/* Local user highlight ring */}
       {isLocal && (

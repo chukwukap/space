@@ -1,4 +1,4 @@
-import { RoomServiceClient, Room } from "livekit-server-sdk";
+import { RoomServiceClient } from "livekit-server-sdk";
 
 /**
  * LiveKit server-side helper utilities for UmbraSwap.
@@ -58,24 +58,6 @@ export async function createRoom(title: string, creator: string) {
     metadata: JSON.stringify({ title, creator }),
   });
   return room;
-}
-
-/**
- * Fetches a single space (room) by its roomId.
- * Returns the Room object if found, or null if not found.
- * SECURITY: Only exposes non-sensitive room data.
- */
-export async function getRoom(roomId: string): Promise<Room | null> {
-  try {
-    const rooms = await roomService.listRooms([roomId]);
-    // listRooms returns an array; find the room with the exact name
-    const room = rooms.find((r) => r.name === roomId);
-    return room || null;
-  } catch (error) {
-    // Log error for observability, but do not expose details to the user
-    console.error(`[LiveKit] Failed to fetch room "${roomId}":`, error);
-    return null;
-  }
 }
 
 // /**
