@@ -14,7 +14,6 @@ import { useState } from "react";
 import { useUser } from "@/app/providers/userProvider";
 import { useRouter } from "next/navigation";
 const InviteSheet = dynamic(() => import("./inviteSheet"), { ssr: false });
-// const BottomBar = dynamic(() => import("./BottomBar"), { ssr: false });
 const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
 
 interface SpaceRoomProps {
@@ -38,7 +37,21 @@ function SpaceLayout() {
 
   return (
     <div className=" gap-4 min-h-screen bg-gray-950">
-      <Header setConfirmDialogOpen={setConfirmDialogOpen} />
+      <header className="flex justify-between px-4 py-2 bg-black/80 backdrop-blur z-50">
+        <div className="flex items-center gap-3">
+          <span className="bg-red-600/90 rounded px-1.5 py-0.5 text-[10px] font-semibold">
+            REC
+          </span>
+          <button className="text-2xl">•••</button>
+        </div>
+
+        <button
+          className="text-red-500 font-semibold"
+          onClick={() => setConfirmDialogOpen(true)}
+        >
+          Leave
+        </button>
+      </header>
       {/* Title */}
 
       <h1 className="px-6  text-lg font-bold leading-snug mt-4">
@@ -130,32 +143,5 @@ export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
       {inviteOpen && <InviteSheet onClose={() => setInviteOpen(false)} />}
       <RoomAudioRenderer />
     </LiveKitRoom>
-  );
-}
-
-/** ----------------------------------------------------------------------
- * Header (back, rec badge, menu, leave)
- * ------------------------------------------------------------------- */
-function Header({
-  setConfirmDialogOpen,
-}: {
-  setConfirmDialogOpen: (open: boolean) => void;
-}) {
-  return (
-    <header className="flex justify-between px-4 py-2 bg-black/80 backdrop-blur z-50">
-      <div className="flex items-center gap-3">
-        <span className="bg-red-600/90 rounded px-1.5 py-0.5 text-[10px] font-semibold">
-          REC
-        </span>
-        <button className="text-2xl">•••</button>
-      </div>
-
-      <button
-        className="text-red-500 font-semibold"
-        onClick={() => setConfirmDialogOpen(true)}
-      >
-        Leave
-      </button>
-    </header>
   );
 }

@@ -15,3 +15,9 @@ export interface Participant {
   walletAddress?: string;
   pfpUrl?: string;
 }
+
+export interface SpaceMetadata {
+  title: string;
+  hostId: string;
+  recording: boolean;
+}

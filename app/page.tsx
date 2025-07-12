@@ -9,40 +9,32 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { SpaceSummary } from "@/lib/types";
+import { SpaceMetadata } from "@/lib/types";
 import { useUser } from "./providers/userProvider";
 import { Button } from "@/components/ui/button";
 import { Mic, Mic2Icon } from "lucide-react";
+import { Room } from "livekit-server-sdk";
+
+/**
+ * Space type extends Room with additional metadata fields.
+ */
+type Space = Room & {
+  title: string;
+  hostId: string;
+};
 
 export default function Landing() {
   const router = useRouter();
   const user = useUser();
-  // const [joinId, setJoinId] = useState("");
-  const [spaces, setSpaces] = useState<SpaceSummary[]>([
-    {
-      id: "1",
-      title:
-        "Will Pump.fun TGE Suck Solana's Liquidity? Or it's Letsbonk Meta now?",
-      listeners: 3711,
-      hostName: "Wen ALTseason?",
-      hostRole: "Host",
-      hostBio:
-        "Squad of Chads | Masters of MEMEs, Virality, Altcoins and Marketing. We've worked with 3…",
-      avatars: ["/public/icon.png", "/public/hero.png"],
-    },
-    {
-      id: "2",
-      title: "Indias biggest Mass hero 🔥",
-      listeners: 1073,
-      hostName: "Lohith Reddy🦋🍷",
-      hostRole: "Host",
-      hostBio: "Gangster! Founder of LR Media",
-      avatars: ["/public/icon.png", "/public/logo.png"],
-    },
-  ]);
+
+  // State for the list of spaces
+  const [spaces, setSpaces] = useState<Space[]>([]);
   // Drawer-controlled form state
   const [title, setTitle] = useState("");
   const [record, setRecord] = useState(false);
+  // Loading and error state for space creation
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   /* ----------------------------------------- */
   /* Fetch live spaces list every 5 s          */
@@ -52,25 +44,77 @@ export default function Landing() {
       try {
         const res = await fetch("/api/spaces");
         const data = await res.json();
-        if (res.ok) setSpaces((prev) => [...prev, ...data]);
-      } catch {}
+
+        if (res.ok) {
+          // Parse metadata for each space and update state
+          const spaces = data.map((space: Space) => {
+            const metadata = JSON.parse(
+              space.metadata ?? "{}",
+            ) as SpaceMetadata;
+            return {
+              ...space,
+              title: metadata.title,
+              hostId: metadata.hostId,
+            };
+          });
+          setSpaces(spaces);
+        }
+      } catch {
+        // Silently ignore fetch errors for now, but could add logging or user feedback here.
+      }
     }
     fetchSpaces();
+    // Uncomment below to poll every 5 seconds for live updates
     // const id = setInterval(fetchSpaces, 5_000);
     // return () => clearInterval(id);
   }, []);
 
-  /* ----------------------------------------- */
-  /* Handlers                                  */
-  /* ----------------------------------------- */
-  // const handleStart = () => {
-  //   setSheetOpen(true);
-  // };
+  /**
+   * Handles the creation of a new Space by calling the POST /api/spaces endpoint.
+   * On success, navigates to the new space.
+   * Security: Relies on backend validation and does not expose sensitive data.
+   */
+  async function handleCreateSpace() {
+    if (!title.trim() || !user.user?.fid) return;
+    setCreating(true);
+    setCreateError(null);
 
-  // const handleJoin = () => {
-  //   if (!joinId.trim()) return;
-  //   router.push(`/space/${joinId.trim()}`);
-  // };
+    try {
+      const res = await fetch("/api/spaces", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          hostId: String(user.user.fid),
+          recording: record,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        setCreateError(
+          error?.error || "Failed to create space. Please try again.",
+        );
+        setCreating(false);
+        return;
+      }
+
+      const livekitRoom = await res.json();
+      // Navigate to the new space using the room name from backend
+      router.push(
+        `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}&fid=${user.user.fid}&username=${user.user.username}`,
+      );
+    } catch (error: unknown) {
+      console.error(error);
+      // Log error for observability, but do not expose details to the user
+      // Optionally, send error to monitoring service here
+      setCreateError("Something went wrong. Please try again.");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   /* ----------------------------------------- */
   /* JSX                                       */
@@ -86,9 +130,9 @@ export default function Landing() {
       <section className="mt-6 space-y-6 px-4 flex-1 overflow-y-auto">
         {spaces.map((s) => (
           <SpaceCard
-            key={s.id}
+            key={s.name}
             space={s}
-            onClick={() => router.push(`/space/${s.id}`)}
+            onClick={() => router.push(`/space/${s.name}`)}
           />
         ))}
       </section>
@@ -112,10 +156,12 @@ export default function Landing() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What do you want to talk about?"
               className="w-full px-4 py-2 rounded-lg border bg-transparent mb-4"
+              disabled={creating}
             />
 
             <label className="flex items-center gap-2 mb-6 cursor-pointer select-none text-sm">
               <input
+                disabled
                 type="checkbox"
                 checked={record}
                 onChange={(e) => setRecord(e.target.checked)}
@@ -123,18 +169,20 @@ export default function Landing() {
               Record this Space (coming soon)
             </label>
 
+            {/* Error message for user feedback */}
+            {createError && (
+              <div className="text-red-400 text-sm mb-2 text-center">
+                {createError}
+              </div>
+            )}
+
             <Button
               className="w-full"
-              onClick={() => {
-                if (!title.trim()) return;
-                const id = crypto.randomUUID();
-                router.push(
-                  `/space/${id}?title=${encodeURIComponent(title)}&fid=${user.user?.fid}&username=${user.user?.username}`,
-                );
-              }}
-              disabled={!title.trim()}
+              onClick={handleCreateSpace}
+              disabled={!title.trim() || creating || !user.user?.fid}
+              aria-busy={creating}
             >
-              Start your Space
+              {creating ? "Starting..." : "Start your Space"}
             </Button>
           </div>
         </DrawerContent>
@@ -156,16 +204,13 @@ export default function Landing() {
 //   );
 // }
 
-function SpaceCard({
-  space,
-  onClick,
-}: {
-  space: SpaceSummary;
-  onClick: () => void;
-}) {
+/**
+ * SpaceCard displays a summary of a live space.
+ */
+function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
   return (
     <article
-      className="rounded-2xl bg-violet-600/90 hover:bg-violet-600 transition-colors p-4 space-y-4"
+      className="rounded-2xl bg-violet-600/90 hover:bg-violet-600 transition-colors p-4 space-y-4 cursor-pointer"
       onClick={onClick}
     >
       <div className="flex items-center gap-2 text-xs uppercase font-semibold">
@@ -177,28 +222,28 @@ function SpaceCard({
 
       <div className="flex items-center gap-2 text-sm">
         <div className="flex -space-x-2">
-          {space.avatars.map((src, i) => (
+          {Array.from({ length: space.numParticipants }).map((_, i) => (
             <div
               key={i}
               className="w-7 h-7 rounded-full bg-violet-400 border-2 border-violet-600 overflow-hidden"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="pfp" className="object-cover w-full h-full" />
+              <img
+                src={`/icon.png`}
+                alt="pfp"
+                className="object-cover w-full h-full"
+              />
             </div>
           ))}
         </div>
-        <span>{space.listeners} listening</span>
+        <span>{space.numParticipants} listening</span>
       </div>
 
       {/* Host row */}
       <div className="flex items-center gap-2 text-sm pt-2 border-t border-white/20">
         <span className="w-6 h-6 rounded-full bg-yellow-500 inline-block" />
-        <span className="font-semibold">{space.hostName}</span>
-        <span className="bg-white/20 rounded px-2 py-0.5 text-[10px] uppercase tracking-wide">
-          {space.hostRole}
-        </span>
+        <span className="font-semibold">{space.hostId}</span>
       </div>
-      <p className="text-xs text-white/80 line-clamp-2">{space.hostBio}</p>
     </article>
   );
 }
