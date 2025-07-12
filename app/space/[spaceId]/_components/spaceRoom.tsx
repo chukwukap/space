@@ -43,6 +43,8 @@ function SpaceLayout({ title }: { title?: string }) {
   console.log("participants", participants[0]);
   const router = useRouter();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  // Host hand-raise queue panel state
+  const [queueOpen, setQueueOpen] = useState(false);
 
   // Host is always the local participant
   const host = room.localParticipant;
@@ -71,6 +73,9 @@ function SpaceLayout({ title }: { title?: string }) {
   });
 
   const handRaisedCount = handRaiseList.length;
+
+  /* Participant count */
+  const participantCount = remoteParticipants.length + 1; // host included
 
   /** ------------------------------------------------------------------
    * Helper – send data messages
@@ -217,6 +222,9 @@ function SpaceLayout({ title }: { title?: string }) {
           <span className="bg-red-600/90 rounded px-1.5 py-0.5 text-[10px] font-semibold">
             REC
           </span>
+          <span className="text-xs text-gray-300">
+            {participantCount} · listeners
+          </span>
           <button className="text-2xl" aria-label="More options">
             •••
           </button>
@@ -240,7 +248,12 @@ function SpaceLayout({ title }: { title?: string }) {
       {/* Avatars for host, speakers, and listeners */}
       <div className="flex px-6 py-4 gap-4">
         {/* Host */}
-        <AvatarWithControls p={host as LKParticipant} size={56} />
+        <AvatarWithControls
+          p={host as LKParticipant}
+          size={56}
+          isSpeaking={host.isSpeaking}
+          isHost
+        />
         {/* Speakers */}
         {speakers.map((s) => (
           <AvatarWithControls
@@ -257,6 +270,7 @@ function SpaceLayout({ title }: { title?: string }) {
                 ? () => sendData({ type: "demoteSpeaker", sid: s.sid })
                 : undefined
             }
+            isSpeaking={s.isSpeaking}
           />
         ))}
         {/* Listeners */}
@@ -327,10 +341,78 @@ function SpaceLayout({ title }: { title?: string }) {
         likes={likes}
         handRaiseCount={handRaisedCount}
         isHost={isHost}
+        onQueueClick={() => setQueueOpen(true)}
       />
+
+      {/* Host hand raise queue panel */}
+      {isHost && queueOpen && (
+        <HandRaiseQueue
+          list={handRaiseList}
+          onClose={() => setQueueOpen(false)}
+          onAccept={(sid) => {
+            sendData({ type: "inviteSpeak", sid });
+            setQueueOpen(false);
+          }}
+          onReject={(sid) => {
+            sendData({ type: "rejectHand", sid });
+            setQueueOpen(false);
+          }}
+        />
+      )}
 
       {/* Floating hearts overlay */}
       <ReactionOverlay hearts={hearts} />
+    </div>
+  );
+}
+
+/* Hand raise queue component */
+function HandRaiseQueue({
+  list,
+  onClose,
+  onAccept,
+  onReject,
+}: {
+  list: LKParticipant[];
+  onClose: () => void;
+  onAccept: (sid: string) => void;
+  onReject: (sid: string) => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-gray-800 w-80 rounded-lg p-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-semibold">Hand Raise Queue</h3>
+          <button onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+        {list.length === 0 ? (
+          <p className="text-sm text-gray-400">No requests</p>
+        ) : (
+          <ul className="space-y-2 max-h-60 overflow-y-auto">
+            {list.map((p) => (
+              <li key={p.sid} className="flex items-center justify-between">
+                <span>{p.identity}</span>
+                <div className="flex gap-2">
+                  <button
+                    className="px-2 py-0.5 bg-violet-600 rounded text-sm"
+                    onClick={() => onAccept(p.sid)}
+                  >
+                    Invite
+                  </button>
+                  <button
+                    className="px-2 py-0.5 bg-gray-600 rounded text-sm"
+                    onClick={() => onReject(p.sid)}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -428,6 +510,17 @@ export default function SpaceRoom({
 /** ----------------------------------------------------------------------
  * Bottom Bar component
  * ------------------------------------------------------------------- */
+interface BottomBarProps {
+  isSpeaker: boolean;
+  onToggleMic: () => void;
+  onRaiseHand: () => void;
+  onReaction: () => void;
+  likes: number;
+  handRaiseCount: number;
+  isHost: boolean;
+  onQueueClick: () => void;
+}
+
 function BottomBar({
   isSpeaker,
   onToggleMic,
@@ -436,24 +529,12 @@ function BottomBar({
   likes,
   handRaiseCount,
   isHost,
-}: {
-  isSpeaker: boolean;
-  onToggleMic: () => void;
-  onRaiseHand: () => void;
-  onReaction: () => void;
-  likes: number;
-  handRaiseCount: number;
-  isHost: boolean;
-}) {
+  onQueueClick,
+}: BottomBarProps) {
   return (
     <footer className="fixed bottom-0 left-0 w-full bg-black/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50">
       {isSpeaker ? (
-        <BarButton
-          label="Mic"
-          icon={MicIcon}
-          onClick={onToggleMic}
-          danger={false}
-        />
+        <BarButton label="Mic" icon={MicIcon} onClick={onToggleMic} />
       ) : (
         <BarButton label="Request" icon={HandIcon} onClick={onRaiseHand} />
       )}
@@ -462,7 +543,7 @@ function BottomBar({
         <BarButton
           label={`Queue(${handRaiseCount})`}
           icon={HandIcon}
-          onClick={() => {}}
+          onClick={onQueueClick}
         />
       )}
       <BarButton
