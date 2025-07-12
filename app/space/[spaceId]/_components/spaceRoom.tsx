@@ -8,14 +8,6 @@ import {
   useToken,
 } from "@livekit/components-react";
 
-// Icons
-import {
-  Mic2 as MicIcon,
-  HandMetal as HandIcon,
-  Heart as HeartIcon,
-  Users as UsersIcon,
-  Share2 as ShareIcon,
-} from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { Participant as LKParticipant, RoomEvent } from "livekit-client";
 import "@livekit/components-styles";
@@ -24,6 +16,9 @@ import { AvatarWithControls } from "./avatar";
 import { useUser } from "@/app/providers/userProvider";
 import { useRouter } from "next/navigation";
 import { useSpaceStore } from "./spaceStore";
+import ReactionOverlay from "./ReactionOverlay";
+import BottomBar from "./bottomBar";
+import HandRaiseQueue from "./HandRaiseQueue";
 
 const InviteSheet = dynamic(() => import("./inviteSheet"), { ssr: false });
 const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
@@ -134,7 +129,10 @@ function SpaceLayout({ title }: { title?: string }) {
         spaceStore.setHost(next ?? room.localParticipant.sid);
       }
     };
-    const handleMetadataChanged = (p: LKParticipant) => {
+    const handleMetadataChanged = (
+      _meta: string | undefined,
+      p: LKParticipant,
+    ) => {
       try {
         const meta = p.metadata ? JSON.parse(p.metadata) : {};
         if (meta.handRaised) spaceStore.enqueueHand(p);
@@ -144,14 +142,17 @@ function SpaceLayout({ title }: { title?: string }) {
 
     room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
     room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
-    room.on(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
+    room.on(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged as any);
     return () => {
       room.off(RoomEvent.ParticipantConnected, handleParticipantConnected);
       room.off(
         RoomEvent.ParticipantDisconnected,
         handleParticipantDisconnected,
       );
-      room.off(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
+      room.off(
+        RoomEvent.ParticipantMetadataChanged,
+        handleMetadataChanged as any,
+      );
     };
   }, [room]);
 
@@ -399,7 +400,6 @@ function SpaceLayout({ title }: { title?: string }) {
         onQueueClick={() => setQueueOpen(true)}
       />
 
-      {/* Host hand raise queue panel */}
       {isHost && queueOpen && (
         <HandRaiseQueue
           list={handRaiseList}
@@ -421,92 +421,7 @@ function SpaceLayout({ title }: { title?: string }) {
   );
 }
 
-/* Hand raise queue component */
-function HandRaiseQueue({
-  list,
-  onClose,
-  onAccept,
-  onReject,
-}: {
-  list: LKParticipant[];
-  onClose: () => void;
-  onAccept: (sid: string) => void;
-  onReject: (sid: string) => void;
-}) {
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-gray-800 w-80 rounded-lg p-4">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-semibold">Hand Raise Queue</h3>
-          <button onClick={onClose} aria-label="Close">
-            ✕
-          </button>
-        </div>
-        {list.length === 0 ? (
-          <p className="text-sm text-gray-400">No requests</p>
-        ) : (
-          <ul className="space-y-2 max-h-60 overflow-y-auto">
-            {list.map((p) => (
-              <li key={p.sid} className="flex items-center justify-between">
-                <span>{p.identity}</span>
-                <div className="flex gap-2">
-                  <button
-                    className="px-2 py-0.5 bg-violet-600 rounded text-sm"
-                    onClick={() => onAccept(p.sid)}
-                  >
-                    Invite
-                  </button>
-                  <button
-                    className="px-2 py-0.5 bg-gray-600 rounded text-sm"
-                    onClick={() => onReject(p.sid)}
-                  >
-                    Decline
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ReactionOverlay({
-  hearts,
-}: {
-  hearts: Array<{ id: number; left: number }>;
-}) {
-  return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden z-40">
-      {hearts.map((h) => (
-        <span
-          key={h.id}
-          style={{ left: `${h.left}%` }}
-          className="absolute bottom-10 text-pink-500 animate-heart-burst"
-        >
-          ❤
-        </span>
-      ))}
-      {/* Tailwind keyframes via arbitrary value */}
-      <style jsx>{`
-        @keyframes heart-burst {
-          0% {
-            transform: translateY(0) scale(0.8);
-            opacity: 0.9;
-          }
-          100% {
-            transform: translateY(-200px) scale(1.4);
-            opacity: 0;
-          }
-        }
-        .animate-heart-burst {
-          animation: heart-burst 2.5s ease-in forwards;
-        }
-      `}</style>
-    </div>
-  );
-}
+// Removed inline component definitions; now imported modular versions.
 
 /**
  * SpaceRoom connects the user to the LiveKit room and renders the room UI.
@@ -559,80 +474,5 @@ export default function SpaceRoom({
       {inviteOpen && <InviteSheet onClose={() => setInviteOpen(false)} />}
       <RoomAudioRenderer />
     </LiveKitRoom>
-  );
-}
-
-/** ----------------------------------------------------------------------
- * Bottom Bar component
- * ------------------------------------------------------------------- */
-interface BottomBarProps {
-  isSpeaker: boolean;
-  onToggleMic: () => void;
-  onRaiseHand: () => void;
-  onReaction: () => void;
-  likes: number;
-  handRaiseCount: number;
-  isHost: boolean;
-  onQueueClick: () => void;
-}
-
-function BottomBar({
-  isSpeaker,
-  onToggleMic,
-  onRaiseHand,
-  onReaction,
-  likes,
-  handRaiseCount,
-  isHost,
-  onQueueClick,
-}: BottomBarProps) {
-  return (
-    <footer className="fixed bottom-0 left-0 w-full bg-black/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50">
-      {isSpeaker ? (
-        <BarButton label="Mic" icon={MicIcon} onClick={onToggleMic} />
-      ) : (
-        <BarButton label="Request" icon={HandIcon} onClick={onRaiseHand} />
-      )}
-      <BarButton label={String(likes)} icon={HeartIcon} onClick={onReaction} />
-      {isHost && handRaiseCount > 0 && (
-        <BarButton
-          label={`Queue(${handRaiseCount})`}
-          icon={HandIcon}
-          onClick={onQueueClick}
-        />
-      )}
-      <BarButton
-        label="Share"
-        icon={ShareIcon}
-        onClick={() => {
-          try {
-            navigator.clipboard.writeText(window.location.href);
-          } catch {}
-        }}
-      />
-      <BarButton label="Invite" icon={UsersIcon} onClick={() => {}} />
-    </footer>
-  );
-}
-
-/** BarButton component – extracted for reuse */
-interface BarButtonProps {
-  label: string;
-  icon: typeof MicIcon;
-  onClick: () => void;
-  danger?: boolean;
-}
-
-function BarButton({ label, icon: IconCmp, onClick, danger }: BarButtonProps) {
-  return (
-    <button
-      className={`flex flex-col items-center text-white hover:opacity-90 ${
-        danger ? "text-red-500" : ""
-      }`}
-      onClick={onClick}
-    >
-      <IconCmp className="w-6 h-6" />
-      <span className="text-[10px] mt-1">{label}</span>
-    </button>
   );
 }

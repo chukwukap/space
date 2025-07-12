@@ -1,48 +1,77 @@
 "use client";
 
-import { useState } from "react";
-import { useRoomContext } from "@livekit/components-react";
-import { Heart, MessageCircle, Mic2Icon, Share, Users } from "lucide-react";
+import {
+  Mic2 as MicIcon,
+  HandMetal as HandIcon,
+  Heart as HeartIcon,
+  Users as UsersIcon,
+  Share2 as ShareIcon,
+} from "lucide-react";
 
-export default function BottomBar({ onInvite }: { onInvite: () => void }) {
-  const [micOn, setMicOn] = useState(false);
-  const room = useRoomContext();
-  const [liked, setLiked] = useState(false);
+interface Props {
+  isSpeaker: boolean;
+  onToggleMic: () => void;
+  onRaiseHand: () => void;
+  onReaction: () => void;
+  likes: number;
+  handRaiseCount: number;
+  isHost: boolean;
+  onQueueClick: () => void;
+}
+
+export default function BottomBar({
+  isSpeaker,
+  onToggleMic,
+  onRaiseHand,
+  onReaction,
+  likes,
+  handRaiseCount,
+  isHost,
+  onQueueClick,
+}: Props) {
   return (
-    <div className="fixed bottom-0 left-0 w-full bg-black/50 backdrop-blur flex justify-around items-center py-3 z-40">
-      <button
+    <footer className="fixed bottom-0 left-0 w-full bg-black/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50">
+      {isSpeaker ? (
+        <BarButton label="Mic" icon={MicIcon} onClick={onToggleMic} />
+      ) : (
+        <BarButton label="Request" icon={HandIcon} onClick={onRaiseHand} />
+      )}
+      <BarButton label={String(likes)} icon={HeartIcon} onClick={onReaction} />
+      {isHost && handRaiseCount > 0 && (
+        <BarButton
+          label={`Queue(${handRaiseCount})`}
+          icon={HandIcon}
+          onClick={onQueueClick}
+        />
+      )}
+      <BarButton
+        label="Share"
+        icon={ShareIcon}
         onClick={() => {
-          const enabled = !micOn;
-          setMicOn(enabled);
-          room.localParticipant.setMicrophoneEnabled?.(enabled);
+          try {
+            navigator.clipboard.writeText(window.location.href);
+          } catch {}
         }}
-        className="flex flex-col items-center text-white"
-      >
-        <Mic2Icon />
-        <span className="text-[10px] mt-1">{micOn ? "Mic on" : "Mic off"}</span>
-      </button>
-      <button
-        onClick={onInvite}
-        className="flex flex-col items-center text-white"
-      >
-        <Users />
-        <span className="text-[10px] mt-1">Invite</span>
-      </button>
-      <button
-        className={`flex flex-col items-center ${liked ? "text-pink-400" : "text-white"}`}
-        onClick={() => setLiked(!liked)}
-      >
-        <Heart />
-        <span className="text-[10px] mt-1">Like</span>
-      </button>
-      <button className="flex flex-col items-center text-white">
-        <Share name="share" />
-        <span className="text-[10px] mt-1">Share</span>
-      </button>
-      <button className="flex flex-col items-center text-white">
-        <MessageCircle name="chat" />
-        <span className="text-[10px] mt-1">0</span>
-      </button>
-    </div>
+      />
+      <BarButton label="Invite" icon={UsersIcon} onClick={() => {}} />
+    </footer>
+  );
+}
+
+interface BarButtonProps {
+  label: string;
+  icon: typeof MicIcon;
+  onClick: () => void;
+}
+
+function BarButton({ label, icon: IconCmp, onClick }: BarButtonProps) {
+  return (
+    <button
+      className="flex flex-col items-center text-white hover:opacity-90"
+      onClick={onClick}
+    >
+      <IconCmp className="w-6 h-6" />
+      <span className="text-[10px] mt-1">{label}</span>
+    </button>
   );
 }
