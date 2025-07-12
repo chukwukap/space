@@ -34,6 +34,7 @@ export default function SubscribeButton() {
   const connectors = useConnectors();
   const { signTypedDataAsync } = useSignTypedData();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const collectMutation = useMutation({
     mutationFn: async () => {
       if (!permission || !signature) throw new Error("missing data");

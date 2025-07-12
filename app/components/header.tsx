@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import Image from "next/image";
+import SubscribeButton from "./subscribe";
 
 export function Header() {
   // Track previous scroll position and header visibility
@@ -48,6 +49,8 @@ export function Header() {
       <h1 className="text-2xl font-bold flex-1">
         {process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || "App"}
       </h1>
+      {/* SubscribeButton allows users to give spend permission to the app */}
+      <SubscribeButton />
     </header>
   );
 }

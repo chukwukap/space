@@ -9,7 +9,11 @@ import {
 } from "@livekit/components-react";
 
 import { useEffect, useState, useCallback } from "react";
-import { Participant as LKParticipant, RoomEvent } from "livekit-client";
+import {
+  ConnectionState,
+  Participant as LKParticipant,
+  RoomEvent,
+} from "livekit-client";
 import "@livekit/components-styles";
 import dynamic from "next/dynamic";
 import { AvatarWithControls } from "./avatar";
@@ -25,7 +29,6 @@ const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
 
 interface SpaceRoomProps {
   serverUrl: string;
-  title?: string;
   spaceId: string;
 }
 
@@ -33,7 +36,7 @@ interface SpaceRoomProps {
  * SpaceLayout displays the current state of the room, including host, speakers, and listeners.
  * It also provides a leave button that disconnects the user securely and navigates home.
  */
-function SpaceLayout({ title }: { title?: string }) {
+function SpaceLayout() {
   const room = useRoomContext();
   const spaceStore = useSpaceStore();
   const participants = useParticipants();
@@ -118,6 +121,7 @@ function SpaceLayout({ title }: { title?: string }) {
       // Speaker if has publish permission (mic enabled)
       if (p.isMicrophoneEnabled) spaceStore.addSpeaker(p);
     };
+
     const handleParticipantDisconnected = (p: LKParticipant) => {
       spaceStore.removeSpeaker(p.sid);
       spaceStore.dequeueHand(p.sid);
@@ -129,6 +133,7 @@ function SpaceLayout({ title }: { title?: string }) {
         spaceStore.setHost(next ?? room.localParticipant.sid);
       }
     };
+
     const handleMetadataChanged = (
       _meta: string | undefined,
       p: LKParticipant,
@@ -142,17 +147,14 @@ function SpaceLayout({ title }: { title?: string }) {
 
     room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
     room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
-    room.on(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged as any);
+    room.on(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
     return () => {
       room.off(RoomEvent.ParticipantConnected, handleParticipantConnected);
       room.off(
         RoomEvent.ParticipantDisconnected,
         handleParticipantDisconnected,
       );
-      room.off(
-        RoomEvent.ParticipantMetadataChanged,
-        handleMetadataChanged as any,
-      );
+      room.off(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
     };
   }, [room]);
 
@@ -184,21 +186,26 @@ function SpaceLayout({ title }: { title?: string }) {
   /* Connection state banner */
   const [networkState, setNetworkState] = useState<string | null>(null);
 
+  /* ------------------ Recording badge ------------------ */
+  const recordingBadge = spaceStore.recording ? (
+    <span className="bg-red-600 animate-pulse rounded px-1.5 py-0.5 text-[10px] font-semibold">
+      REC
+    </span>
+  ) : null;
+
   useEffect(() => {
     const onStateChanged = () => {
       const state = room.state;
-      if (state !== "connected") {
+      if (state !== ConnectionState.Connected) {
         setNetworkState(state);
       } else {
         setNetworkState(null);
       }
     };
     onStateChanged();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (room as any).on("stateChanged", onStateChanged);
+    room.on(RoomEvent.ConnectionStateChanged, onStateChanged);
     return () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (room as any).off("stateChanged", onStateChanged);
+      room.off(RoomEvent.ConnectionStateChanged, onStateChanged);
     };
   }, [room]);
 
@@ -254,11 +261,32 @@ function SpaceLayout({ title }: { title?: string }) {
       } catch {}
     };
 
-    room.on("dataReceived", handleData);
+    room.on(RoomEvent.DataReceived, handleData);
     return () => {
-      room.off("dataReceived", handleData);
+      room.off(RoomEvent.DataReceived, handleData);
     };
   }, [room]);
+
+  // If the room does not exist, show a gentle error message
+  if (!room) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-center px-6">
+        <h2 className="text-2xl font-bold mb-2">Space Not Found</h2>
+        <p className="text-gray-400 mb-6">
+          Sorry, this Space doesn&apos;t exist or has ended. <br />
+          Please check the link or return to the homepage to discover live
+          Spaces.
+        </p>
+        <a
+          href="/"
+          className="inline-block px-6 py-2 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-700 transition"
+        >
+          {" "}
+          Back to Home{" "}
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="gap-4 min-h-screen bg-gray-950">
@@ -296,7 +324,7 @@ function SpaceLayout({ title }: { title?: string }) {
         className="px-6 text-lg font-bold leading-snug mt-4"
         data-testid="space-title"
       >
-        {title || "Untitled Space"}
+        {/* {title || "Untitled Space"} */}
       </h1>
 
       {/* Avatars for host, speakers, and listeners */}
@@ -427,11 +455,7 @@ function SpaceLayout({ title }: { title?: string }) {
  * SpaceRoom connects the user to the LiveKit room and renders the room UI.
  * SECURITY: The token is generated server-side and passed as a prop. Never expose API secrets on the client.
  */
-export default function SpaceRoom({
-  serverUrl,
-  spaceId,
-  title,
-}: SpaceRoomProps) {
+export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const user = useUser();
 
@@ -469,8 +493,7 @@ export default function SpaceRoom({
       video={false}
       audio={false}
     >
-      {/* Pass the title down so the correct space title is shown */}
-      <SpaceLayout title={title} />
+      <SpaceLayout />
       {inviteOpen && <InviteSheet onClose={() => setInviteOpen(false)} />}
       <RoomAudioRenderer />
     </LiveKitRoom>

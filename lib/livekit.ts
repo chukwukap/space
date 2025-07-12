@@ -1,4 +1,4 @@
-import { RoomServiceClient } from "livekit-server-sdk";
+import { RoomServiceClient, AccessToken, Room } from "livekit-server-sdk";
 
 /**
  * LiveKit server-side helper utilities for UmbraSwap.
@@ -60,34 +60,52 @@ export async function createRoom(title: string, creator: string) {
   return room;
 }
 
-// /**
-//  * Generates a signed JWT that allows a user to join the specified LiveKit
-//  * room. The token grants the user permission to publish & subscribe (host
-//  * determines actual permissions client-side).
-//  */
-// export async function generateAccessToken({
-//   roomName,
-//   userId,
-// }: {
-//   roomName: string;
-//   userId: string;
-// }): Promise<string> {
-//   if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-//     throw new Error(
-//       "LiveKit credentials are not configured. Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET env vars.",
-//     );
-//   }
+/**
+ * Generates a signed JWT that allows a user to join the specified LiveKit
+ * room. The token grants the user permission to publish & subscribe (host
+ * determines actual permissions client-side).
+ */
+export async function generateAccessToken({
+  roomName,
+  userId,
+}: {
+  roomName: string;
+  userId: string;
+}): Promise<string> {
+  if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+    throw new Error(
+      "LiveKit credentials are not configured. Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET env vars.",
+    );
+  }
 
-//   const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-//     identity: userId,
-//   });
+  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+    identity: userId,
+  });
 
-//   at.addGrant({
-//     roomJoin: true,
-//     room: roomName,
-//     canPublish: true,
-//     canSubscribe: true,
-//   });
+  at.addGrant({
+    roomJoin: true,
+    room: roomName,
+    canPublish: true,
+    canSubscribe: true,
+  });
 
-//   return await at.toJwt();
-// }
+  return await at.toJwt();
+}
+
+/**
+ * Fetches a single space (room) by its roomId.
+ * Returns the Room object if found, or null if not found.
+ * SECURITY: Only exposes non-sensitive room data.
+ */
+export async function getRoom(roomId: string): Promise<Room | null> {
+  try {
+    const rooms = await roomService.listRooms([roomId]);
+    // listRooms returns an array; find the room with the exact name
+    const room = rooms.find((r) => r.name === roomId);
+    return room || null;
+  } catch (error) {
+    // Log error for observability, but do not expose details to the user
+    console.error(`[LiveKit] Failed to fetch room "${roomId}":`, error);
+    return null;
+  }
+}

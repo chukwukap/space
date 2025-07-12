@@ -15,14 +15,14 @@ export default function InviteSheet({ onClose }: { onClose: () => void }) {
       id: 1,
       name: "Anmol",
       handle: "0xanmol",
-      avatar: "/public/icon.png",
+      avatar: "/icon.png",
       verified: true,
     },
     {
       id: 2,
       name: "Anthony | Gib.Work",
       handle: "0xNullRef",
-      avatar: "/public/hero.png",
+      avatar: "/hero.png",
       verified: true,
     },
   ];
