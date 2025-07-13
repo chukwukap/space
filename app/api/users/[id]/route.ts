@@ -1,13 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } },
-) {
+export async function GET(req: NextRequest) {
+  const params = req.nextUrl.searchParams;
+  const id = params.get("id");
   try {
     const user = await prisma.user.findUnique({
-      where: { id: Number(params.id) },
+      where: { id: Number(id) },
       include: { tipsSent: true, tipsReceived: true, participants: true },
     });
     if (!user) {
@@ -23,11 +22,10 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(req: NextRequest) {
   try {
+    const params = req.nextUrl.searchParams;
+    const id = params.get("id");
     const body = await req.json();
     const { address, avatarUrl, displayName, username } = body;
 
@@ -45,7 +43,7 @@ export async function PATCH(
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: Number(params.id) },
+      where: { id: Number(id) },
       data,
     });
 

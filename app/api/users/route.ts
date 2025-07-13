@@ -16,11 +16,11 @@ function sanitizeString(value: unknown): string | undefined {
 // Query params supported: id, fid, address, username
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const id = sanitizeString(searchParams.get("id"));
-    const fid = sanitizeString(searchParams.get("fid"));
-    const address = sanitizeString(searchParams.get("address"));
-    const username = sanitizeString(searchParams.get("username"));
+    const params = req.nextUrl.searchParams;
+    const id = sanitizeString(params.get("id"));
+    const fid = sanitizeString(params.get("fid"));
+    const address = sanitizeString(params.get("address"));
+    const username = sanitizeString(params.get("username"));
 
     if (!id && !fid && !address && !username) {
       return NextResponse.json(
