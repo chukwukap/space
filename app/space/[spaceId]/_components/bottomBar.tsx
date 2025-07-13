@@ -6,36 +6,48 @@ import {
   Users as UsersIcon,
   Share2 as ShareIcon,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Props {
   isSpeaker: boolean;
   onToggleMic: () => void;
   onRaiseHand: () => void;
-  onReaction: () => void;
+  onOpenReactionPicker: () => void;
   likes: number;
   handRaiseCount: number;
   isHost: boolean;
   onQueueClick: () => void;
+  className?: string;
 }
 
 export default function BottomBar({
   isSpeaker,
   onToggleMic,
   onRaiseHand,
-  onReaction,
+  onOpenReactionPicker,
   likes,
   handRaiseCount,
   isHost,
   onQueueClick,
+  className,
 }: Props) {
   return (
-    <footer className="fixed bottom-0 left-0 w-full bg-black/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50">
+    <footer
+      className={cn(
+        "w-full bg-black/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50",
+        className,
+      )}
+    >
       {isSpeaker ? (
         <BarButton label="Mic" icon={MicIcon} onClick={onToggleMic} />
       ) : (
         <BarButton label="Request" icon={HandIcon} onClick={onRaiseHand} />
       )}
-      <BarButton label={String(likes)} icon={HeartIcon} onClick={onReaction} />
+      <BarButton
+        label={String(likes)}
+        icon={HeartIcon}
+        onClick={onOpenReactionPicker}
+      />
       {isHost && handRaiseCount > 0 && (
         <BarButton
           label={`Queue(${handRaiseCount})`}

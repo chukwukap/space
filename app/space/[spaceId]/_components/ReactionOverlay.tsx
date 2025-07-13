@@ -1,17 +1,17 @@
 interface Props {
-  hearts: Array<{ id: number; left: number }>;
+  reactions: Array<{ id: number; left: number; emoji: string }>;
 }
 
-export default function ReactionOverlay({ hearts }: Props) {
+export default function ReactionOverlay({ reactions }: Props) {
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden z-40">
-      {hearts.map((h) => (
+      {reactions.map((h) => (
         <span
           key={h.id}
           style={{ left: `${h.left}%` }}
           className="absolute bottom-10 text-pink-500 animate-heart-burst"
         >
-          ❤
+          {h.emoji}
         </span>
       ))}
       <style jsx>{`

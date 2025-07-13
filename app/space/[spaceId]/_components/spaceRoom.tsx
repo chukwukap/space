@@ -23,6 +23,7 @@ import { useSpaceStore } from "./spaceStore";
 import ReactionOverlay from "./ReactionOverlay";
 import BottomBar from "./bottomBar";
 import HandRaiseQueue from "./HandRaiseQueue";
+import ReactionPicker, { ReactionType } from "./ReactionPicker";
 import { Address, Hex, parseUnits } from "viem";
 import {
   useAccount,
@@ -195,7 +196,25 @@ function SpaceLayout() {
    * Data message handler (invite, reactions, etc.)
    * ----------------------------------------------------------------- */
   const [likes, setLikes] = useState(0);
-  const [hearts, setHearts] = useState<Array<{ id: number; left: number }>>([]);
+  const [reactions, setReactions] = useState<
+    Array<{ id: number; left: number; emoji: string }>
+  >([]);
+
+  const reactionEmojis: Record<ReactionType, string> = {
+    heart: "❤️",
+    clap: "👏",
+    fire: "🔥",
+    lol: "😂",
+    hundred: "💯",
+  };
+
+  const reactionTipWei: Record<ReactionType, string> = {
+    heart: "1",
+    clap: "2",
+    fire: "5",
+    lol: "3",
+    hundred: "10",
+  };
 
   /* Connection state banner */
   const [networkState, setNetworkState] = useState<string | null>(null);
@@ -223,19 +242,17 @@ function SpaceLayout() {
     };
   }, [room]);
 
-  // Trigger heart burst when likes increases
-  useEffect(() => {
-    if (!likes) return;
+  const addFloatingReaction = (emoji: string) => {
     const id = Date.now();
-    setHearts((prev) => [
+    setReactions((prev) => [
       ...prev,
-      { id, left: Math.random() * 80 + 10 }, // random horizontal position
+      { id, left: Math.random() * 80 + 10, emoji },
     ]);
-    const timer = setTimeout(() => {
-      setHearts((prev) => prev.filter((h) => h.id !== id));
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [likes]);
+    setTimeout(
+      () => setReactions((prev) => prev.filter((r) => r.id !== id)),
+      3000,
+    );
+  };
 
   useEffect(() => {
     const handleData = (payload: Uint8Array) => {
@@ -249,6 +266,10 @@ function SpaceLayout() {
             }
             break;
           case "reaction":
+            if (msg.reactionType) {
+              const emoji = reactionEmojis[msg.reactionType as ReactionType];
+              if (emoji) addFloatingReaction(emoji);
+            }
             setLikes((c) => c + 1);
             break;
           case "muteRequest":
@@ -281,10 +302,16 @@ function SpaceLayout() {
     };
   }, [room]);
 
-  const handleReaction = async () => {
-    // optimistic UI update & broadcast to room
+  /** ----------------------------------------- */
+  /* Reaction handling with tip                */
+  /** ----------------------------------------- */
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const handleSendReaction = async (type: ReactionType) => {
+    // optimistic display
+    addFloatingReaction(reactionEmojis[type]);
     setLikes((c) => c + 1);
-    sendData({ type: "reaction" });
+    sendData({ type: "reaction", reactionType: type });
 
     try {
       let addr = account.address as Address | undefined;
@@ -292,27 +319,22 @@ function SpaceLayout() {
         const res = await connectAsync({ connector: connectors[0] });
         addr = res.accounts[0] as Address;
       }
+      if (!addr) return;
 
-      if (!addr) return; // user rejected wallet connection
+      const allowanceWei = reactionTipWei[type];
 
-      /** ---------------------------------------------------------
-       * Build SpendPermission struct – allow 1 unit per reaction
-       * -------------------------------------------------------- */
       const spendPerm = {
         account: addr,
         spender: process.env.NEXT_PUBLIC_SPENDER_ADDRESS as Address,
-        token: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address, // Native ETH per EIP-7528
-        allowance: parseUnits("1", 18), // 1 wei-denominated unit
-        period: 86_400, // 24h
+        token: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address,
+        allowance: parseUnits(allowanceWei, 18),
+        period: 86_400,
         start: 0,
-        end: 281_474_976_710_655, // max uint48
-        salt: BigInt(Date.now()), // cheap uniqueness
+        end: 281_474_976_710_655,
+        salt: BigInt(Date.now()),
         extraData: "0x" as Hex,
       } as const;
 
-      /** ---------------------------------------------------------
-       * Sign permission off-chain (EIP-712)
-       * -------------------------------------------------------- */
       const signature = (await signTypedDataAsync({
         domain: {
           name: "Spend Permission Manager",
@@ -337,9 +359,6 @@ function SpaceLayout() {
         message: spendPerm,
       })) as Hex;
 
-      /** ---------------------------------------------------------
-       * Relay to backend –  spend 1 unit via relayer wallet
-       * -------------------------------------------------------- */
       const replacer = (k: string, v: unknown) =>
         typeof v === "bigint" ? v.toString() : v;
 
@@ -352,8 +371,7 @@ function SpaceLayout() {
         ),
       });
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("[micro-tip] failed", err);
+      console.error("[reaction tip] failed", err);
     }
   };
 
@@ -382,7 +400,7 @@ function SpaceLayout() {
     <div className="gap-4 min-h-screen bg-gray-950">
       {/* Network banner */}
       {networkState && (
-        <div className="fixed top-0 left-0 w-full bg-yellow-600 text-center text-sm py-1 z-50">
+        <div className="w-full bg-yellow-600 text-center text-sm py-1 z-50">
           {networkState === "reconnecting"
             ? "Reconnecting…"
             : networkState === "disconnected"
@@ -418,7 +436,7 @@ function SpaceLayout() {
       </h1>
 
       {/* Avatars for host, speakers, and listeners */}
-      <div className="flex px-6 py-4 gap-4">
+      <div className="flex px-6 py-4 gap-4 flex-1">
         {/* Host */}
         <AvatarWithControls
           p={host as LKParticipant}
@@ -508,15 +526,23 @@ function SpaceLayout() {
 
       {/* Bottom bar */}
       <BottomBar
+        className="absolute bottom-0 left-0 right-0"
         isSpeaker={!isLocalMuted}
         onToggleMic={toggleMic}
         onRaiseHand={raiseHand}
-        onReaction={handleReaction}
+        onOpenReactionPicker={() => setPickerOpen(true)}
         likes={likes}
         handRaiseCount={handRaisedCount}
         isHost={isHost}
         onQueueClick={() => setQueueOpen(true)}
       />
+
+      {pickerOpen && (
+        <ReactionPicker
+          onPick={(t) => handleSendReaction(t)}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
 
       {isHost && queueOpen && (
         <HandRaiseQueue
@@ -533,8 +559,8 @@ function SpaceLayout() {
         />
       )}
 
-      {/* Floating hearts overlay */}
-      <ReactionOverlay hearts={hearts} />
+      {/* Floating reactions overlay */}
+      <ReactionOverlay reactions={reactions} />
     </div>
   );
 }
