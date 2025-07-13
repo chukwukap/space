@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  _req: NextRequest,
+  _req: Request,
   { params }: { params: { id: string } },
 ) {
   try {
@@ -24,7 +24,7 @@ export async function GET(
 }
 
 export async function PATCH(
-  req: NextRequest,
+  req: Request,
   { params }: { params: { id: string } },
 ) {
   try {

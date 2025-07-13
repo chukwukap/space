@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Silence warnings
-  // https://github.com/WalletConnect/walletconnect-monorepo/issues/1908
+  // Disable ESLint during `next build` – generated Prisma WASM & other vendor
+  // files trigger thousands of warnings that block the build. We still run
+  // `pnpm lint` separately for first-party code.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Silence warnings from WalletConnect deps
   webpack: (config) => {
     config.externals.push("pino-pretty", "lokijs", "encoding");
     return config;
