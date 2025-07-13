@@ -79,7 +79,7 @@ export default function LandingClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          hostId: String(user.user?.fid),
+          hostId: String(user.user?.fid || "testUser"), // TODO: remove testUser
           recording: record,
         }),
       });
