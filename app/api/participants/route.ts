@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Handles participant creation or update for UmbraSwap Spaces.
+ * Handles participant creation or update for Spaces.
  * Ensures at least one unique identifier (fid or walletAddress) is provided.
  * Security-first: Only allows safe, minimal updates to user records.
  */
