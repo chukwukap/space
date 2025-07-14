@@ -3,14 +3,9 @@
 @tailwind utilities;
 
 body {
-  font-family: "Geist", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: 400;
-  font-style: normal;
+  @apply font-sans;
   font-size: 80%;
 }
-
-
 
 @layer base {
   :root {
@@ -67,8 +62,6 @@ body {
     --chart-5: 340 75% 55%;
   }
 }
-
-
 
 @layer base {
   * {

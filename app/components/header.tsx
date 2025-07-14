@@ -3,6 +3,8 @@
 import React, { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import SubscribeButton from "./subscribe";
+import { useTheme } from "next-themes";
+import { SunLight, HalfMoon } from "iconoir-react";
 
 export function Header() {
   // Track previous scroll position and header visibility
@@ -46,11 +48,36 @@ export function Header() {
       }}
     >
       <Image src="/logo.png" alt="Logo" width={32} height={32} />
-      <h1 className="text-2xl font-bold flex-1">
+      <h1 className="text-2xl font-bold flex-1 select-none">
         {process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || "App"}
       </h1>
+      {/* Theme toggle */}
+      <ThemeToggle />
       {/* SubscribeButton allows users to give spend permission to the app */}
       <SubscribeButton />
     </header>
+  );
+}
+
+// ------------------------------------------------------------------
+
+function ThemeToggle() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
+  const isDark =
+    theme === "dark" || (theme === "system" && resolvedTheme === "dark");
+
+  return (
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className="p-2 rounded-full hover:bg-white/10 transition-colors"
+    >
+      {isDark ? (
+        <SunLight className="w-5 h-5" />
+      ) : (
+        <HalfMoon className="w-5 h-5" />
+      )}
+    </button>
   );
 }
