@@ -14,8 +14,8 @@ export default function HandRaiseQueue({
   onReject,
 }: Props) {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-gray-800 w-80 rounded-lg p-4">
+    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-card w-80 rounded-lg p-4 text-foreground">
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-semibold">Hand Raise Queue</h3>
           <button onClick={onClose} aria-label="Close">
@@ -23,7 +23,7 @@ export default function HandRaiseQueue({
           </button>
         </div>
         {list.length === 0 ? (
-          <p className="text-sm text-gray-400">No requests</p>
+          <p className="text-sm text-muted-foreground">No requests</p>
         ) : (
           <ul className="space-y-2 max-h-60 overflow-y-auto">
             {list.map((p) => (
@@ -31,13 +31,13 @@ export default function HandRaiseQueue({
                 <span>{p.identity}</span>
                 <div className="flex gap-2">
                   <button
-                    className="px-2 py-0.5 bg-violet-600 rounded text-sm"
+                    className="px-2 py-0.5 bg-primary rounded text-sm text-primary-foreground"
                     onClick={() => onAccept(p.sid)}
                   >
                     Invite
                   </button>
                   <button
-                    className="px-2 py-0.5 bg-gray-600 rounded text-sm"
+                    className="px-2 py-0.5 bg-muted rounded text-sm text-foreground"
                     onClick={() => onReject(p.sid)}
                   >
                     Decline

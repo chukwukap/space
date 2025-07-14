@@ -34,7 +34,7 @@ export default function BottomBar({
   return (
     <footer
       className={cn(
-        "w-full bg-black/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50",
+        "w-full bg-card/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50",
         className,
       )}
     >
@@ -78,7 +78,7 @@ interface BarButtonProps {
 function BarButton({ label, icon: IconCmp, onClick }: BarButtonProps) {
   return (
     <button
-      className="flex flex-col items-center text-white hover:opacity-90"
+      className="flex flex-col items-center text-foreground hover:opacity-90"
       onClick={onClick}
     >
       <IconCmp className="w-6 h-6" />

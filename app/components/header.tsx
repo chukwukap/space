@@ -38,7 +38,7 @@ export function Header() {
   // Security: No sensitive data is exposed in header.
   return (
     <header
-      className={`w-full max-w-lg bg-black border-b border-white/10 flex items-center px-4 py-3 gap-3 z-30 sticky top-0 transition-transform duration-300 ${
+      className={`w-full max-w-lg bg-card border-b border-border flex items-center px-4 py-3 gap-3 z-30 sticky top-0 transition-transform duration-300 ${
         visible ? "translate-y-0" : "-translate-y-full"
       }`}
       style={{
@@ -71,7 +71,7 @@ function ThemeToggle() {
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="p-2 rounded-full hover:bg-white/10 transition-colors"
+      className="p-2 rounded-full hover:bg-muted/20 transition-colors"
     >
       {isDark ? (
         <SunLight className="w-5 h-5" />

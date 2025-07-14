@@ -32,11 +32,11 @@ export default function SpaceCard({ space }: SpaceCardProps) {
   const router = useRouter();
   return (
     <div
-      className="bg-violet-600/90 hover:bg-violet-600 transition-colors rounded-2xl p-4 shadow-md text-white cursor-pointer"
+      className="bg-primary/90 hover:bg-primary transition-colors rounded-2xl p-4 shadow-md text-primary-foreground cursor-pointer"
       onClick={() => router.push(`/space/${space.id}`)}
     >
       <div className="text-xs uppercase mb-2 flex items-center gap-1">
-        <span className="inline-block w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+        <span className="inline-block w-1 h-1 rounded-full bg-destructive animate-pulse" />
         Live
       </div>
       <h3 className="text-lg font-semibold leading-snug mb-3 line-clamp-2">
@@ -55,7 +55,7 @@ export default function SpaceCard({ space }: SpaceCardProps) {
               ) : (
                 <div
                   key={i}
-                  className="w-6 h-6 rounded-full bg-violet-400 border-2 border-violet-600"
+                  className="w-6 h-6 rounded-full bg-primary/40 border-2 border-primary"
                 />
               ),
             )}

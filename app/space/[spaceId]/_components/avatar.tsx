@@ -15,16 +15,16 @@
 import { useMemo } from "react";
 import { Participant } from "livekit-client";
 import {
-  Mic2 as MicIcon,
-  MicOff as MicOffIcon,
-  HandMetal as HandIcon,
+  Microphone as MicIcon,
+  MicrophoneMute as MicOffIcon,
+  HandContactless as HandIcon, // placeholder for hand icon
   Crown as CrownIcon,
   User as UserIcon,
   PlusCircle as InviteIcon,
-  VolumeX as MuteRemoteIcon,
-  Volume2 as UnmuteRemoteIcon,
-  UserMinus as DemoteIcon,
-} from "lucide-react";
+  MicrophoneMute as MuteRemoteIcon,
+  Microphone as UnmuteRemoteIcon,
+  RulerMinus as DemoteIcon,
+} from "iconoir-react";
 
 type AvatarWithControlsProps = {
   p: Participant;
@@ -41,6 +41,8 @@ type AvatarWithControlsProps = {
   remoteMuted?: boolean;
   /** Host control: demote speaker to listener */
   onDemote?: () => void;
+  /** Optional role label e.g. "Host", "Speaker" */
+  roleLabel?: string;
 };
 
 export function AvatarWithControls({
@@ -55,6 +57,7 @@ export function AvatarWithControls({
   onToggleRemoteMute,
   onDemote,
   remoteMuted,
+  roleLabel,
 }: AvatarWithControlsProps) {
   // Derive initials if no photo
   const initials = useMemo(() => {
@@ -115,120 +118,137 @@ export function AvatarWithControls({
     .join(", ");
 
   return (
-    <div
-      className={`relative flex items-center justify-center rounded-full bg-gradient-to-br from-violet-700 via-purple-700 to-violet-900 text-white font-semibold shadow-lg transition-shadow
-        ${speaking ? "ring-4 ring-violet-400/80 shadow-2xl" : ""}
-        ${isHost ? "border-2 border-yellow-400" : ""}
+    <div className="flex flex-col items-center gap-1" style={{ width: size }}>
+      <div
+        className={`relative flex items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold shadow-lg transition-shadow
+        ${speaking ? "ring-4 ring-primary/60 shadow-2xl" : ""}
+        ${isHost ? "border-2 border-amber-400" : ""}
         ${isLocal ? "outline outline-2 outline-cyan-400" : ""}
       `}
-      style={{
-        width: size,
-        height: size,
-        minWidth: size,
-        minHeight: size,
-        boxShadow: speaking
-          ? "0 0 0 4px rgba(139,92,246,0.3), 0 4px 24px 0 rgba(80,0,120,0.18)"
-          : "0 2px 8px 0 rgba(80,0,120,0.10)",
-        position: "relative",
-      }}
-      aria-label={ariaLabel}
-      tabIndex={0}
-    >
-      {/* Avatar image or initials */}
-      {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={avatarUrl}
-          alt={p.identity}
-          className="object-cover w-full h-full rounded-full"
-          draggable={false}
-          loading="lazy"
-        />
-      ) : (
-        <span className="relative z-10 select-none text-lg flex items-center justify-center w-full h-full">
-          {initials || <UserIcon className="w-7 h-7 text-gray-300" />}
-        </span>
-      )}
-
-      {/* Host crown */}
-      {isHost && (
-        <span
-          className="absolute -top-2 -right-2 z-20 drop-shadow"
-          title="Host"
-        >
-          <CrownIcon className="w-5 h-5 text-yellow-400 bg-white rounded-full p-0.5" />
-        </span>
-      )}
-
-      {/* Hand raise */}
-      {handRaised && (
-        <span
-          className="absolute -top-2 -left-2 z-20 drop-shadow"
-          title="Hand Raised"
-        >
-          <HandIcon className="w-5 h-5 text-blue-400 bg-white rounded-full p-0.5" />
-        </span>
-      )}
-
-      {/* Mic/mute indicator */}
-      <span
-        className="absolute -bottom-2 right-1 z-20"
-        title={muted ? "Muted" : "Mic On"}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+          boxShadow: speaking
+            ? "0 0 0 4px rgba(var(--primary)/0.3), 0 4px 24px 0 rgba(80,0,120,0.18)"
+            : "0 2px 8px 0 rgba(80,0,120,0.10)",
+          position: "relative",
+        }}
+        aria-label={ariaLabel}
+        tabIndex={0}
       >
-        {muted ? (
-          <MicOffIcon
-            className="w-5 h-5 text-red-500 bg-white rounded-full p-0.5 shadow"
-            aria-label="Muted"
+        {/* Avatar image or initials */}
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt={p.identity}
+            className="object-cover w-full h-full rounded-full"
+            draggable={false}
+            loading="lazy"
           />
         ) : (
-          <MicIcon
-            className={`w-5 h-5 ${
-              speaking ? "text-green-400" : "text-gray-300"
-            } bg-white rounded-full p-0.5 shadow`}
-            aria-label="Mic On"
-          />
+          <span className="relative z-10 select-none text-lg flex items-center justify-center w-full h-full">
+            {initials || <UserIcon className="w-7 h-7 text-muted-foreground" />}
+          </span>
         )}
-      </span>
 
-      {/* Invite to speak button */}
-      {onInvite && (
-        <button
-          onClick={onInvite}
-          className="absolute -bottom-2 -left-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
-          title="Invite to Speak"
-        >
-          <InviteIcon className="w-5 h-5 text-violet-600" />
-        </button>
-      )}
+        {/* Host crown */}
+        {isHost && (
+          <span
+            className="absolute -top-2 -right-2 z-20 drop-shadow"
+            title="Host"
+          >
+            <CrownIcon className="w-5 h-5 text-yellow-400 bg-white rounded-full p-0.5" />
+          </span>
+        )}
 
-      {/* Host moderation controls (mute/unmute, demote) */}
-      {onToggleRemoteMute && (
-        <button
-          onClick={onToggleRemoteMute}
-          className="absolute -top-2 -right-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
-          title={muted ? "Unmute Speaker" : "Mute Speaker"}
+        {/* Hand raise */}
+        {handRaised && (
+          <span
+            className="absolute -top-2 -left-2 z-20 drop-shadow"
+            title="Hand Raised"
+          >
+            <HandIcon className="w-5 h-5 text-secondary bg-background rounded-full p-0.5" />
+          </span>
+        )}
+
+        {/* Mic/mute indicator */}
+        <span
+          className="absolute -bottom-2 right-1 z-20"
+          title={muted ? "Muted" : "Mic On"}
         >
           {muted ? (
-            <UnmuteRemoteIcon className="w-5 h-5 text-red-600" />
+            <MicOffIcon
+              className="w-5 h-5 text-destructive bg-background rounded-full p-0.5 shadow"
+              aria-label="Muted"
+            />
           ) : (
-            <MuteRemoteIcon className="w-5 h-5 text-red-600" />
+            <MicIcon
+              className={`w-5 h-5 ${
+                speaking ? "text-secondary" : "text-muted-foreground"
+              } bg-background rounded-full p-0.5 shadow`}
+              aria-label="Mic On"
+            />
           )}
-        </button>
-      )}
+        </span>
 
-      {onDemote && (
-        <button
-          onClick={onDemote}
-          className="absolute -top-2 -left-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
-          title="Move to Listener"
-        >
-          <DemoteIcon className="w-5 h-5 text-yellow-600" />
-        </button>
-      )}
+        {/* Invite to speak button */}
+        {onInvite && (
+          <button
+            onClick={onInvite}
+            className="absolute -bottom-2 -left-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
+            title="Invite to Speak"
+          >
+            <InviteIcon className="w-5 h-5 text-primary" />
+          </button>
+        )}
 
-      {/* Local user highlight ring */}
-      {isLocal && (
-        <span className="absolute inset-0 rounded-full ring-2 ring-cyan-400 pointer-events-none animate-pulse" />
+        {/* Host moderation controls (mute/unmute, demote) */}
+        {onToggleRemoteMute && (
+          <button
+            onClick={onToggleRemoteMute}
+            className="absolute -top-2 -right-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
+            title={muted ? "Unmute Speaker" : "Mute Speaker"}
+          >
+            {muted ? (
+              <UnmuteRemoteIcon className="w-5 h-5 text-destructive" />
+            ) : (
+              <MuteRemoteIcon className="w-5 h-5 text-red-600" />
+            )}
+          </button>
+        )}
+
+        {onDemote && (
+          <button
+            onClick={onDemote}
+            className="absolute -top-2 -left-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
+            title="Move to Listener"
+          >
+            <DemoteIcon className="w-5 h-5 text-amber-400" />
+          </button>
+        )}
+
+        {/* Local user highlight ring */}
+        {isLocal && (
+          <span className="absolute inset-0 rounded-full ring-2 ring-cyan-400 pointer-events-none animate-pulse" />
+        )}
+      </div>
+      {roleLabel && (
+        <span className="text-[10px] text-muted-foreground flex items-center gap-1 leading-none">
+          {/* Bullet */}
+          <span
+            className={`inline-block w-1 h-1 rounded-full ${
+              isHost
+                ? "bg-primary"
+                : speaking
+                  ? "bg-secondary"
+                  : "bg-muted-foreground"
+            }`}
+          />
+          {roleLabel}
+        </span>
       )}
     </div>
   );

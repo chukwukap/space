@@ -35,7 +35,7 @@ export function BottomNav() {
   // Security: No sensitive data is exposed in bottom nav.
   return (
     <nav
-      className={`w-full max-w-lg bg-black border-t border-white/10 flex justify-around items-center py-2 z-30 sticky bottom-0 transition-transform duration-300 ${
+      className={`w-full max-w-lg bg-card border-t border-border flex justify-around items-center py-2 z-30 sticky bottom-0 transition-transform duration-300 ${
         visible ? "translate-y-0" : "translate-y-full"
       } relative`}
       style={{
@@ -48,7 +48,7 @@ export function BottomNav() {
       {/* Center floating action button using absolute positioning within nav */}
       <div className="absolute -top-6 left-1/2 -translate-x-1/2">
         <button
-          className="bg-black border-4 border-black rounded-full p-3 shadow-lg"
+          className="bg-primary border-4 border-primary rounded-full p-3 shadow-lg text-primary-foreground"
           aria-label="Main Action"
         >
           <StarIcon width={24} height={24} />
@@ -64,7 +64,7 @@ type IconComponent = React.ComponentType<React.SVGProps<SVGSVGElement>>;
 
 function NavButton({ Icon, label }: { Icon: IconComponent; label: string }) {
   return (
-    <button className="flex flex-col items-center text-white/80 hover:text-white">
+    <button className="flex flex-col items-center text-muted-foreground hover:text-foreground">
       <Icon width={20} height={20} />
       <span className="text-[10px] mt-0.5">{label}</span>
     </button>

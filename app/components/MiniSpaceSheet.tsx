@@ -35,12 +35,12 @@ export default function MiniSpaceSheet({
     <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-none">
       {/* overlay – click-through except sheet area */}
       <div
-        className="absolute inset-0 bg-black/50 pointer-events-auto"
+        className="absolute inset-0 bg-background/60 pointer-events-auto"
         onClick={onClose}
       />
 
       {/* SHEET */}
-      <div className="relative bg-black/90 backdrop-blur-md rounded-t-2xl pt-2 pb-4 px-4 pointer-events-auto animate-slide-up">
+      <div className="relative bg-card/90 backdrop-blur-md rounded-t-2xl pt-2 pb-4 px-4 pointer-events-auto animate-slide-up text-foreground">
         {/* drag handle / header */}
         <div className="flex items-center justify-between mb-3">
           <button

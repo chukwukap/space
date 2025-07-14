@@ -109,12 +109,12 @@ export default function RootLayout({
     <html lang="en" className="overscroll-none">
       <body
         className={cn(
-          `${sora.variable} bg-gray-900 overscroll-none`,
-          "font-sora",
+          `${sora.variable} overscroll-none`,
+          "font-sora bg-background text-foreground",
         )}
       >
         <Providers>
-          <div className="flex flex-col min-h-svh max-w-lg mx-auto bg-black text-white h-svh relative">
+          <div className="flex flex-col min-h-svh max-w-lg mx-auto bg-background text-foreground h-svh relative">
             {/* Sticky, auto-hiding header in its own client component */}
             <Header />
             {/* Main scrollable content area with hidden scrollbars */}

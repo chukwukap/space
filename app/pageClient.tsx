@@ -12,8 +12,9 @@ import {
 import { SpaceMetadata } from "@/lib/types";
 import { useUser } from "./providers/userProvider";
 import { Button } from "@/components/ui/button";
-import { Mic, Mic2Icon } from "lucide-react";
+import { Microphone } from "iconoir-react";
 import { Room } from "livekit-server-sdk";
+import Image from "next/image";
 
 /**
  * Space type extends Room with additional metadata fields.
@@ -129,11 +130,11 @@ export default function LandingClient() {
       <Drawer shouldScaleBackground={false}>
         <DrawerTrigger asChild>
           <button className="absolute bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl">
-            <Mic2Icon className="w-7 h-7" />
+            <Microphone className="w-7 h-7" />
           </button>
         </DrawerTrigger>
 
-        <DrawerContent className="bg-[var(--app-background)] rounded-t-2xl border border-white/10 px-0 pb-10 text-white">
+        <DrawerContent className="bg-card rounded-t-2xl border border-border px-0 pb-10 text-foreground">
           <div className="w-full max-w-lg mx-auto px-6 pt-6 flex flex-col gap-4">
             <DrawerHeader className="text-center mb-4">
               <DrawerTitle>Create your Space</DrawerTitle>
@@ -184,7 +185,7 @@ function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
       onClick={onClick}
     >
       <div className="flex items-center gap-2 text-xs uppercase font-semibold">
-        <Mic name="mic" className="text-white/70" />
+        <Microphone className="text-muted-foreground" />
         LIVE
       </div>
 
@@ -197,7 +198,9 @@ function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
               key={i}
               className="w-7 h-7 rounded-full bg-violet-400 border-2 border-violet-600 overflow-hidden"
             >
-              <img
+              <Image
+                width={28}
+                height={28}
                 src="/icon.png"
                 alt="pfp"
                 className="object-cover w-full h-full"

@@ -29,11 +29,11 @@ export default function InviteSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/60" onClick={onClose} />
 
-      <div className="relative bg-[var(--app-background)] rounded-t-2xl shadow-lg animate-slide-up max-h-[85vh] w-full flex flex-col overflow-hidden">
+      <div className="relative bg-card rounded-t-2xl shadow-lg animate-slide-up max-h-[85vh] w-full flex flex-col overflow-hidden text-foreground">
         {/* drag handle */}
-        <div className="h-1 w-10 bg-gray-500/50 rounded-full mx-auto mt-2 mb-3" />
+        <div className="h-1 w-10 bg-border/50 rounded-full mx-auto mt-2 mb-3" />
 
         {/* Header */}
         <div className="flex justify-between items-center px-6 mb-2">
@@ -48,14 +48,14 @@ export default function InviteSheet({ onClose }: { onClose: () => void }) {
 
         {/* Search bar */}
         <div className="relative px-6 mb-4">
-          <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+          <span className="absolute left-8 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
             <SearchIcon />
           </span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search for people and groups"
-            className="w-full pl-10 pr-4 py-2 rounded-full bg-white/5 border border-white/10 placeholder-gray-400 focus:outline-none"
+            className="w-full pl-10 pr-4 py-2 rounded-full bg-muted/20 border border-border placeholder-muted-foreground focus:outline-none"
           />
         </div>
 
@@ -64,7 +64,7 @@ export default function InviteSheet({ onClose }: { onClose: () => void }) {
           {suggestions.map((p) => (
             <div
               key={p.id}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-lg cursor-pointer"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-muted/10 rounded-lg cursor-pointer"
             >
               {p.avatar ? (
                 <Image
@@ -75,14 +75,14 @@ export default function InviteSheet({ onClose }: { onClose: () => void }) {
                   className="rounded-full object-cover"
                 />
               ) : (
-                <div className="w-10 h-10 bg-gray-700 rounded-full" />
+                <div className="w-10 h-10 bg-muted rounded-full" />
               )}
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="flex items-center gap-1 font-medium truncate">
                   {p.name}
                   {p.verified && <VerifiedBadge />}
                 </span>
-                <span className="text-sm text-gray-400 truncate">
+                <span className="text-sm text-muted-foreground truncate">
                   {p.handle}
                 </span>
               </div>
@@ -92,15 +92,15 @@ export default function InviteSheet({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Message + send */}
-        <div className="relative px-4 py-3 border-t border-white/10">
+        <div className="relative px-4 py-3 border-t border-border">
           <input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="w-full bg-white/5 rounded-full py-2 pl-4 pr-12 placeholder-gray-400 focus:outline-none"
+            className="w-full bg-muted/20 rounded-full py-2 pl-4 pr-12 placeholder-muted-foreground focus:outline-none"
           />
           <button
             onClick={onClose}
-            className="absolute right-6 top-1/2 -translate-y-1/2 text-violet-400 hover:text-violet-500"
+            className="absolute right-6 top-1/2 -translate-y-1/2 text-primary hover:opacity-90"
           >
             <SendIcon />
           </button>

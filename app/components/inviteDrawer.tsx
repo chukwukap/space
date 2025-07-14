@@ -142,7 +142,7 @@ export default function InviteDrawer({
       {/* ╭─────────────────────────────────────────────╮ */}
       {/* │ Content                                   │ */}
       {/* ╰─────────────────────────────────────────────╯ */}
-      <DrawerContent className="bg-[var(--app-background)] rounded-t-2xl border border-white/10 text-white flex flex-col pb-4 max-h-[85vh]">
+      <DrawerContent className="bg-card rounded-t-2xl border border-border text-foreground flex flex-col pb-4 max-h-[85vh]">
         {/* Header */}
         <DrawerHeader className="px-6">
           <DrawerTitle className="flex justify-between items-center text-lg">
@@ -153,21 +153,21 @@ export default function InviteDrawer({
               </button>
             </DrawerClose>
           </DrawerTitle>
-          <DrawerDescription className="text-gray-400 mt-1">
+          <DrawerDescription className="text-muted-foreground mt-1">
             People will join as listeners first.
           </DrawerDescription>
         </DrawerHeader>
 
         {/* Search */}
         <div className="relative px-6 mt-4">
-          <span className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+          <span className="absolute left-8 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
             <SearchIcon />
           </span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search for people and groups"
-            className="w-full pl-10 pr-4 py-2 rounded-full bg-white/5 border border-white/10 placeholder-gray-400 focus:outline-none"
+            className="w-full pl-10 pr-4 py-2 rounded-full bg-muted/20 border border-border placeholder-muted-foreground focus:outline-none"
             aria-label="Search people"
           />
         </div>
@@ -186,7 +186,7 @@ export default function InviteDrawer({
                   key={p.id}
                   className={clsx(
                     "flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors",
-                    isSelected ? "bg-violet-600/30" : "hover:bg-white/5",
+                    isSelected ? "bg-primary/20" : "hover:bg-muted/10",
                   )}
                   onClick={() => toggleSelect(p.id)}
                   aria-selected={isSelected}
@@ -210,7 +210,7 @@ export default function InviteDrawer({
                       {p.name}
                       {p.verified && <VerifiedBadge />}
                     </span>
-                    <span className="text-sm text-gray-400 truncate">
+                    <span className="text-sm text-muted-foreground truncate">
                       @{p.handle}
                     </span>
                   </div>
@@ -220,8 +220,8 @@ export default function InviteDrawer({
                     className={clsx(
                       "w-5 h-5 rounded-full border-2 flex items-center justify-center",
                       isSelected
-                        ? "border-violet-500 bg-violet-600"
-                        : "border-gray-500",
+                        ? "border-primary bg-primary"
+                        : "border-muted-foreground/40",
                     )}
                   >
                     {isSelected && (
@@ -246,12 +246,12 @@ export default function InviteDrawer({
         </ul>
 
         {/* Composer & send */}
-        <DrawerFooter className="pt-2 border-t border-white/10">
+        <DrawerFooter className="pt-2 border-t border-border">
           <div className="relative">
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="w-full bg-white/5 rounded-full py-2 pl-4 pr-14 placeholder-gray-400 focus:outline-none"
+              className="w-full bg-muted/20 rounded-full py-2 pl-4 pr-14 placeholder-muted-foreground focus:outline-none"
               maxLength={280}
               aria-label="Invitation message"
             />
@@ -261,8 +261,8 @@ export default function InviteDrawer({
               className={clsx(
                 "absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-colors",
                 selected.size === 0
-                  ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                  : "bg-violet-600 hover:bg-violet-700 text-white",
+                  ? "bg-muted text-muted-foreground cursor-not-allowed"
+                  : "bg-primary hover:bg-primary/90 text-primary-foreground",
               )}
               aria-label="Send invite"
             >
@@ -270,7 +270,7 @@ export default function InviteDrawer({
             </button>
           </div>
           {selected.size > 0 && (
-            <p className="text-xs text-gray-400 text-center mt-1">
+            <p className="text-xs text-muted-foreground text-center mt-1">
               Inviting {selected.size}{" "}
               {selected.size === 1 ? "person" : "people"}
             </p>

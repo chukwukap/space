@@ -380,14 +380,14 @@ function SpaceLayout() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center px-6">
         <h2 className="text-2xl font-bold mb-2">Space Not Found</h2>
-        <p className="text-gray-400 mb-6">
+        <p className="text-muted-foreground mb-6">
           Sorry, this Space doesn&apos;t exist or has ended. <br />
           Please check the link or return to the homepage to discover live
           Spaces.
         </p>
         <a
           href="/"
-          className="inline-block px-6 py-2 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-700 transition"
+          className="inline-block px-6 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition"
         >
           {" "}
           Back to Home{" "}
@@ -397,7 +397,7 @@ function SpaceLayout() {
   }
 
   return (
-    <div className="gap-4 min-h-screen bg-gray-950">
+    <div className="gap-4 min-h-screen bg-background text-foreground">
       {/* Network banner */}
       {networkState && (
         <div className="w-full bg-yellow-600 text-center text-sm py-1 z-50">
@@ -409,10 +409,10 @@ function SpaceLayout() {
         </div>
       )}
 
-      <header className="flex justify-between px-4 py-2 bg-black/80 backdrop-blur z-40">
+      <header className="flex justify-between px-4 py-2 bg-card/80 backdrop-blur z-40">
         <div className="flex items-center gap-3">
           {recordingBadge}
-          <span className="text-xs text-gray-300">
+          <span className="text-xs text-muted-foreground">
             {participantCount} · listeners
           </span>
           <button className="text-2xl" aria-label="More options">
@@ -444,6 +444,7 @@ function SpaceLayout() {
           isSpeaking={host.isSpeaking}
           isHost
           remoteMuted={!host.isMicrophoneEnabled}
+          roleLabel="Host"
         />
         {/* Speakers */}
         {speakers.map((s) => (
@@ -463,6 +464,7 @@ function SpaceLayout() {
             }
             isSpeaking={s.isSpeaking}
             remoteMuted={!s.isMicrophoneEnabled}
+            roleLabel="Speaker"
           />
         ))}
         {/* Listeners */}
@@ -497,6 +499,7 @@ function SpaceLayout() {
             })()}
             onToggleRemoteMute={undefined}
             onDemote={undefined}
+            roleLabel="Listener"
           />
         ))}
       </div>

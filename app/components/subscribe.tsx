@@ -103,7 +103,7 @@ export default function SubscribeButton() {
 
   return (
     <button
-      className="px-4 py-2 rounded-lg bg-violet-600 text-white disabled:opacity-50"
+      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       disabled={isDisabled}
       onClick={handleSubscribe}
     >

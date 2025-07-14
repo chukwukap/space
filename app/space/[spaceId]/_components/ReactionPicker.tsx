@@ -20,7 +20,7 @@ export default function ReactionPicker({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 flex gap-3 bg-black/70 px-4 py-2 rounded-full backdrop-blur z-50">
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 flex gap-3 bg-card/70 px-4 py-2 rounded-full backdrop-blur z-50">
       {reactions.map((r) => (
         <button
           key={r.type}

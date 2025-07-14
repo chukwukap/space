@@ -21,7 +21,7 @@ export default function CreateSpaceSheet({ onClose }: { onClose: () => void }) {
       {/* Overlay */}
       <motion.div
         key="overlay"
-        className="absolute inset-0 z-40 bg-black/60 backdrop-blur-[2px]"
+        className="absolute inset-0 z-40 bg-background/60 backdrop-blur-[2px]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
