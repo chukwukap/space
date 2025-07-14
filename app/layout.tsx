@@ -4,7 +4,56 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Header } from "./components/header";
+
 // import { BottomNav } from "./components/bottomNav";
+
+// Font configuration for Spaces: five standout Google Fonts for a polished, modern app experience.
+// This would be in font.ts and exported for use throughout the app.
+
+// Sora: A modern, clean, and highly readable font with a unique character.
+// Space Grotesk: A modern, clean, and highly readable font with a unique character.
+// Manrope: A modern, clean, and highly readable font with a unique character.
+// Inter: A modern, clean, and highly readable font with a unique character.
+// DM Sans: A modern, clean, and highly readable font with a unique character.
+
+import { Sora, Space_Grotesk, Manrope, Inter, DM_Sans } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+// Professional font setup for
+export const sora = Sora({
+  subsets: ["latin"],
+  variable: "--font-sora",
+  display: "swap",
+  weight: ["400", "500", "700"],
+});
+
+export const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+  weight: ["400", "500", "700"],
+});
+
+export const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
+  weight: ["400", "500", "700"],
+});
+
+export const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+  weight: ["400", "500", "700"],
+});
+
+export const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+  weight: ["400", "500", "700"],
+});
 
 /**
  * Set viewport for responsive design.
@@ -58,7 +107,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="overscroll-none">
-      <body className="bg-gray-900 overscroll-none">
+      <body
+        className={cn(
+          `${sora.variable} bg-gray-900 overscroll-none`,
+          "font-sora",
+        )}
+      >
         <Providers>
           <div className="flex flex-col min-h-svh max-w-lg mx-auto bg-black text-white h-svh relative">
             {/* Sticky, auto-hiding header in its own client component */}

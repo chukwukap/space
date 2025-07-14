@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
-import { Participant as User } from "@/lib/types"; // Rename import for clarity
+import { User } from "@/lib/types";
 
 /**
  * Context type for user state management.
@@ -76,12 +76,17 @@ export function UserProvider({ children }: UserProviderProps) {
   /**
    * Helper function to create or fetch a user.
    */
-  const createOrFetchUser = async (payload: unknown) => {
+  const createOrFetchUser = async (payload: {
+    fid?: number;
+    username?: string;
+    pfpUrl?: string;
+    walletAddress?: string;
+  }) => {
     setUserLoading(true);
     setUserError(null);
 
     try {
-      const response = await fetch("/api/participants", {
+      const response = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

@@ -8,7 +8,7 @@ export interface SpaceSummary {
   avatars: string[]; // up to two avatars
 }
 
-export interface Participant {
+export interface User {
   id: string;
   fid?: number;
   username?: string;
