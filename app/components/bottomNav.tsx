@@ -1,7 +1,7 @@
 "use client";
 
-import { Star } from "lucide-react";
 import React, { useRef, useEffect, useState } from "react";
+import { Home, Search, User, Send, Star as StarIcon } from "iconoir-react";
 
 export function BottomNav() {
   // Track previous scroll position and nav visibility
@@ -43,33 +43,29 @@ export function BottomNav() {
         pointerEvents: visible ? "auto" : "none",
       }}
     >
-      <NavButton icon="star" label="Home" />
-      <NavButton icon="chat" label="Search" />
+      <NavButton Icon={Home} label="Home" />
+      <NavButton Icon={Search} label="Search" />
       {/* Center floating action button using absolute positioning within nav */}
       <div className="absolute -top-6 left-1/2 -translate-x-1/2">
         <button
           className="bg-black border-4 border-black rounded-full p-3 shadow-lg"
           aria-label="Main Action"
         >
-          <Star name="star" size="lg" />
+          <StarIcon width={24} height={24} />
         </button>
       </div>
-      <NavButton icon="users" label="People" />
-      <NavButton icon="share" label="Inbox" />
+      <NavButton Icon={User} label="People" />
+      <NavButton Icon={Send} label="Inbox" />
     </nav>
   );
 }
 
-function NavButton({
-  icon,
-  label,
-}: {
-  icon: Parameters<typeof Star>[0]["name"];
-  label: string;
-}) {
+type IconComponent = React.ComponentType<React.SVGProps<SVGSVGElement>>;
+
+function NavButton({ Icon, label }: { Icon: IconComponent; label: string }) {
   return (
     <button className="flex flex-col items-center text-white/80 hover:text-white">
-      <Star name={icon} />
+      <Icon width={20} height={20} />
       <span className="text-[10px] mt-0.5">{label}</span>
     </button>
   );
