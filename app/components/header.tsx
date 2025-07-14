@@ -38,7 +38,7 @@ export function Header() {
   // Security: No sensitive data is exposed in header.
   return (
     <header
-      className={`w-full max-w-lg bg-card border-b border-border flex items-center px-4 py-3 gap-3 z-30 sticky top-0 transition-transform duration-300 ${
+      className={`w-full  bg-card border-b border-border flex items-center px-4 py-3 gap-3 z-30 sticky top-0 transition-transform duration-300 ${
         visible ? "translate-y-0" : "-translate-y-full"
       }`}
       style={{

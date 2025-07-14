@@ -96,3 +96,19 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  @keyframes barGrow {
+    0%,
+    100% {
+      transform: scaleY(0.4);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+  .eq-bar {
+    @apply w-[3px] h-[8px] bg-secondary rounded-sm origin-bottom;
+    animation: barGrow 1s ease-in-out infinite;
+  }
+}

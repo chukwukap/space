@@ -186,13 +186,26 @@ export function AvatarWithControls({
             />
           ) : (
             <MicIcon
-              className={`w-5 h-5 ${
+              className={`${
                 speaking ? "text-secondary" : "text-muted-foreground"
-              } bg-background rounded-full p-0.5 shadow`}
+              } w-5 h-5 bg-background rounded-full p-0.5 shadow`}
               aria-label="Mic On"
             />
           )}
         </span>
+
+        {/* Speaking equalizer */}
+        {speaking && !muted && (
+          <span className="absolute -right-2 bottom-1 flex flex-col items-center gap-[2px]">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="eq-bar"
+                style={{ animationDelay: `${i * 0.2}s` }}
+              />
+            ))}
+          </span>
+        )}
 
         {/* Invite to speak button */}
         {onInvite && (

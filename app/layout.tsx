@@ -114,7 +114,7 @@ export default function RootLayout({
         )}
       >
         <Providers>
-          <div className="flex flex-col min-h-svh max-w-lg mx-auto bg-background text-foreground h-svh relative">
+          <div className="flex flex-col min-h-svh  bg-background/80 text-foreground h-svh relative">
             {/* Sticky, auto-hiding header in its own client component */}
             <Header />
             {/* Main scrollable content area with hidden scrollbars */}

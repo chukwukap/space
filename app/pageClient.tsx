@@ -135,7 +135,7 @@ export default function LandingClient() {
         </DrawerTrigger>
 
         <DrawerContent className="bg-card rounded-t-2xl border border-border px-0 pb-10 text-foreground">
-          <div className="w-full max-w-lg mx-auto px-6 pt-6 flex flex-col gap-4">
+          <div className="w-full px-6 pt-6 flex flex-col gap-4">
             <DrawerHeader className="text-center mb-4">
               <DrawerTitle>Create your Space</DrawerTitle>
             </DrawerHeader>
