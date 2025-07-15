@@ -26,6 +26,7 @@ import BottomBar from "./bottomBar";
 import HandRaiseQueue from "./HandRaiseQueue";
 import ReactionPicker, { ReactionType } from "./ReactionPicker";
 import { Address, Hex, parseUnits } from "viem";
+import { USDC_ADDRESS, USDC_DECIMALS } from "@/lib/constants";
 import {
   useAccount,
   useChainId,
@@ -62,10 +63,12 @@ interface SpaceRoomProps {
  * It also provides a leave button that disconnects the user securely and navigates home.
  */
 function SpaceLayout({
+  spaceId,
   onMinimize,
   onInviteClick,
   onQrClick,
 }: {
+  spaceId: string;
   onMinimize: () => void;
   onInviteClick: () => void;
   onQrClick: () => void;
@@ -83,6 +86,7 @@ function SpaceLayout({
   const { connectAsync } = useConnect();
   const connectors = useConnectors();
   const { signTypedDataAsync } = useSignTypedData();
+  const { user } = useUser();
 
   const getParticipantBySid = (sid: string | null) => {
     if (!sid) return undefined;
@@ -362,13 +366,13 @@ function SpaceLayout({
       }
       if (!addr) return;
 
-      const allowanceWei = reactionTipWei[type];
+      const allowanceUnits = reactionTipWei[type];
 
       const spendPerm = {
         account: addr,
         spender: process.env.NEXT_PUBLIC_SPENDER_ADDRESS as Address,
-        token: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address,
-        allowance: parseUnits(allowanceWei, 18),
+        token: USDC_ADDRESS,
+        allowance: parseUnits(allowanceUnits, USDC_DECIMALS),
         period: 86_400,
         start: 0,
         end: 281_474_976_710_655,
@@ -403,6 +407,9 @@ function SpaceLayout({
       const replacer = (k: string, v: unknown) =>
         typeof v === "bigint" ? v.toString() : v;
 
+      const fromId = user?.id ?? null;
+      const toId = tipRecipient ? parseInt(tipRecipient.identity) : null;
+
       await fetch("/api/collect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -410,12 +417,47 @@ function SpaceLayout({
           {
             spendPermission: spendPerm,
             signature,
-            amount: reactionTipWei[type],
-            recipientSid: tipRecipient?.sid ?? null,
+            amount: allowanceUnits,
+            decimals: USDC_DECIMALS,
+            spaceId,
+            fromId,
+            toId,
           },
           replacer,
         ),
       });
+
+      /* Persist reaction and tip for analytics */
+      if (fromId && toId) {
+        try {
+          const reactionRes = await fetch("/api/reactions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              spaceId,
+              userId: fromId,
+              type,
+            }),
+          });
+          const reaction = await reactionRes.json();
+
+          await fetch("/api/tips", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              spaceId,
+              fromId,
+              toId,
+              amount: allowanceUnits,
+              tokenSymbol: "USDC",
+              txHash: "pending", // will be updated server-side
+              reactionId: reaction.id,
+            }),
+          });
+        } catch (err) {
+          console.error("[tip persist] failed", err);
+        }
+      }
     } catch (err) {
       console.error("[reaction tip] failed", err);
     }
@@ -698,6 +740,7 @@ export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
         />
       ) : (
         <SpaceLayout
+          spaceId={spaceId}
           onMinimize={() => setMinimized(true)}
           onInviteClick={() => setInviteOpen(true)}
           onQrClick={() => setQrOpen(true)}
