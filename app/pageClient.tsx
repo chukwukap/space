@@ -143,7 +143,7 @@ export default function LandingClient() {
       </section>
 
       {/* Section heading */}
-      <section className="px-6 mt-6">
+      <section id="explore" className="px-6 mt-6">
         <h2 className="text-2xl font-extrabold">Happening Now</h2>
         <p className="text-sm text-muted-foreground -mt-1">
           Spaces going on right now
@@ -167,7 +167,10 @@ export default function LandingClient() {
       {/* Create Space Drawer */}
       <Drawer shouldScaleBackground={false}>
         <DrawerTrigger asChild>
-          <button className="absolute bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl">
+          <button
+            id="create-space-btn"
+            className="absolute bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl"
+          >
             <Microphone className="w-7 h-7" />
           </button>
         </DrawerTrigger>

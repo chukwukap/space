@@ -1,0 +1,120 @@
+"use client";
+
+import React, { useRef, useEffect, useState } from "react";
+import Image from "next/image";
+import { useTheme } from "next-themes";
+import { SunLight, HalfMoon } from "iconoir-react";
+import { Mic2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+export function Header() {
+  // Track previous scroll position and header visibility
+  const [visible, setVisible] = useState(true);
+  const prevScrollY = useRef(0);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Handler for scroll event
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      // Show header if scrolling up, hide if scrolling down
+      if (currentScrollY < 10) {
+        setVisible(true);
+      } else if (currentScrollY > prevScrollY.current) {
+        setVisible(false);
+      } else if (currentScrollY < prevScrollY.current) {
+        setVisible(true);
+      }
+      prevScrollY.current = currentScrollY;
+    };
+
+    // Use passive event listener for performance
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  // Security: No sensitive data is exposed in header.
+  return (
+    <header
+      className={cn(
+        "fixed top-3 left-1/2 -translate-x-1/2 z-40 w-[90vw] max-w-5xl px-4 py-2 rounded-full glass-card flex items-center gap-2 transition-transform duration-300 backdrop-blur-md",
+        visible ? "translate-y-0" : "-translate-y-[140%]",
+      )}
+      style={{
+        willChange: "transform",
+        pointerEvents: visible ? "auto" : "none",
+      }}
+    >
+      {/* Logo & Brand */}
+      <Link href="/" className="flex items-center gap-2 select-none">
+        <Image src="/logo.png" alt="Logo" width={28} height={28} />
+        <span className="text-lg font-extrabold bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text leading-none">
+          Space
+        </span>
+      </Link>
+
+      {/* Nav */}
+      <nav className="flex-1 hidden sm:flex items-center gap-6 justify-center text-sm font-medium">
+        <Link href="#explore" className="hover:text-primary transition-colors">
+          Explore
+        </Link>
+        <Link href="/profile" className="hover:text-primary transition-colors">
+          Profile
+        </Link>
+      </nav>
+
+      <div className="flex items-center gap-2">
+        {/* Theme toggle */}
+        <ThemeToggle />
+
+        {/* CTA – Start Space */}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="hidden sm:inline-flex gap-1"
+          onClick={() => {
+            // scroll to bottom mic trigger or route to create flow
+            const micBtn = document.getElementById("create-space-btn");
+            if (micBtn) {
+              micBtn.click();
+            } else {
+              router.push("/#create");
+            }
+          }}
+        >
+          <Mic2 className="w-4 h-4" /> Start Space
+        </Button>
+      </div>
+    </header>
+  );
+}
+
+// ------------------------------------------------------------------
+
+function ThemeToggle() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+
+  const isDark =
+    theme === "dark" || (theme === "system" && resolvedTheme === "dark");
+
+  return (
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className="p-2 rounded-full hover:bg-muted/20 transition-colors"
+    >
+      {isDark ? (
+        <SunLight className="w-5 h-5" />
+      ) : (
+        <HalfMoon className="w-5 h-5" />
+      )}
+    </button>
+  );
+}
