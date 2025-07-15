@@ -33,6 +33,7 @@ Space makes the middleman vanish. Your voice goes straight to your community; th
 
 🎤 **Instant Rooms** — Press _Start_, you’re live.  
 💸 **Tips Built-In** — Hearts and emojis translate into USDC you keep.  
+🎁 **Direct Speaker Tips** — Listeners can tip any host or speaker in real-time, without leaving the Space.  
 🪄 **No App-Switching** — Everything happens inside Warpcast—join, react, tip.  
 🎟 **Invite Drawer** — Pull friends on stage with one swipe.  
 🔔 **Go-Live Alerts** — Fans get pinged the second you speak.  
