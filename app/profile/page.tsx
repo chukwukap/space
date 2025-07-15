@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useUser } from "@/app/providers/userProvider";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import CountUp from "react-countup";
 import {
   Share2 as ShareIcon,
   Pencil as EditIcon,
@@ -68,9 +70,14 @@ export default function UserProfilePage() {
   /* JSX                                                                */
   /* ------------------------------------------------------------------ */
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="flex flex-col min-h-screen bg-background text-foreground"
+    >
       {/* Cover */}
-      <div className="relative w-full h-40 sm:h-56 md:h-64 bg-muted overflow-hidden">
+      <div className="relative w-full h-40 sm:h-56 md:h-64 overflow-hidden aurora-bg">
         <Image
           src={profile.coverUrl}
           alt="cover"
@@ -150,7 +157,7 @@ export default function UserProfilePage() {
             {profile.recentSpaces.map((s) => (
               <li
                 key={s.id}
-                className="p-4 rounded-lg bg-card hover:bg-muted/10 transition flex items-center gap-3"
+                className="p-4 rounded-lg glass-card glow-hover transition flex items-center gap-3"
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{s.title}</p>
@@ -185,17 +192,19 @@ export default function UserProfilePage() {
           </div>
         )}
       </section>
-    </div>
+    </motion.div>
   );
 }
 
 /* ------------------------------------------------------------------ */
 /* Reusable sub-components                                              */
 /* ------------------------------------------------------------------ */
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg bg-muted/10 p-4 text-center">
-      <p className="text-2xl font-bold leading-none">{value}</p>
+    <div className="rounded-lg glass-card p-4 text-center glow-hover">
+      <p className="text-3xl font-extrabold leading-none text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+        <CountUp end={value} duration={1.4} separator="," />
+      </p>
       <p className="text-sm text-muted-foreground mt-1">{label}</p>
     </div>
   );

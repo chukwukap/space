@@ -111,4 +111,46 @@ body {
     @apply w-[3px] h-[8px] bg-secondary rounded-sm origin-bottom;
     animation: barGrow 1s ease-in-out infinite;
   }
+
+  /* -------------------------------------------------- */
+  /* Aurora background – animated multicolor gradient   */
+  /* -------------------------------------------------- */
+  @keyframes aurora {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .aurora-bg {
+    background: linear-gradient(
+      115deg,
+      hsl(var(--primary) / 0.45) 0%,
+      hsl(var(--secondary) / 0.45) 50%,
+      hsl(var(--accent) / 0.45) 100%
+    );
+    background-size: 200% 200%;
+    animation: aurora 8s ease-in-out infinite;
+  }
+
+  /* -------------------------------------------------- */
+  /* Glass card & glow hover utilities                 */
+  /* -------------------------------------------------- */
+  .glass-card {
+    @apply backdrop-blur-md bg-white/5 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-inner;
+  }
+
+  .glow-hover {
+    transition: box-shadow 0.3s ease;
+  }
+  .glow-hover:hover {
+    box-shadow:
+      0 0 12px hsl(var(--primary) / 0.6),
+      0 0 24px hsl(var(--secondary) / 0.3);
+  }
 }
