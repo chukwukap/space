@@ -2,6 +2,7 @@ import { roomService as spaceService } from "@/lib/livekit";
 import { prisma } from "@/lib/prisma";
 import { SpaceMetadata } from "@/lib/types";
 import { sendLiveSpaceNotifications } from "@/lib/notifyLive";
+import { startAudioRecording } from "@/lib/livekitEgress";
 
 export const revalidate = 0;
 
@@ -60,6 +61,8 @@ export async function POST(request: Request) {
       name: crypto.randomUUID(),
       metadata: JSON.stringify(metadata),
     });
+
+    startAudioRecording(livekitRoom.name, recording).catch(console.error);
 
     // Try to persist in DB, but do not fail if this step fails
     try {

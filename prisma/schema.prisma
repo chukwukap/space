@@ -52,14 +52,15 @@ model User {
 }
 
 model Space {
-  id        String      @id @default(uuid())
-  title     String
-  hostId    Int
-  host      User        @relation("HostedSpaces", fields: [hostId], references: [id])
-  status    SpaceStatus @default(LIVE)
-  recording Boolean     @default(false)
-  createdAt DateTime    @default(now())
-  endedAt   DateTime?
+  id           String      @id @default(uuid())
+  title        String
+  hostId       Int
+  host         User        @relation("HostedSpaces", fields: [hostId], references: [id])
+  status       SpaceStatus @default(LIVE)
+  recording    Boolean     @default(false)
+  recordingUrl String?
+  createdAt    DateTime    @default(now())
+  endedAt      DateTime?
 
   // Relations
   participants Participant[]
