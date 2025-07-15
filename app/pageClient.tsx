@@ -17,6 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Microphone } from "iconoir-react";
 import { Room } from "livekit-server-sdk";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+
+const ShareSheet = dynamic(() => import("./_components/shareSheet"), {
+  ssr: false,
+});
 
 /**
  * Space type extends Room with additional metadata fields.
@@ -35,6 +40,9 @@ export default function LandingClient() {
   // Loading and error state for space creation
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
 
   /* ----------------------------------------- */
   /* Fetch live spaces list every 5 s          */
@@ -95,9 +103,9 @@ export default function LandingClient() {
       }
 
       const livekitRoom = await res.json();
-      router.push(
-        `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`,
-      );
+      const path = `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`;
+      setShareUrl(`${window.location.origin}${path}`);
+      setShareOpen(true);
     } catch (error: unknown) {
       console.error(error);
       setCreateError("Something went wrong. Please try again.");
@@ -139,7 +147,7 @@ export default function LandingClient() {
         </p>
       </section>
 
-      <section className="mt-6 flex gap-4 overflow-x-auto px-6 pb-8 snap-x snap-mandatory scrollbar-none">
+      <section className="mt-6 flex gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         {/* Hide default scrollbar */}
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
         {spaces.map((s) => (
@@ -212,6 +220,13 @@ export default function LandingClient() {
           </div>
         </DrawerContent>
       </Drawer>
+      {shareOpen && (
+        <ShareSheet
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          spaceUrl={shareUrl}
+        />
+      )}
     </div>
   );
 }
