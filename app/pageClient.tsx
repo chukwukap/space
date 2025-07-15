@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import CountUp from "react-countup";
+// CountUp no longer needed after simplifying hero
 import { useRouter } from "next/navigation";
 import {
   Drawer,
@@ -128,18 +128,7 @@ export default function LandingClient() {
           actually control.
         </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
-          className="mt-8 flex justify-center gap-6"
-        >
-          <LandingStat label="Live Spaces" value={spaces.length} />
-          <LandingStat
-            label="Total Listeners"
-            value={spaces.reduce((c, s) => c + s.numParticipants, 0)}
-          />
-        </motion.div>
+        {/* Hero intentionally minimal – no live stats to maintain focus */}
       </section>
 
       {/* Section heading */}
@@ -276,16 +265,4 @@ function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Small landing stat                                                  */
-/* ------------------------------------------------------------------ */
-function LandingStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex flex-col items-center">
-      <p className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-        <CountUp end={value} duration={1.2} />
-      </p>
-      <span className="text-sm text-foreground/80">{label}</span>
-    </div>
-  );
-}
+// LandingStat removed – hero kept intentionally simple
