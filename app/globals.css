@@ -12,14 +12,14 @@ body {
     /* -------------------------------------------------- */
     /* Nebula Light Palette – sleek, calming, distinctive */
     /* -------------------------------------------------- */
-    --background: 222 21% 96%; /* misty gray-blue */
-    --foreground: 222 47% 11%; /* midnight navy text */
+    --background: 220 30% 98%; /* near white but subtle blue tint */
+    --foreground: 222 47% 12%; /* dark navy text */
 
-    --card: 222 21% 96%;
-    --card-foreground: 222 47% 11%;
+    --card: 0 0% 100%; /* true white card */
+    --card-foreground: 222 47% 12%;
 
-    --popover: 222 21% 96%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 12%;
 
     --primary: 252 83% 60%; /* lavender */
     --primary-foreground: 0 0% 100%;
@@ -36,7 +36,7 @@ body {
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 90%;
+    --border: 220 16% 85%; /* slightly darker for visibility */
     --input: 220 13% 90%;
     --ring: 252 83% 60%;
 
@@ -142,7 +142,7 @@ body {
   /* Glass card & glow hover utilities                 */
   /* -------------------------------------------------- */
   .glass-card {
-    @apply backdrop-blur-md bg-white/5 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-inner;
+    @apply backdrop-blur-md bg-white/60 dark:bg-white/5 border border-black/10 dark:border-white/10 shadow-inner;
   }
 
   .glow-hover {
