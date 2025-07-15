@@ -43,6 +43,8 @@ type AvatarWithControlsProps = {
   onDemote?: () => void;
   /** Optional role label e.g. "Host", "Speaker" */
   roleLabel?: string;
+  /** Callback: open tip picker for this participant */
+  onTip?: () => void;
 };
 
 export function AvatarWithControls({
@@ -58,6 +60,7 @@ export function AvatarWithControls({
   onDemote,
   remoteMuted,
   roleLabel,
+  onTip,
 }: AvatarWithControlsProps) {
   // Derive initials if no photo
   const initials = useMemo(() => {
@@ -240,6 +243,17 @@ export function AvatarWithControls({
             title="Move to Listener"
           >
             <DemoteIcon className="w-5 h-5 text-amber-400" />
+          </button>
+        )}
+
+        {/* Tip button */}
+        {onTip && (
+          <button
+            onClick={onTip}
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
+            title="Tip"
+          >
+            <span className="text-sm">💸</span>
           </button>
         )}
 

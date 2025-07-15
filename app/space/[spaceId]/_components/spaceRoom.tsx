@@ -232,11 +232,27 @@ function SpaceLayout({
   };
 
   const reactionTipWei: Record<ReactionType, string> = {
-    heart: "1",
-    clap: "2",
-    fire: "5",
-    lol: "3",
-    hundred: "10",
+    heart:
+      typeof window !== "undefined"
+        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").heart ?? "1")
+        : "1",
+    clap:
+      typeof window !== "undefined"
+        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").clap ?? "2")
+        : "2",
+    fire:
+      typeof window !== "undefined"
+        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").fire ?? "5")
+        : "5",
+    lol:
+      typeof window !== "undefined"
+        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").lol ?? "3")
+        : "3",
+    hundred:
+      typeof window !== "undefined"
+        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").hundred ??
+          "10")
+        : "10",
   };
 
   /* Connection state banner */
@@ -329,6 +345,8 @@ function SpaceLayout({
   /* Reaction handling with tip                */
   /** ----------------------------------------- */
   const [pickerOpen, setPickerOpen] = useState(false);
+  /** Currently selected participant to tip (host or speaker). */
+  const [tipRecipient, setTipRecipient] = useState<LKParticipant | null>(null);
 
   const handleSendReaction = async (type: ReactionType) => {
     // optimistic display
@@ -389,7 +407,12 @@ function SpaceLayout({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          { spendPermission: spendPerm, signature },
+          {
+            spendPermission: spendPerm,
+            signature,
+            amount: reactionTipWei[type],
+            recipientSid: tipRecipient?.sid ?? null,
+          },
           replacer,
         ),
       });
@@ -472,6 +495,10 @@ function SpaceLayout({
           isHost
           remoteMuted={!host.isMicrophoneEnabled}
           roleLabel="Host"
+          onTip={() => {
+            setTipRecipient(host as LKParticipant);
+            setPickerOpen(true);
+          }}
         />
         {/* Speakers */}
         {speakers.map((s) => (
@@ -492,6 +519,10 @@ function SpaceLayout({
             isSpeaking={s.isSpeaking}
             remoteMuted={!s.isMicrophoneEnabled}
             roleLabel="Speaker"
+            onTip={() => {
+              setTipRecipient(s as LKParticipant);
+              setPickerOpen(true);
+            }}
           />
         ))}
         {/* Listeners */}
@@ -572,7 +603,10 @@ function SpaceLayout({
       {pickerOpen && (
         <ReactionPicker
           onPick={(t) => handleSendReaction(t)}
-          onClose={() => setPickerOpen(false)}
+          onClose={() => {
+            setPickerOpen(false);
+            setTipRecipient(null);
+          }}
         />
       )}
 
