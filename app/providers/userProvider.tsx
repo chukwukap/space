@@ -48,6 +48,8 @@ export function UserProvider({ children }: UserProviderProps) {
   const [contextLoadingTimeout, setContextLoadingTimeout] =
     useState<NodeJS.Timeout | null>(null);
 
+  console.log("context", JSON.stringify(context, null, 2));
+
   /**
    * Refresh user data from the API.
    */
