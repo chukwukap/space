@@ -47,6 +47,9 @@ const MiniSpaceSheet = dynamic(
     ssr: false,
   },
 );
+const QuickQR = dynamic(() => import("@/app/_components/shareSheet"), {
+  ssr: false,
+});
 const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
 
 interface SpaceRoomProps {
@@ -61,9 +64,11 @@ interface SpaceRoomProps {
 function SpaceLayout({
   onMinimize,
   onInviteClick,
+  onQrClick,
 }: {
   onMinimize: () => void;
   onInviteClick: () => void;
+  onQrClick: () => void;
 }) {
   const room = useRoomContext();
   const spaceStore = useSpaceStore();
@@ -561,6 +566,7 @@ function SpaceLayout({
         isHost={isHost}
         onQueueClick={() => setQueueOpen(true)}
         onInviteClick={onInviteClick}
+        onQrClick={onQrClick}
       />
 
       {pickerOpen && (
@@ -600,6 +606,7 @@ function SpaceLayout({
 export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const user = useUser();
   const router = useRouter();
 
@@ -659,6 +666,7 @@ export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
         <SpaceLayout
           onMinimize={() => setMinimized(true)}
           onInviteClick={() => setInviteOpen(true)}
+          onQrClick={() => setQrOpen(true)}
         />
       )}
 
@@ -667,6 +675,14 @@ export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
           people={[]}
           defaultOpen={true}
           onSend={() => setInviteOpen(false)}
+        />
+      )}
+
+      {qrOpen && (
+        <QuickQR
+          open={qrOpen}
+          onClose={() => setQrOpen(false)}
+          spaceUrl={window.location.href}
         />
       )}
       <RoomAudioRenderer />
