@@ -18,6 +18,7 @@ import { Microphone } from "iconoir-react";
 import { Room } from "livekit-server-sdk";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import NotificationBanner from "./_components/notificationBanner";
 
 const ShareSheet = dynamic(() => import("./_components/shareSheet"), {
   ssr: false,
@@ -81,6 +82,10 @@ export default function LandingClient() {
    */
   async function handleCreateSpace() {
     if (!title.trim()) return;
+    if (!user.user?.fid) {
+      alert("Please connect Farcaster to host a Space.");
+      return;
+    }
     setCreating(true);
     setCreateError(null);
 
@@ -90,7 +95,7 @@ export default function LandingClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          hostId: String(user.user?.fid || "testUser"), // TODO: remove testUser
+          hostId: String(user.user.fid),
           recording: record,
         }),
       });
@@ -220,6 +225,7 @@ export default function LandingClient() {
           </div>
         </DrawerContent>
       </Drawer>
+      <NotificationBanner />
       {shareOpen && (
         <ShareSheet
           open={shareOpen}
