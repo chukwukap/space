@@ -83,6 +83,7 @@ export async function POST(request: Request) {
       `${process.env.NEXT_PUBLIC_URL}/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`,
       title,
     ).catch(console.error);
+    // DB hostId already int; no change needed
 
     // Always respond with LiveKit room info
     return new Response(JSON.stringify(livekitRoom), {

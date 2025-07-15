@@ -82,8 +82,8 @@ export default function LandingClient() {
    */
   async function handleCreateSpace() {
     if (!title.trim()) return;
-    if (!user.user?.fid) {
-      alert("Please connect Farcaster to host a Space.");
+    if (!user.user?.fid && !user.user?.id) {
+      alert("Please sign in to host a Space.");
       return;
     }
     setCreating(true);
@@ -95,7 +95,7 @@ export default function LandingClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          hostId: String(user.user.fid),
+          hostId: String(user.user?.fid ?? user.user?.id),
           recording: record,
         }),
       });

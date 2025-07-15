@@ -19,6 +19,7 @@ export async function sendLiveSpaceNotifications(
   spaceUrl: string,
   spaceTitle: string,
 ) {
+  if (isNaN(hostFid) || hostFid <= 0) return;
   // Rate-limit: check redis key
   const rlKey = `liveNotif:${hostFid}`;
   const redis = (await import("@/lib/redis"))?.redis;
