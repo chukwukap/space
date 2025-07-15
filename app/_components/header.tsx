@@ -6,7 +6,8 @@ import { useTheme } from "next-themes";
 import { SunLight, HalfMoon } from "iconoir-react";
 import { Mic2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useUser } from "@/app/providers/userProvider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,8 @@ export function Header() {
   const [visible, setVisible] = useState(true);
   const prevScrollY = useRef(0);
   const router = useRouter();
+  const pathname = usePathname();
+  const { user } = useUser();
 
   useEffect(() => {
     // Handler for scroll event
@@ -60,19 +63,27 @@ export function Header() {
         </span>
       </Link>
 
-      {/* Nav */}
-      <nav className="flex-1 hidden sm:flex items-center gap-6 justify-center text-sm font-medium">
-        <Link href="#explore" className="hover:text-primary transition-colors">
-          Explore
-        </Link>
-        <Link href="/profile" className="hover:text-primary transition-colors">
-          Profile
-        </Link>
-      </nav>
+      <div className="flex-1" />
 
       <div className="flex items-center gap-2">
         {/* Theme toggle */}
         <ThemeToggle />
+
+        {/* Show avatar link on non-home pages */}
+        {pathname !== "/" && (
+          <Link
+            href="/profile"
+            className="w-8 h-8 rounded-full overflow-hidden border border-border"
+          >
+            <Image
+              src={user?.pfpUrl || "/icon.png"}
+              alt="profile"
+              width={32}
+              height={32}
+              className="object-cover w-full h-full"
+            />
+          </Link>
+        )}
 
         {/* CTA – Start Space */}
         <Button
