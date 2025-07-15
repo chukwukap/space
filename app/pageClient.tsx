@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import CountUp from "react-countup";
 import { useRouter } from "next/navigation";
 import {
   Drawer,
@@ -106,10 +108,46 @@ export default function LandingClient() {
 
   return (
     <div className="flex flex-col min-h-screen ">
+      {/* HERO */}
+      <section className="relative aurora-bg rounded-b-[2rem] pb-20 pt-24 px-6 text-center shadow-lg overflow-hidden">
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="text-4xl sm:text-5xl font-extrabold leading-tight drop-shadow-md"
+        >
+          Talk. Earn. Own it.
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+          className="mt-3 text-lg text-foreground/70 max-w-xl mx-auto"
+        >
+          Host live audio shows, let fans tip in USDC, and grow an audience you
+          actually control.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
+          className="mt-8 flex justify-center gap-6"
+        >
+          <LandingStat label="Live Spaces" value={spaces.length} />
+          <LandingStat
+            label="Total Listeners"
+            value={spaces.reduce((c, s) => c + s.numParticipants, 0)}
+          />
+        </motion.div>
+      </section>
+
       {/* Section heading */}
       <section className="px-6 mt-6">
         <h2 className="text-2xl font-extrabold">Happening Now</h2>
-        <p className="text-sm text-gray-400 -mt-1">Spaces going on right now</p>
+        <p className="text-sm text-muted-foreground -mt-1">
+          Spaces going on right now
+        </p>
       </section>
 
       <section className="mt-6 space-y-6 px-4 flex-1 overflow-y-auto">
@@ -180,8 +218,10 @@ export default function LandingClient() {
 
 function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
   return (
-    <article
-      className="rounded-2xl bg-violet-600/90 hover:bg-violet-600 transition-colors p-4 space-y-4 cursor-pointer"
+    <motion.article
+      whileHover={{ scale: 1.03 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className="rounded-2xl glass-card glow-hover p-4 space-y-4 cursor-pointer"
       onClick={onClick}
     >
       <div className="flex items-center gap-2 text-xs uppercase font-semibold">
@@ -189,32 +229,48 @@ function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
         LIVE
       </div>
 
-      <h3 className="text-xl font-bold leading-snug">{space.title}</h3>
+      <h3 className="text-xl font-bold leading-snug truncate">{space.title}</h3>
 
       <div className="flex items-center gap-2 text-sm">
         <div className="flex -space-x-2">
-          {Array.from({ length: space.numParticipants }).map((_, i) => (
-            <div
-              key={i}
-              className="w-7 h-7 rounded-full bg-violet-400 border-2 border-violet-600 overflow-hidden"
-            >
-              <Image
-                width={28}
-                height={28}
-                src="/icon.png"
-                alt="pfp"
-                className="object-cover w-full h-full"
-              />
-            </div>
-          ))}
+          {Array.from({ length: space.numParticipants })
+            .slice(0, 3)
+            .map((_, i) => (
+              <div
+                key={i}
+                className="w-7 h-7 rounded-full bg-violet-400 border-2 border-violet-600 overflow-hidden"
+              >
+                <Image
+                  width={28}
+                  height={28}
+                  src="/icon.png"
+                  alt="pfp"
+                  className="object-cover w-full h-full"
+                />
+              </div>
+            ))}
         </div>
         <span>{space.numParticipants} listening</span>
       </div>
 
-      <div className="flex items-center gap-2 text-sm pt-2 border-t border-white/20">
+      <div className="flex items-center gap-2 text-sm pt-2 border-t border-white/10">
         <span className="w-6 h-6 rounded-full bg-yellow-500 inline-block" />
-        <span className="font-semibold">{space.hostId}</span>
+        <span className="font-semibold truncate">{space.hostId}</span>
       </div>
-    </article>
+    </motion.article>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Small landing stat                                                  */
+/* ------------------------------------------------------------------ */
+function LandingStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col items-center">
+      <p className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+        <CountUp end={value} duration={1.2} />
+      </p>
+      <span className="text-sm text-foreground/80">{label}</span>
+    </div>
   );
 }
