@@ -5,6 +5,7 @@ import { useUser } from "@/app/providers/userProvider";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import CountUp from "react-countup";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import {
   Share2 as ShareIcon,
   Pencil as EditIcon,
@@ -26,6 +27,8 @@ import {
  */
 export default function UserProfilePage() {
   const { user } = useUser();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const miniKit = useMiniKit() as any;
 
   /* ------------------------------------------------------------------ */
   /* Fallback demo data – replace once API endpoints are ready           */
@@ -124,14 +127,23 @@ export default function UserProfilePage() {
         </p>
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-4">
           <span>📍 {profile.location}</span>
-          <a
-            href={profile.website}
-            target="_blank"
-            rel="noreferrer"
-            className="hover:underline"
+          {/* Coinbase Wallet Mini App Guideline: use sdk.actions.openUrl for external links */}
+          <button
+            onClick={() => {
+              try {
+                miniKit?.actions?.openUrl?.(profile.website);
+              } catch (err) {
+                console.error("Failed to open external URL", err);
+                // Fallback when running outside a mini app host
+                if (typeof window !== "undefined") {
+                  window.open(profile.website, "_blank", "noreferrer");
+                }
+              }
+            }}
+            className="hover:underline text-left"
           >
             🔗 Website
-          </a>
+          </button>
           <span>🗓 Joined {profile.joinDate}</span>
         </div>
 
