@@ -3,7 +3,7 @@ import "@coinbase/onchainkit/styles.css";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import { Header } from "./components/header";
+import { Header } from "./_components/header";
 
 // import { BottomNav } from "./components/bottomNav";
 

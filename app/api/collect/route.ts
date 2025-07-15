@@ -27,6 +27,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
 
+    const MAX_TIP_AMOUNT = 100; // 100 USDC in units (decimals 6)
+
+    if (Number(amount) > MAX_TIP_AMOUNT) {
+      return NextResponse.json({ error: "amount too large" }, { status: 400 });
+    }
+
     const spender = await getSpenderWalletClient();
     const publicClient = await getPublicClient();
 
