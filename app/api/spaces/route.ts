@@ -1,6 +1,7 @@
 import { roomService as spaceService } from "@/lib/livekit";
 import { prisma } from "@/lib/prisma";
 import { SpaceMetadata } from "@/lib/types";
+import { sendLiveSpaceNotifications } from "@/lib/notifyLive";
 
 export const revalidate = 0;
 
@@ -75,6 +76,13 @@ export async function POST(request: Request) {
       // Log DB error for observability, but do not fail the route
       console.error("[POST /api/spaces] DB persist failed:", dbError);
     }
+
+    // Fire-and-forget notifications (no await to keep response fast)
+    sendLiveSpaceNotifications(
+      parseInt(hostId),
+      `${process.env.NEXT_PUBLIC_URL}/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`,
+      title,
+    ).catch(console.error);
 
     // Always respond with LiveKit room info
     return new Response(JSON.stringify(livekitRoom), {
