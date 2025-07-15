@@ -169,31 +169,37 @@ export default function LandingClient() {
         <DrawerTrigger asChild>
           <button
             id="create-space-btn"
-            className="absolute bottom-24 right-6 w-16 h-16 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center shadow-xl"
+            className="fixed bottom-24 right-6 w-16 h-16 rounded-full flex items-center justify-center glass-card glow-hover border-primary/30 bg-primary/80 text-primary-foreground shadow-2xl backdrop-blur-md"
           >
             <Microphone className="w-7 h-7" />
           </button>
         </DrawerTrigger>
 
-        <DrawerContent className="bg-card rounded-t-2xl border border-border px-0 pb-10 text-foreground">
-          <div className="w-full px-6 pt-6 flex flex-col gap-4">
+        <DrawerContent className="glass-card backdrop-blur-xl rounded-t-3xl border border-white/10 px-0 pb-10 text-foreground">
+          <div className="w-full px-8 pt-8 flex flex-col gap-6">
             <DrawerHeader className="text-center mb-4">
               <DrawerTitle>Create your Space</DrawerTitle>
             </DrawerHeader>
 
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="What do you want to talk about?"
-              className="w-full px-4 py-2 rounded-lg border bg-transparent mb-4"
-              disabled={creating}
-            />
+            <div className="flex flex-col gap-3">
+              <label className="text-left text-sm font-medium">
+                Space title
+              </label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Building in public in 2025"
+                className="w-full px-4 py-3 rounded-xl bg-muted/20 focus:bg-background border border-border focus:ring-2 focus:ring-primary/50 outline-none transition-colors disabled:opacity-50"
+                disabled={creating}
+              />
+            </div>
 
-            <label className="flex items-center gap-2 mb-6 cursor-pointer select-none text-sm">
+            <label className="flex items-center gap-3 cursor-pointer select-none text-sm">
               <input
                 type="checkbox"
                 checked={record}
                 onChange={(e) => setRecord(e.target.checked)}
+                className="h-5 w-5 rounded-md border border-border accent-primary"
               />
               Record this Space (coming soon)
             </label>
