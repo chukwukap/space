@@ -109,7 +109,7 @@ export default function LandingClient() {
   return (
     <div className="flex flex-col min-h-screen ">
       {/* HERO */}
-      <section className="relative aurora-bg rounded-b-[2rem] pb-20 pt-24 px-6 text-center shadow-lg overflow-hidden">
+      <section className="relative bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30 rounded-b-[2rem] pb-20 pt-24 px-6 text-center shadow-lg overflow-hidden">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
