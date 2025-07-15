@@ -100,6 +100,17 @@ USDC today, more ERC-20s soon.
 
 ---
 
+## Environment Variables
+
+Set these in `.env.local` (or your deployment env):
+
+| Variable                   | Description                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_USDC_ADDRESS` | USDC contract address for the current chain (defaults to Base Sepolia test USDC if omitted). |
+| `SPENDER_PRIVATE_KEY`      | Hot wallet key used by the server to forward USDC to recipients. Keep secret!                |
+
+---
+
 <!-- ## Public Roadmap
 
 | Quarter | Drop                  | Details                                                |
