@@ -17,8 +17,9 @@ import {
 import "@livekit/components-styles";
 import dynamic from "next/dynamic";
 import { AvatarWithControls } from "./avatar";
-import { useUser } from "@/app/providers/userProvider";
 import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react"; // icon for minimize
+import { useUser } from "@/app/providers/userProvider";
 import { useSpaceStore } from "./spaceStore";
 import ReactionOverlay from "./ReactionOverlay";
 import BottomBar from "./bottomBar";
@@ -34,7 +35,18 @@ import {
 } from "wagmi";
 import { spendPermissionManagerAddress } from "@/lib/abi/SpendPermissionManager";
 
-const InviteSheet = dynamic(() => import("./inviteSheet"), { ssr: false });
+// Use the new reusable drawer component instead of the previous custom sheet.
+const InviteDrawer = dynamic(() => import("@/app/_components/inviteDrawer"), {
+  ssr: false,
+});
+
+// Compact overlay shown when the host minimises the main Space UI.
+const MiniSpaceSheet = dynamic(
+  () => import("@/app/_components/miniSpaceSheet"),
+  {
+    ssr: false,
+  },
+);
 const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
 
 interface SpaceRoomProps {
@@ -46,7 +58,13 @@ interface SpaceRoomProps {
  * SpaceLayout displays the current state of the room, including host, speakers, and listeners.
  * It also provides a leave button that disconnects the user securely and navigates home.
  */
-function SpaceLayout() {
+function SpaceLayout({
+  onMinimize,
+  onInviteClick,
+}: {
+  onMinimize: () => void;
+  onInviteClick: () => void;
+}) {
   const room = useRoomContext();
   const spaceStore = useSpaceStore();
   const participants = useParticipants();
@@ -415,8 +433,12 @@ function SpaceLayout() {
           <span className="text-xs text-muted-foreground">
             {participantCount} · listeners
           </span>
-          <button className="text-2xl" aria-label="More options">
-            •••
+          <button
+            className="text-foreground/70 hover:text-foreground transition-colors"
+            aria-label="Minimise Space"
+            onClick={onMinimize}
+          >
+            <ChevronDown className="w-5 h-5" />
           </button>
         </div>
         <button
@@ -538,6 +560,7 @@ function SpaceLayout() {
         handRaiseCount={handRaisedCount}
         isHost={isHost}
         onQueueClick={() => setQueueOpen(true)}
+        onInviteClick={onInviteClick}
       />
 
       {pickerOpen && (
@@ -576,7 +599,9 @@ function SpaceLayout() {
  */
 export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const user = useUser();
+  const router = useRouter();
 
   // Generate a secure access token for the user to join the room.
   // The token endpoint is server-side and never exposes secrets.
@@ -612,8 +637,38 @@ export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
       video={false}
       audio={false}
     >
-      <SpaceLayout />
-      {inviteOpen && <InviteSheet onClose={() => setInviteOpen(false)} />}
+      {minimized ? (
+        <MiniSpaceSheet
+          onClose={() => setMinimized(false)}
+          onEnd={() => {
+            try {
+              // TODO: gracefully disconnect; for now redirect to home
+              router.push("/");
+            } catch {
+              router.push("/");
+            }
+          }}
+          host={{
+            name: user?.user?.username ?? "You",
+            avatarUrl: "/icon.png",
+            verified: true,
+          }}
+          listeners={0}
+        />
+      ) : (
+        <SpaceLayout
+          onMinimize={() => setMinimized(true)}
+          onInviteClick={() => setInviteOpen(true)}
+        />
+      )}
+
+      {inviteOpen && (
+        <InviteDrawer
+          people={[]}
+          defaultOpen={true}
+          onSend={() => setInviteOpen(false)}
+        />
+      )}
       <RoomAudioRenderer />
     </LiveKitRoom>
   );

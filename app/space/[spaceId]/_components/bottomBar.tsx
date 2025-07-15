@@ -17,6 +17,13 @@ interface Props {
   handRaiseCount: number;
   isHost: boolean;
   onQueueClick: () => void;
+  /**
+   * Callback fired when the user taps the “Invite” button. This will open the
+   * {@link InviteDrawer} supplied by the parent component. Keeping it lifted
+   * avoids tight coupling between the dumb BottomBar and the complex drawer
+   * state/logic.
+   */
+  onInviteClick: () => void;
   className?: string;
 }
 
@@ -29,6 +36,7 @@ export default function BottomBar({
   handRaiseCount,
   isHost,
   onQueueClick,
+  onInviteClick,
   className,
 }: Props) {
   return (
@@ -64,7 +72,7 @@ export default function BottomBar({
           } catch {}
         }}
       />
-      <BarButton label="Invite" icon={UsersIcon} onClick={() => {}} />
+      <BarButton label="Invite" icon={UsersIcon} onClick={onInviteClick} />
     </footer>
   );
 }
