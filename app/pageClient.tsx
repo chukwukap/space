@@ -143,14 +143,16 @@ export default function LandingClient() {
       </section>
 
       {/* Section heading */}
-      <section id="explore" className="px-6 mt-6">
-        <h2 className="text-2xl font-extrabold">Happening Now</h2>
+      <section id="explore" className="px-6 mt-10">
+        <h2 className="text-2xl font-extrabold">Live Spaces</h2>
         <p className="text-sm text-muted-foreground -mt-1">
-          Spaces going on right now
+          {"Scroll to discover what's buzzing right now"}
         </p>
       </section>
 
-      <section className="mt-6 space-y-6 px-4 flex-1 overflow-y-auto">
+      <section className="mt-6 flex gap-4 overflow-x-auto px-6 pb-8 snap-x snap-mandatory scrollbar-none">
+        {/* Hide default scrollbar */}
+        <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
         {spaces.map((s) => (
           <SpaceCard
             key={s.name}
@@ -228,43 +230,47 @@ export default function LandingClient() {
 function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
   return (
     <motion.article
-      whileHover={{ scale: 1.03 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="rounded-2xl glass-card glow-hover p-4 space-y-4 cursor-pointer"
+      whileHover={{ scale: 1.04 }}
+      transition={{ type: "spring", stiffness: 260, damping: 20 }}
+      className="relative w-64 shrink-0 snap-center cursor-pointer rounded-3xl overflow-hidden glow-hover"
       onClick={onClick}
     >
-      <div className="flex items-center gap-2 text-xs uppercase font-semibold">
-        <Microphone className="text-muted-foreground" />
-        LIVE
-      </div>
-
-      <h3 className="text-xl font-bold leading-snug truncate">{space.title}</h3>
-
-      <div className="flex items-center gap-2 text-sm">
-        <div className="flex -space-x-2">
-          {Array.from({ length: space.numParticipants })
-            .slice(0, 3)
-            .map((_, i) => (
-              <div
-                key={i}
-                className="w-7 h-7 rounded-full bg-violet-400 border-2 border-violet-600 overflow-hidden"
-              >
-                <Image
-                  width={28}
-                  height={28}
-                  src="/icon.png"
-                  alt="pfp"
-                  className="object-cover w-full h-full"
-                />
-              </div>
-            ))}
+      {/* Gradient backdrop */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-30" />
+      {/* Frosted glass overlay */}
+      <div className="relative p-5 glass-card backdrop-blur-[6px] flex flex-col h-full">
+        <div className="flex items-center gap-2 text-xs uppercase font-semibold mb-3">
+          <Microphone className="w-4 h-4 text-destructive animate-pulse" />
+          Live
         </div>
-        <span>{space.numParticipants} listening</span>
-      </div>
 
-      <div className="flex items-center gap-2 text-sm pt-2 border-t border-white/10">
-        <span className="w-6 h-6 rounded-full bg-yellow-500 inline-block" />
-        <span className="font-semibold truncate">{space.hostId}</span>
+        <h3 className="text-lg font-bold leading-snug mb-4 line-clamp-3 flex-1">
+          {space.title || "Untitled Space"}
+        </h3>
+
+        <div className="flex items-center gap-2 text-sm">
+          <div className="flex -space-x-2">
+            {Array.from({ length: space.numParticipants })
+              .slice(0, 3)
+              .map((_, i) => (
+                <div
+                  key={i}
+                  className="w-8 h-8 rounded-full bg-muted border-2 border-background overflow-hidden"
+                >
+                  <Image
+                    width={32}
+                    height={32}
+                    src="/icon.png"
+                    alt="pfp"
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              ))}
+          </div>
+          <span className="ml-1 text-xs font-medium bg-background/60 px-2 py-0.5 rounded-full">
+            {space.numParticipants} listening
+          </span>
+        </div>
       </div>
     </motion.article>
   );
