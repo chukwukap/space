@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Header } from "./_components/header";
+import { BottomNav } from "./_components/bottomNav";
 
 // import { BottomNav } from "./components/bottomNav";
 
@@ -136,8 +137,8 @@ export default function RootLayout({
               </style>
               {children}
             </main>
-            {/* Sticky, auto-hiding bottom navigation bar in its own client component */}
-            {/* <BottomNav /> */}
+            {/* Sticky, auto-hiding bottom navigation bar */}
+            <BottomNav />
           </div>
         </Providers>
       </body>
