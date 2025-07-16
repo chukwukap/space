@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { BottomNav } from "./_components/bottomNav";
+import CreateSpaceButton from "./_components/createSpaceButton";
 
 // import { BottomNav } from "./components/bottomNav";
 
@@ -137,6 +138,7 @@ export default function RootLayout({
             </main>
             {/* Sticky, auto-hiding bottom navigation bar */}
             <BottomNav />
+            <CreateSpaceButton />
           </div>
         </Providers>
       </body>
