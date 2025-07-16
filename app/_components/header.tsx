@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/app/providers/userProvider";
 import { cn } from "@/lib/utils";
 
@@ -19,9 +19,21 @@ export function Header() {
   const { user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const ROOT_ROUTES = ["/", "/discover", "/activity", "/inbox"];
   const showBack = !ROOT_ROUTES.some((r) => pathname.startsWith(r));
+
+  // Determine title based on route
+  let title: string | null = null;
+  if (pathname === "/discover") title = "Discover";
+  else if (pathname === "/activity") title = "Activity";
+  else if (pathname === "/inbox") title = "Inbox";
+  else if (/^\/space\//.test(pathname)) {
+    title = decodeURIComponent(searchParams.get("title") ?? "Space");
+  } else if (pathname === "/profile") {
+    title = user?.username ? `@${user.username}` : "Profile";
+  }
 
   useEffect(() => {
     // Handler for scroll event
@@ -87,15 +99,21 @@ export function Header() {
         </Link>
       )}
 
-      {/* Center – logo or title */}
+      {/* Center – dynamic title or logo */}
       <div className="flex-1 flex justify-center">
-        <Link href="/" className="select-none">
-          <Image src="/logo.png" alt="Logo" width={28} height={28} />
-        </Link>
+        {title ? (
+          <h1 className="text-sm font-semibold truncate max-w-[70%]">
+            {title}
+          </h1>
+        ) : (
+          <Link href="/" className="select-none">
+            <Image src="/logo.png" alt="Logo" width={28} height={28} />
+          </Link>
+        )}
       </div>
 
-      {/* Right – theme toggle */}
-      <ThemeToggle />
+      {/* Right – theme toggle (hidden in live space) */}
+      {!/^\/space\//.test(pathname) && <ThemeToggle />}
     </header>
   );
 }
