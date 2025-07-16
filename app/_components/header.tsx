@@ -11,6 +11,16 @@ import { useUser } from "@/app/providers/userProvider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+/**
+ * Returns true if the current pathname is a Space page (/space/[spaceId])
+ * e.g. /space/ee077823-8d11-4a49-a487-d75e07f21b6c or /space/ee077823-8d11-4a49-a487-d75e07f21b6c?title=...
+ */
+function isSpacePage(pathname: string) {
+  // Accepts /space/[id] or /space/[id]?title=...
+  // Not perfect, but robust for our route structure
+  return /^\/space\/[^/]+/.test(pathname);
+}
+
 export function Header() {
   // Track previous scroll position and header visibility
   const [visible, setVisible] = useState(true);
@@ -18,6 +28,9 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useUser();
+
+  // Determine if we are on a Space page
+  const onSpacePage = isSpacePage(pathname);
 
   useEffect(() => {
     // Handler for scroll event
@@ -85,23 +98,25 @@ export function Header() {
           </Link>
         )}
 
-        {/* CTA – Start Space */}
-        <Button
-          variant="secondary"
-          size="sm"
-          className="hidden sm:inline-flex gap-1"
-          onClick={() => {
-            // scroll to bottom mic trigger or route to create flow
-            const micBtn = document.getElementById("create-space-btn");
-            if (micBtn) {
-              micBtn.click();
-            } else {
-              router.push("/#create");
-            }
-          }}
-        >
-          <Mic2 className="w-4 h-4" /> Start Space
-        </Button>
+        {/* CTA – Start Space (hide on /space/[spaceId] pages) */}
+        {!onSpacePage && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="hidden sm:inline-flex gap-1"
+            onClick={() => {
+              // scroll to bottom mic trigger or route to create flow
+              const micBtn = document.getElementById("create-space-btn");
+              if (micBtn) {
+                micBtn.click();
+              } else {
+                router.push("/#create");
+              }
+            }}
+          >
+            <Mic2 className="w-4 h-4" /> Start Space
+          </Button>
+        )}
       </div>
     </header>
   );

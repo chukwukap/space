@@ -98,8 +98,8 @@ export default function LandingClient() {
       }
     }
     fetchSpaces();
-    // const id = setInterval(fetchSpaces, 5_000);
-    // return () => clearInterval(id);
+    const id = setInterval(fetchSpaces, 5_000);
+    return () => clearInterval(id);
   }, []);
 
   /**
@@ -235,11 +235,7 @@ export default function LandingClient() {
             aria-label="Create Space"
             type="button"
           >
-            <Microphone
-              className="w-7 h-7"
-              color="currentColor"
-              style={{ color: "#fff" }}
-            />
+            <Microphone className="w-7 h-7 text-primary-foreground" />
           </button>
         </DrawerTrigger>
 

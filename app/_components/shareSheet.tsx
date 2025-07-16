@@ -41,7 +41,7 @@ export default function ShareSheet({
 
   return (
     <Drawer open={open} onOpenChange={onClose} shouldScaleBackground={false}>
-      <DrawerContent className="glass-card p-6 flex flex-col items-center gap-6 w-80 mx-auto rounded-2xl">
+      <DrawerContent className="glass-card p-6 flex flex-col items-center gap-6  rounded-2xl">
         <DrawerHeader>
           <DrawerTitle>You&apos;re live! Spread the word</DrawerTitle>
         </DrawerHeader>
