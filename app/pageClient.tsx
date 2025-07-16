@@ -180,29 +180,8 @@ export default function LandingClient() {
 
   return (
     <div className="flex flex-col min-h-screen ">
-      {/* HERO */}
-      <section className="relative bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30 rounded-b-[2rem] pb-20 pt-24 px-6 text-center shadow-lg overflow-hidden">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="text-4xl sm:text-5xl font-extrabold leading-tight drop-shadow-md"
-        >
-          Talk. Earn. Own it.
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-          className="mt-3 text-lg text-foreground/70 max-w-xl mx-auto"
-        >
-          Host live audio shows, let fans tip in USDC, and grow an audience you
-          actually control.
-        </motion.p>
-      </section>
-
-      {/* Section heading */}
-      <section id="explore" className="px-6 mt-10">
+      {/* Live Spaces heading */}
+      <section id="explore" className="px-6 mt-6">
         <h2 className="text-2xl font-extrabold">Live Spaces</h2>
         <p className="text-sm text-muted-foreground -mt-1">
           {"Scroll to discover what's buzzing right now"}

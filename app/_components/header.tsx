@@ -3,34 +3,19 @@
 import React, { useRef, useEffect, useState } from "react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import { SunLight, HalfMoon } from "iconoir-react";
-import { Mic2 } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@/app/providers/userProvider";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/**
- * Returns true if the current pathname is a Space page (/space/[spaceId])
- * e.g. /space/ee077823-8d11-4a49-a487-d75e07f21b6c or /space/ee077823-8d11-4a49-a487-d75e07f21b6c?title=...
- */
-function isSpacePage(pathname: string) {
-  // Accepts /space/[id] or /space/[id]?title=...
-  // Not perfect, but robust for our route structure
-  return /^\/space\/[^/]+/.test(pathname);
-}
+// Helper removed – header no longer route-aware
 
 export function Header() {
   // Track previous scroll position and header visibility
   const [visible, setVisible] = useState(true);
   const prevScrollY = useRef(0);
-  const router = useRouter();
-  const pathname = usePathname();
+  // Header is now route-agnostic
   const { user } = useUser();
-
-  // Determine if we are on a Space page
-  const onSpacePage = isSpacePage(pathname);
 
   useEffect(() => {
     // Handler for scroll event
@@ -60,64 +45,30 @@ export function Header() {
   return (
     <header
       className={cn(
-        "fixed top-3 left-1/2 -translate-x-1/2 z-40 w-[90vw] max-w-5xl px-4 py-2 rounded-full glass-card flex items-center gap-2 transition-transform duration-300 backdrop-blur-md",
-        visible ? "translate-y-0" : "-translate-y-[140%]",
+        "fixed top-0 left-0 right-0 z-40 h-12 flex items-center px-4 bg-background/80 backdrop-blur border-b border-border transition-transform duration-300",
+        visible ? "translate-y-0" : "-translate-y-full",
       )}
-      style={{
-        willChange: "transform",
-        pointerEvents: visible ? "auto" : "none",
-      }}
     >
-      {/* Logo & Brand */}
-      <Link href="/" className="flex items-center gap-2 select-none">
-        <Image src="/logo.png" alt="Logo" width={28} height={28} />
-        <span className="text-lg font-extrabold bg-gradient-to-r from-primary to-secondary text-transparent bg-clip-text leading-none">
-          Space
-        </span>
+      {/* Left – avatar triggers profile */}
+      <Link href="/profile" className="flex items-center gap-2">
+        <Image
+          src={user?.pfpUrl || "/icon.png"}
+          alt="profile"
+          width={28}
+          height={28}
+          className="rounded-full object-cover"
+        />
       </Link>
 
-      <div className="flex-1" />
-
-      <div className="flex items-center gap-2">
-        {/* Theme toggle */}
-        <ThemeToggle />
-
-        {/* Show avatar link on non-home pages */}
-        {pathname !== "/" && (
-          <Link
-            href="/profile"
-            className="w-8 h-8 rounded-full overflow-hidden border border-border"
-          >
-            <Image
-              src={user?.pfpUrl || "/icon.png"}
-              alt="profile"
-              width={32}
-              height={32}
-              className="object-cover w-full h-full"
-            />
-          </Link>
-        )}
-
-        {/* CTA – Start Space (hide on /space/[spaceId] pages) */}
-        {!onSpacePage && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="hidden sm:inline-flex gap-1"
-            onClick={() => {
-              // scroll to bottom mic trigger or route to create flow
-              const micBtn = document.getElementById("create-space-btn");
-              if (micBtn) {
-                micBtn.click();
-              } else {
-                router.push("/#create");
-              }
-            }}
-          >
-            <Mic2 className="w-4 h-4" /> Start Space
-          </Button>
-        )}
+      {/* Center – logo or title */}
+      <div className="flex-1 flex justify-center">
+        <Link href="/" className="select-none">
+          <Image src="/logo.png" alt="Logo" width={28} height={28} />
+        </Link>
       </div>
+
+      {/* Right – theme toggle */}
+      <ThemeToggle />
     </header>
   );
 }
@@ -126,7 +77,6 @@ export function Header() {
 
 function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
-
   const isDark =
     theme === "dark" || (theme === "system" && resolvedTheme === "dark");
 
@@ -136,11 +86,7 @@ function ThemeToggle() {
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       className="p-2 rounded-full hover:bg-muted/20 transition-colors"
     >
-      {isDark ? (
-        <SunLight className="w-5 h-5" />
-      ) : (
-        <HalfMoon className="w-5 h-5" />
-      )}
+      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
     </button>
   );
 }
