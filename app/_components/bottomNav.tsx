@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from "react";
 import { Home, Microphone, Mail } from "iconoir-react";
 import { cn } from "@/lib/utils";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
-import Image from "next/image";
 
 /**
  * NavItem type for bottom navigation.
@@ -139,14 +138,21 @@ export function BottomNav() {
                   {pfpUrl ? (
                     <span className="w-6 h-6 rounded-full overflow-hidden border-2 border-primary/60 shadow-sm mb-0.5">
                       {/* Security: alt text is user's name or Profile */}
-                      <Image
+                      {/* 
+                        Next.js Image component requires known hostnames in next.config.js.
+                        To support unknown hostnames, fallback to a regular <img> for dynamic sources.
+                        This ensures user pfps always render, regardless of source.
+                      */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={pfpUrl}
                         width={24}
                         height={24}
                         alt={label}
                         className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
                         draggable={false}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
                       />
                     </span>
                   ) : (
