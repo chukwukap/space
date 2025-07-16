@@ -13,7 +13,9 @@ import { Mic } from "lucide-react";
 import { toast } from "sonner";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount, useConnect } from "wagmi";
-import ShareSheet from "./shareSheet";
+import { QRCodeSVG } from "qrcode.react";
+import { Copy, Share2, QrCode, MessageCircle } from "lucide-react";
+import { castInvite } from "@/lib/farcaster";
 
 export default function CreateSpaceButton() {
   const { context } = useMiniKit();
@@ -24,8 +26,10 @@ export default function CreateSpaceButton() {
   const [record, setRecord] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareUrl, setShareUrl] = useState("");
+  const [open, setOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [qr, setQr] = useState(false);
+  const {} = useMiniKit();
 
   const promptWalletConnect = useCallback(() => {
     if (connectors && connectors.length > 0) {
@@ -72,7 +76,7 @@ export default function CreateSpaceButton() {
       const livekitRoom = await res.json();
       const path = `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`;
       setShareUrl(`${window.location.origin}${path}`);
-      setShareOpen(true);
+      setOpen(true);
       toast.success("Space created! Share your link.");
       setTitle("");
     } catch (e: unknown) {
@@ -86,7 +90,7 @@ export default function CreateSpaceButton() {
 
   return (
     <>
-      <Drawer shouldScaleBackground={false}>
+      <Drawer shouldScaleBackground={false} open={open} onOpenChange={setOpen}>
         <DrawerTrigger asChild>
           <button
             id="create-space-btn"
@@ -100,58 +104,109 @@ export default function CreateSpaceButton() {
         </DrawerTrigger>
 
         <DrawerContent className="glass-card backdrop-blur-xl rounded-t-3xl border border-white/10 px-0 pb-10 text-foreground">
-          <div className="w-full px-8 pt-8 flex flex-col gap-6">
-            <DrawerHeader className="text-center mb-4">
-              <DrawerTitle>Create your Space</DrawerTitle>
-            </DrawerHeader>
+          {shareUrl == null ? (
+            <div className="w-full px-8 pt-8 flex flex-col gap-6">
+              <DrawerHeader className="text-center mb-4">
+                <DrawerTitle>Create your Space</DrawerTitle>
+              </DrawerHeader>
 
-            <div className="flex flex-col gap-3">
-              <label className="text-left text-sm font-medium">
-                Space title
-              </label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="px-4 py-2 rounded-lg bg-input text-foreground placeholder:text-muted-foreground"
-                placeholder="What are we talking about?"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span>Record Space</span>
-              <input
-                type="checkbox"
-                checked={record}
-                onChange={(e) => setRecord(e.target.checked)}
-                className="w-5 h-5 accent-primary"
-              />
-            </div>
-
-            {createError && (
-              <div className="text-red-400 text-sm mb-2 text-center">
-                {createError}
+              <div className="flex flex-col gap-3">
+                <label className="text-left text-sm font-medium">
+                  Space title
+                </label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="px-4 py-2 rounded-lg bg-input text-foreground placeholder:text-muted-foreground"
+                  placeholder="What are we talking about?"
+                />
               </div>
-            )}
 
-            <Button
-              className="w-full"
-              onClick={handleCreateSpace}
-              disabled={!title.trim() || creating}
-              aria-busy={creating}
-            >
-              {creating ? "Starting..." : "Start your Space"}
-            </Button>
-          </div>
+              <div className="flex items-center justify-between">
+                <span>Record Space</span>
+                <input
+                  type="checkbox"
+                  checked={record}
+                  onChange={(e) => setRecord(e.target.checked)}
+                  className="w-5 h-5 accent-primary"
+                />
+              </div>
+
+              {createError && (
+                <div className="text-red-400 text-sm mb-2 text-center">
+                  {createError}
+                </div>
+              )}
+
+              <Button
+                className="w-full"
+                onClick={handleCreateSpace}
+                disabled={!title.trim() || creating}
+                aria-busy={creating}
+              >
+                {creating ? "Starting..." : "Start your Space"}
+              </Button>
+            </div>
+          ) : (
+            <div className="w-full px-8 pt-8 flex flex-col gap-6 items-center">
+              <DrawerHeader className="text-center mb-2">
+                <DrawerTitle>You’re live! Spread the word</DrawerTitle>
+              </DrawerHeader>
+              {!qr ? (
+                <div className="grid grid-cols-2 gap-4 w-full">
+                  <Button
+                    variant="secondary"
+                    className="flex-col gap-1"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(shareUrl);
+                      toast.success("Link copied");
+                    }}
+                  >
+                    <Copy /> Copy link
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="flex-col gap-1"
+                    onClick={async () => {
+                      if (!context?.client) return;
+                      await castInvite(context.client as unknown, {
+                        url: shareUrl,
+                      });
+                      setOpen(false);
+                    }}
+                  >
+                    <Share2 /> Cast it
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="flex-col gap-1"
+                    onClick={() => setQr(true)}
+                  >
+                    <QrCode /> QR
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-col gap-1"
+                    onClick={() => setOpen(false)}
+                  >
+                    <MessageCircle /> Maybe later
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <QRCodeSVG
+                    value={shareUrl}
+                    size={160}
+                    bgColor="transparent"
+                    fgColor="#000"
+                  />
+                  <Button onClick={() => setQr(false)}>Back</Button>
+                </div>
+              )}
+            </div>
+          )}
         </DrawerContent>
       </Drawer>
-
-      {shareOpen && (
-        <ShareSheet
-          open={shareOpen}
-          onClose={() => setShareOpen(false)}
-          spaceUrl={shareUrl}
-        />
-      )}
     </>
   );
 }
