@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Home, Microphone, Mail } from "iconoir-react";
+import { Home, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 
@@ -40,12 +40,7 @@ export function BottomNav() {
       icon: Home,
     },
 
-    {
-      href: "/#create", // anchor that triggers create flow
-      label: "Host",
-      icon: Microphone,
-      isCenter: true,
-    },
+    // Host button moved to global CreateSpaceButton
 
     {
       href: "/profile",
@@ -60,7 +55,6 @@ export function BottomNav() {
   const prevScrollY = useRef(0);
 
   const activeIdx = NAV_ITEMS.findIndex((item) => {
-    if (item.isCenter) return false;
     if (item.href === "/") return pathname === "/";
     return pathname.startsWith(item.href);
   });
@@ -91,7 +85,7 @@ export function BottomNav() {
   }, []);
 
   // Render nav only on top-level tabs
-  const showNav = ["/", "/discover", "/activity", "/inbox"].some(
+  const showNav = ["/", "/discover", "/activity", "/inbox", "/profile"].some(
     (p) => pathname === p,
   );
   if (!showNav) return null;
@@ -103,82 +97,23 @@ export function BottomNav() {
         visible ? "translate-y-0" : "translate-y-[150%]",
       )}
     >
-      <div className="h-14 flex items-center justify-between px-3">
-        {NAV_ITEMS.map(
-          ({ href, label, icon: Icon, isCenter, isProfile }, idx) => {
-            const isActive = activeIdx === idx;
-
-            // Center button special styling
-            if (isCenter) {
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className="relative flex flex-col items-center justify-center -mt-6 bg-secondary text-secondary-foreground p-4 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-transform"
-                >
-                  <Icon className="w-6 h-6" />
-                  <span className="sr-only">{label}</span>
-                </Link>
-              );
-            }
-
-            // Profile tab: show user pfp if available, else fallback to icon
-            if (isProfile) {
-              const pfpUrl = context?.user?.pfpUrl;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={cn(
-                    "flex flex-col items-center gap-0.5 px-4 py-2 text-xs",
-                    isActive ? "text-primary" : "text-muted-foreground",
-                  )}
-                  aria-label={label}
-                >
-                  {pfpUrl ? (
-                    <span className="w-6 h-6 rounded-full overflow-hidden border-2 border-primary/60 shadow-sm mb-0.5">
-                      {/* Security: alt text is user's name or Profile */}
-                      {/* 
-                        Next.js Image component requires known hostnames in next.config.js.
-                        To support unknown hostnames, fallback to a regular <img> for dynamic sources.
-                        This ensures user pfps always render, regardless of source.
-                      */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={pfpUrl}
-                        width={24}
-                        height={24}
-                        alt={label}
-                        className="w-full h-full object-cover"
-                        draggable={false}
-                        referrerPolicy="no-referrer"
-                        loading="lazy"
-                      />
-                    </span>
-                  ) : (
-                    <Icon className="w-5 h-5" />
-                  )}
-                  <span>{label}</span>
-                </Link>
-              );
-            }
-
-            // Default nav item
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 px-4 py-2 text-xs",
-                  isActive ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{label}</span>
-              </Link>
-            );
-          },
-        )}
+      <div className="h-14 flex items-center justify-around px-2">
+        {NAV_ITEMS.map(({ href, label, icon: Icon }, idx) => {
+          const isActive = activeIdx === idx;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex flex-col items-center gap-0.5 px-4 py-2 text-xs",
+                isActive ? "text-primary" : "text-muted-foreground",
+              )}
+            >
+              <Icon className="w-5 h-5" />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
