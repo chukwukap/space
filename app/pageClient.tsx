@@ -1,28 +1,15 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-// Drawer components no longer needed here (global CreateSpaceButton handles)
 import { SpaceMetadata } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-// import MobileHeader from "./_components/mobileHeader";
-import { Mic } from "lucide-react";
+import { useAddFrame, useMiniKit } from "@coinbase/onchainkit/minikit";
 import { Room } from "livekit-server-sdk";
 import Image from "next/image";
-import dynamic from "next/dynamic";
-import NotificationBanner from "./_components/notificationBanner";
-import { useAddFrame, useMiniKit } from "@coinbase/onchainkit/minikit";
-import { useAccount, useConnect } from "wagmi";
-import { toast } from "sonner";
 import MobileHeader from "./_components/mobileHeader";
-
-// import MobileHeader from "./_components/mobileHeader";
-
-const ShareSheet = dynamic(() => import("./_components/shareSheet"), {
-  ssr: false,
-});
+import { Microphone } from "iconoir-react";
+import { ThemeToggle } from "./_components/themeToggle";
 
 /**
  * Space type extends Room with additional metadata fields.
@@ -32,24 +19,11 @@ type Space = Room & SpaceMetadata;
 export default function LandingClient() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const router = useRouter();
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
   const addFrame = useAddFrame();
   const [frameAdded, setFrameAdded] = useState(false);
 
-  // State for the list of spaces
-
   const [spaces, setSpaces] = useState<Space[]>([]);
-  console.log(spaces);
-  // Drawer-controlled form state
-  const [title, setTitle] = useState("");
-  const [record, setRecord] = useState(false);
-  // Loading and error state for space creation
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareUrl, setShareUrl] = useState("");
+  console.log(spaces[0]);
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -99,98 +73,28 @@ export default function LandingClient() {
       }
     }
     fetchSpaces();
-    const id = setInterval(fetchSpaces, 5_000);
-    return () => clearInterval(id);
+    // const id = setInterval(fetchSpaces, 5_000);
+    // return () => clearInterval(id);
   }, []);
 
-  /**
-   * Prompt user to connect wallet if not connected.
-   * Uses the first available connector.
-   */
-  const promptWalletConnect = useCallback(() => {
-    if (connectors && connectors.length > 0) {
-      connect({ connector: connectors[0] });
-      toast.info("Please connect your wallet to host a Space.");
-    } else {
-      toast.error(
-        "No wallet connector found. Please install a wallet extension.",
-      );
-    }
-  }, [connect, connectors]);
-
-  /**
-   * Handles the creation of a new Space by calling the POST /api/spaces endpoint.
-   * If wallet is not connected, prompts user to connect immediately.
-   * Uses fid as hostId if available, else uses wallet address.
-   */
-  async function handleCreateSpace() {
-    if (!title.trim()) return;
-
-    // Prompt wallet connect immediately if not connected
-    if (!address) {
-      promptWalletConnect();
-      return;
-    }
-
-    // Security: Only allow if wallet is connected
-    if (!isConnected) {
-      setCreateError("Please connect your wallet to host a Space.");
-      toast.error("Please connect your wallet to host a Space.");
-      return;
-    }
-
-    setCreating(true);
-    setCreateError(null);
-
-    // Use fid if available, else use wallet address
-    const hostId =
-      context?.user?.fid != null ? String(context.user.fid) : address;
-
-    try {
-      const res = await fetch("/api/spaces", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          hostId,
-          recording: record,
-        }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        setCreateError(error?.error || "Failed to create space.");
-        toast.error(error?.error || "Failed to create space.");
-        setCreating(false);
-        return;
-      }
-
-      const livekitRoom = await res.json();
-      const path = `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`;
-      setShareUrl(`${window.location.origin}${path}`);
-      setShareOpen(true);
-      toast.success("Space created! Share your link.");
-    } catch (error: unknown) {
-      console.error(error);
-      setCreateError("Something went wrong. Please try again.");
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setCreating(false);
-    }
-  }
+  // Creation handled by global button
 
   return (
     <div className="flex flex-col min-h-screen">
-      <MobileHeader title="Live Spaces" showBack={false} right={<>hello</>} />
+      <MobileHeader
+        title="Spaces"
+        showBack={false}
+        right={<ThemeToggle />}
+        lowerVisible={false}
+      />
       {/* Live Spaces heading */}
       <section id="explore" className="px-6 mt-4">
         <h2 className="text-2xl font-extrabold">Live Spaces</h2>
         <p className="text-sm text-muted-foreground -mt-1">
-          {"Scroll to discover what's buzzing right now"}
+          Scroll to discover what&apos;s buzzing right now
         </p>
       </section>
-      {/* for testing */}
-      <>{JSON.stringify(context)}</>
+
       <section className="mt-6 flex flex-col gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
         {mockSpaces.map((s) => (
@@ -206,15 +110,6 @@ export default function LandingClient() {
           />
         ))}
       </section>
-      {/* Global CreateSpaceButton handles creation flow */}
-      <NotificationBanner />
-      {shareOpen && (
-        <ShareSheet
-          open={shareOpen}
-          onClose={() => setShareOpen(false)}
-          spaceUrl={shareUrl}
-        />
-      )}
     </div>
   );
 }
@@ -246,7 +141,7 @@ function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
           {space.title || "Untitled Space"}
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-          <Mic className="w-3 h-3 text-destructive" />
+          <Microphone className="w-3 h-3 text-destructive" />
           <span>{listeners} listening</span>
           {space.recording && (
             <span className="ml-2 px-1.5 py-0.5 bg-primary/20 text-primary rounded">

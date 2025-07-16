@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Home, Mail } from "lucide-react";
+import { Home, User } from "iconoir-react";
 import { cn } from "@/lib/utils";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 
@@ -19,33 +19,45 @@ type NavItem = {
   isProfile?: boolean;
 };
 
+/**
+ * Returns true if the nav should be shown on the current route.
+ * Only show on root-level primary pages (e.g. "/", "/profile"), not on any subroutes.
+ * Security: Never leaks sensitive data.
+ */
+function isRootPrimaryRoute(pathname: string): boolean {
+  // Only show nav if the path is exactly "/" or "/something" (no further slashes)
+  // e.g. "/profile" is ok, "/profile/settings" is not
+  if (!pathname.startsWith("/")) return false;
+  // Remove trailing slash for consistency
+  const cleanPath =
+    pathname.endsWith("/") && pathname.length > 1
+      ? pathname.slice(0, -1)
+      : pathname;
+  // Count slashes: only allow 0 or 1 ("/" or "/something")
+  return (cleanPath.match(/\//g) || []).length === 1;
+}
+
 // ---------------------------------------------------------------------------
 // BottomNav – persistent mobile tab bar
-// • Five primary destinations: Feed, Discover, Host, Activity, Profile
-// • Center tab (Host) is visually elevated for quick creation flow
-// • Animated pill highlights active / hovered tab
+// • Only appears on root-level primary pages
 // • Hides on downward scroll, shows on upward scroll (native feel)
-// Security: purely presentational, does not expose sensitive data.
 // ---------------------------------------------------------------------------
 
 export function BottomNav() {
   const pathname = usePathname();
   const { context } = useMiniKit();
 
-  // Build nav items dynamically to access context for profile tab
   const NAV_ITEMS: NavItem[] = [
     {
       href: "/",
-      label: "Spaces",
+      label: "Home",
       icon: Home,
     },
-
     // Host button moved to global CreateSpaceButton
-
     {
       href: "/profile",
       label: context?.user?.username ?? "Profile",
-      icon: Mail,
+      icon: User,
       isProfile: true,
     },
   ];
@@ -84,21 +96,18 @@ export function BottomNav() {
     return () => scroller.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Render nav only on top-level tabs
-  const showNav = ["/", "/discover", "/activity", "/inbox", "/profile"].some(
-    (p) => pathname === p,
-  );
-  if (!showNav) return null;
+  // Only render nav on root-level primary pages (not on any subroutes)
+  if (!isRootPrimaryRoute(pathname)) return null;
 
   return (
     <nav
       className={cn(
-        "fixed bottom-2 left-1/2 -translate-x-1/2 z-40 w-[94vw] max-w-3xl rounded-full glass-card shadow-xl transition-transform duration-300 backdrop-blur-lg",
+        "fixed bottom-0 left-1/2 -translate-x-1/2 z-40 w-full  glass-card shadow-xl transition-transform duration-300 backdrop-blur-lg",
         visible ? "translate-y-0" : "translate-y-[150%]",
       )}
     >
-      <div className="h-14 flex items-center justify-around px-2">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }, idx) => {
+      <div className="h-14 flex items-center justify-center gap-4 px-2">
+        {NAV_ITEMS.map(({ href, label, icon: Icon, isProfile }, idx) => {
           const isActive = activeIdx === idx;
           return (
             <Link
@@ -109,7 +118,18 @@ export function BottomNav() {
                 isActive ? "text-primary" : "text-muted-foreground",
               )}
             >
-              <Icon className="w-5 h-5" />
+              {isProfile && context?.user?.pfpUrl ? (
+                <span className="w-6 h-6 rounded-full overflow-hidden border border-primary">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={context.user.pfpUrl}
+                    alt="pfp"
+                    className="w-full h-full object-cover"
+                  />
+                </span>
+              ) : (
+                <Icon className="w-5 h-5" />
+              )}
               <span>{label}</span>
             </Link>
           );

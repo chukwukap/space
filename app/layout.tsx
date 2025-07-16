@@ -119,7 +119,7 @@ export default function RootLayout({
             {/* Per-page headers are rendered within page layouts */}
             {/* Main scrollable content area with hidden scrollbars */}
             <main
-              className="flex-1 overflow-y-auto scrollbar-none overscroll-none pt-14"
+              className="flex-1 overflow-y-auto scrollbar-none overscroll-none pt-10"
               style={{
                 // Hide scrollbars for all browsers
                 scrollbarWidth: "none",

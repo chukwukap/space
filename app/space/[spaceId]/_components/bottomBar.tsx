@@ -17,7 +17,6 @@ interface Props {
   handRaiseCount: number;
   isHost: boolean;
   onQueueClick: () => void;
-  onQrClick?: () => void;
   /**
    * Callback fired when the user taps the “Invite” button. This will open the
    * {@link InviteDrawer} supplied by the parent component. Keeping it lifted
@@ -37,7 +36,7 @@ export default function BottomBar({
   handRaiseCount,
   isHost,
   onQueueClick,
-  onQrClick,
+
   onInviteClick,
   className,
 }: Props) {
@@ -51,7 +50,7 @@ export default function BottomBar({
       {isSpeaker ? (
         <BarButton label="Mic" icon={MicIcon} onClick={onToggleMic} />
       ) : (
-        <BarButton label="Request" icon={HandIcon} onClick={onRaiseHand} />
+        <BarButton label="Request" icon={MicIcon} onClick={onRaiseHand} />
       )}
       <BarButton
         label={String(likes)}
@@ -63,13 +62,6 @@ export default function BottomBar({
           label={`Queue(${handRaiseCount})`}
           icon={HandIcon}
           onClick={onQueueClick}
-        />
-      )}
-      {isHost && (
-        <BarButton
-          label="QR"
-          icon={ShareIcon}
-          onClick={onQrClick || (() => {})}
         />
       )}
       <BarButton

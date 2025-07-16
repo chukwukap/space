@@ -2,20 +2,16 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import Image from "next/image";
-import { useTheme } from "next-themes";
-import { Sun, Moon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/app/providers/userProvider";
 import { cn } from "@/lib/utils";
-
-// Helper removed – header no longer route-aware
+import { ThemeToggle } from "./themeToggle";
 
 export function Header() {
   // Track previous scroll position and header visibility
   const [visible, setVisible] = useState(true);
   const prevScrollY = useRef(0);
-  // Header is now route-agnostic
   const { user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -24,7 +20,6 @@ export function Header() {
   const ROOT_ROUTES = ["/", "/discover", "/activity", "/inbox"];
   const showBack = !ROOT_ROUTES.some((r) => pathname.startsWith(r));
 
-  // Determine title based on route
   let title: string | null = null;
   if (pathname === "/discover") title = "Discover";
   else if (pathname === "/activity") title = "Activity";
@@ -59,7 +54,6 @@ export function Header() {
     };
   }, []);
 
-  // Security: No sensitive data is exposed in header.
   return (
     <header
       className={cn(
@@ -67,7 +61,6 @@ export function Header() {
         visible ? "translate-y-0" : "-translate-y-full",
       )}
     >
-      {/* Left – back arrow or avatar */}
       {showBack ? (
         <button
           onClick={() => router.back()}
@@ -99,7 +92,6 @@ export function Header() {
         </Link>
       )}
 
-      {/* Center – dynamic title or logo */}
       <div className="flex-1 flex justify-center">
         {title ? (
           <h1 className="text-sm font-semibold truncate max-w-[70%]">
@@ -112,26 +104,7 @@ export function Header() {
         )}
       </div>
 
-      {/* Right – theme toggle (hidden in live space) */}
       {!/^\/space\//.test(pathname) && <ThemeToggle />}
     </header>
-  );
-}
-
-// ------------------------------------------------------------------
-
-function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const isDark =
-    theme === "dark" || (theme === "system" && resolvedTheme === "dark");
-
-  return (
-    <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="p-2 rounded-full hover:bg-muted/20 transition-colors"
-    >
-      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-    </button>
   );
 }

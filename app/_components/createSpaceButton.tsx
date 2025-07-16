@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   Drawer,
   DrawerTrigger,
@@ -12,15 +13,19 @@ import { Button } from "@/components/ui/button";
 import { Mic } from "lucide-react";
 import { toast } from "sonner";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
 import { QRCodeSVG } from "qrcode.react";
 import { Copy, Share2, QrCode, MessageCircle } from "lucide-react";
 import { castInvite } from "@/lib/farcaster";
 
+/**
+ * CreateSpaceButton is hidden on space details (live room) pages.
+ */
 export default function CreateSpaceButton() {
+  const pathname = usePathname();
+
   const { context } = useMiniKit();
   const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
 
   const [title, setTitle] = useState("");
   const [record, setRecord] = useState(false);
@@ -29,23 +34,19 @@ export default function CreateSpaceButton() {
   const [open, setOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [qr, setQr] = useState(false);
-  const {} = useMiniKit();
 
-  const promptWalletConnect = useCallback(() => {
-    if (connectors && connectors.length > 0) {
-      connect({ connector: connectors[0] });
-      toast.info("Please connect your wallet to host a Space.");
-    } else {
-      toast.error(
-        "No wallet connector found. Please install a wallet extension.",
-      );
-    }
-  }, [connect, connectors]);
+  // Hide button if on a space details page (/space/[room])
+  // This matches any route starting with /space/ and followed by something
+  const isSpaceDetails = /^\/space\/[^/]+/.test(pathname);
+
+  if (isSpaceDetails) {
+    // Do not render the button in a live room
+    return null;
+  }
 
   async function handleCreateSpace() {
     if (!title.trim()) return;
     if (!address) {
-      promptWalletConnect();
       return;
     }
     if (!isConnected) {

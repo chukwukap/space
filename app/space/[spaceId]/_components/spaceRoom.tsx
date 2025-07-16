@@ -50,9 +50,7 @@ const MiniSpaceSheet = dynamic(
     ssr: false,
   },
 );
-const QuickQR = dynamic(() => import("@/app/_components/shareSheet"), {
-  ssr: false,
-});
+
 const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
 
 interface SpaceRoomProps {
@@ -68,12 +66,10 @@ function SpaceLayout({
   spaceId,
   onMinimize,
   onInviteClick,
-  onQrClick,
 }: {
   spaceId: string;
   onMinimize: () => void;
   onInviteClick: () => void;
-  onQrClick: () => void;
 }) {
   const room = useRoomContext();
   const spaceStore = useSpaceStore();
@@ -631,7 +627,7 @@ function SpaceLayout({
 
       {/* Bottom bar */}
       <BottomBar
-        className="absolute bottom-0 left-0 right-0"
+        className="fixed bottom-0 left-0 right-0"
         isSpeaker={!isLocalMuted}
         onToggleMic={toggleMic}
         onRaiseHand={raiseHand}
@@ -641,7 +637,6 @@ function SpaceLayout({
         isHost={isHost}
         onQueueClick={() => setQueueOpen(true)}
         onInviteClick={onInviteClick}
-        onQrClick={onQrClick}
       />
 
       {pickerOpen && (
@@ -687,22 +682,8 @@ export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
   const title = params.get("title") || "Space";
   const [inviteOpen, setInviteOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
   const user = useUser();
   const router = useRouter();
-
-  // Generate a secure access token for the user to join the room.
-  // The token endpoint is server-side and never exposes secrets.
-  const token = useToken(
-    process.env.NEXT_PUBLIC_LK_TOKEN_ENDPOINT || "/api/livekit/token",
-    spaceId,
-    {
-      userInfo: {
-        identity: user?.user?.id?.toString() ?? "testIdentity",
-        name: user?.user?.username ?? "testUserName",
-      },
-    },
-  );
 
   return (
     <>
@@ -750,7 +731,6 @@ export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
             spaceId={spaceId}
             onMinimize={() => setMinimized(true)}
             onInviteClick={() => setInviteOpen(true)}
-            onQrClick={() => setQrOpen(true)}
           />
         )}
 
@@ -762,13 +742,6 @@ export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
           />
         )}
 
-        {qrOpen && (
-          <QuickQR
-            open={qrOpen}
-            onClose={() => setQrOpen(false)}
-            spaceUrl={window.location.href}
-          />
-        )}
         <RoomAudioRenderer />
       </LiveKitRoom>
     </>

@@ -11,6 +11,8 @@ import {
   Pencil as EditIcon,
   Verified as VerifiedIcon,
 } from "lucide-react";
+import MobileHeader from "../_components/mobileHeader";
+import { ThemeToggle } from "../_components/themeToggle";
 
 /**
  * UserProfilePage – shows public profile information.
@@ -79,6 +81,12 @@ export default function UserProfilePage() {
       transition={{ duration: 0.6, ease: "easeOut" }}
       className="flex flex-col min-h-screen bg-background text-foreground"
     >
+      <MobileHeader
+        title="Profile"
+        showBack={true}
+        right={<ThemeToggle />}
+        lowerVisible={false}
+      />
       {/* Cover */}
       <div className="relative w-full h-40 sm:h-56 md:h-64 overflow-hidden aurora-bg">
         <Image

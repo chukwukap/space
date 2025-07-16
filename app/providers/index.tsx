@@ -7,6 +7,7 @@ import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
 import { ThemeProvider } from "./themeProvider";
 import { MotionProvider } from "./motionProvider";
 import { Toaster } from "sonner";
+import { OnchainKitProvider } from "@coinbase/onchainkit";
 
 export function Providers(props: { children: ReactNode }) {
   return (
@@ -31,7 +32,13 @@ export function Providers(props: { children: ReactNode }) {
             swipeDirections={["top"]}
             duration={3000}
           />
-          {props.children}
+
+          <OnchainKitProvider
+            apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+            chain={base}
+          >
+            {props.children}
+          </OnchainKitProvider>
           {/* </UserProvider> */}
         </MiniKitProvider>
       </MotionProvider>
