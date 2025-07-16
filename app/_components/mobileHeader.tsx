@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -18,10 +18,38 @@ export default function MobileHeader({
   className,
 }: MobileHeaderProps) {
   const router = useRouter();
+  const [visible, setVisible] = useState(true);
+  const prevScrollY = useRef(0);
+
+  useEffect(() => {
+    const scroller = document.querySelector("main") ?? window;
+
+    const getScroll = () =>
+      scroller === window
+        ? window.scrollY
+        : (scroller as HTMLElement).scrollTop;
+
+    const onScroll = () => {
+      const cur = getScroll();
+      if (cur < 10) {
+        setVisible(true);
+      } else if (cur > prevScrollY.current) {
+        setVisible(false);
+      } else if (cur < prevScrollY.current) {
+        setVisible(true);
+      }
+      prevScrollY.current = cur;
+    };
+
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-40 h-12 flex items-center px-4 bg-background/80 backdrop-blur border-b border-border",
+        "fixed top-0 left-0 right-0 z-40 h-12 flex items-center px-4 bg-background/80 backdrop-blur border-b border-border transition-transform duration-300",
+        visible ? "translate-y-0" : "-translate-y-full",
         className,
       )}
     >
