@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 // CountUp no longer needed after simplifying hero
 import { useRouter } from "next/navigation";
@@ -19,6 +19,8 @@ import { Room } from "livekit-server-sdk";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import NotificationBanner from "./_components/notificationBanner";
+import { useAddFrame, useMiniKit } from "@coinbase/onchainkit/minikit";
+import { Check, Plus } from "iconoir-react";
 
 const ShareSheet = dynamic(() => import("./_components/shareSheet"), {
   ssr: false,
@@ -30,8 +32,49 @@ const ShareSheet = dynamic(() => import("./_components/shareSheet"), {
 type Space = Room & SpaceMetadata;
 
 export default function LandingClient() {
+  const { setFrameReady, isFrameReady, context } = useMiniKit();
   const router = useRouter();
   const user = useUser();
+  const addFrame = useAddFrame();
+  const [frameAdded, setFrameAdded] = useState(false);
+
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady();
+    }
+  }, [setFrameReady, isFrameReady]);
+
+  const handleAddFrame = useCallback(async () => {
+    const frameAdded = await addFrame();
+    setFrameAdded(Boolean(frameAdded));
+  }, [addFrame]);
+
+  const saveFrameButton = useMemo(() => {
+    if (context && !context.client.added) {
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleAddFrame}
+          className="text-[var(--app-accent)] p-4"
+        >
+          <Plus className="text-[#0052FF]" />
+          Save Frame
+        </Button>
+      );
+    }
+
+    if (frameAdded) {
+      return (
+        <div className="flex items-center space-x-1 text-sm font-medium text-[#0052FF] animate-fade-out">
+          <Check className="text-[#0052FF]" />
+          <span>Saved</span>
+        </div>
+      );
+    }
+
+    return null;
+  }, [context, frameAdded, handleAddFrame]);
 
   // State for the list of spaces
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -121,6 +164,7 @@ export default function LandingClient() {
 
   return (
     <div className="flex flex-col min-h-screen ">
+      {saveFrameButton}
       {/* HERO */}
       <section className="relative bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30 rounded-b-[2rem] pb-20 pt-24 px-6 text-center shadow-lg overflow-hidden">
         <motion.h1
