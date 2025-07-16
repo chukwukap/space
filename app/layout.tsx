@@ -3,7 +3,6 @@ import "@coinbase/onchainkit/styles.css";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import { Header } from "./_components/header";
 import { BottomNav } from "./_components/bottomNav";
 
 // import { BottomNav } from "./components/bottomNav";
@@ -116,8 +115,7 @@ export default function RootLayout({
       >
         <Providers>
           <div className="flex flex-col min-h-svh  bg-background/80 text-foreground h-svh relative">
-            {/* Sticky, auto-hiding header in its own client component */}
-            <Header />
+            {/* Per-page headers are rendered within page layouts */}
             {/* Main scrollable content area with hidden scrollbars */}
             <main
               className="flex-1 overflow-y-auto scrollbar-none overscroll-none"

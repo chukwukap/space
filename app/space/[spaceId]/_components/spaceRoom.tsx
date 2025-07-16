@@ -9,6 +9,7 @@ import {
 } from "@livekit/components-react";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ConnectionState,
   Participant as LKParticipant,
@@ -25,6 +26,7 @@ import ReactionOverlay from "./ReactionOverlay";
 import BottomBar from "./bottomBar";
 import HandRaiseQueue from "./HandRaiseQueue";
 import ReactionPicker, { ReactionType } from "./ReactionPicker";
+import MobileHeader from "@/app/_components/mobileHeader";
 import { Address, Hex, parseUnits } from "viem";
 import { USDC_ADDRESS, USDC_DECIMALS } from "@/lib/constants";
 import {
@@ -680,6 +682,9 @@ function SpaceLayout({
  * SECURITY: The token is generated server-side and passed as a prop. Never expose API secrets on the client.
  */
 export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
+  const params = useSearchParams();
+  const roomToken = useToken("space", spaceId);
+  const title = params.get("title") || "Space";
   const [inviteOpen, setInviteOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
@@ -700,69 +705,72 @@ export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
   );
 
   return (
-    <LiveKitRoom
-      token={token}
-      serverUrl={serverUrl}
-      data-lk-theme="default"
-      connectOptions={{ autoSubscribe: true }}
-      options={{
-        audioCaptureDefaults: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 2,
-          sampleRate: 48000,
-          sampleSize: 16,
-          latency: 100,
-        },
-      }}
-      style={{ height: "100vh", width: "100%" }}
-      video={false}
-      audio={false}
-    >
-      {minimized ? (
-        <MiniSpaceSheet
-          onClose={() => setMinimized(false)}
-          onEnd={() => {
-            try {
-              // TODO: gracefully disconnect; for now redirect to home
-              router.push("/");
-            } catch {
-              router.push("/");
-            }
-          }}
-          host={{
-            name: user?.user?.username ?? "You",
-            avatarUrl: "/icon.png",
-            verified: true,
-          }}
-          listeners={0}
-        />
-      ) : (
-        <SpaceLayout
-          spaceId={spaceId}
-          onMinimize={() => setMinimized(true)}
-          onInviteClick={() => setInviteOpen(true)}
-          onQrClick={() => setQrOpen(true)}
-        />
-      )}
+    <>
+      <MobileHeader showBack title={decodeURIComponent(title)} />
+      <LiveKitRoom
+        token={roomToken}
+        serverUrl={serverUrl}
+        data-lk-theme="default"
+        connectOptions={{ autoSubscribe: true }}
+        options={{
+          audioCaptureDefaults: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 2,
+            sampleRate: 48000,
+            sampleSize: 16,
+            latency: 100,
+          },
+        }}
+        style={{ height: "100vh", width: "100%" }}
+        video={false}
+        audio={false}
+      >
+        {minimized ? (
+          <MiniSpaceSheet
+            onClose={() => setMinimized(false)}
+            onEnd={() => {
+              try {
+                // TODO: gracefully disconnect; for now redirect to home
+                router.push("/");
+              } catch {
+                router.push("/");
+              }
+            }}
+            host={{
+              name: user?.user?.username ?? "You",
+              avatarUrl: "/icon.png",
+              verified: true,
+            }}
+            listeners={0}
+          />
+        ) : (
+          <SpaceLayout
+            spaceId={spaceId}
+            onMinimize={() => setMinimized(true)}
+            onInviteClick={() => setInviteOpen(true)}
+            onQrClick={() => setQrOpen(true)}
+          />
+        )}
 
-      {inviteOpen && (
-        <InviteDrawer
-          people={[]}
-          defaultOpen={true}
-          onSend={() => setInviteOpen(false)}
-        />
-      )}
+        {inviteOpen && (
+          <InviteDrawer
+            people={[]}
+            defaultOpen={true}
+            onSend={() => setInviteOpen(false)}
+          />
+        )}
 
-      {qrOpen && (
-        <QuickQR
-          open={qrOpen}
-          onClose={() => setQrOpen(false)}
-          spaceUrl={window.location.href}
-        />
-      )}
-      <RoomAudioRenderer />
-    </LiveKitRoom>
+        {qrOpen && (
+          <QuickQR
+            open={qrOpen}
+            onClose={() => setQrOpen(false)}
+            spaceUrl={window.location.href}
+          />
+        )}
+        <RoomAudioRenderer />
+      </LiveKitRoom>
+    </>
   );
 }

@@ -20,6 +20,7 @@ import NotificationBanner from "./_components/notificationBanner";
 import { useAddFrame, useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount, useConnect } from "wagmi";
 import { toast } from "sonner";
+import MobileHeader from "./_components/mobileHeader";
 
 const ShareSheet = dynamic(() => import("./_components/shareSheet"), {
   ssr: false,
@@ -179,9 +180,10 @@ export default function LandingClient() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen ">
+    <div className="flex flex-col min-h-screen pt-12">
+      <MobileHeader />
       {/* Live Spaces heading */}
-      <section id="explore" className="px-6 mt-6">
+      <section id="explore" className="px-6 mt-4">
         <h2 className="text-2xl font-extrabold">Live Spaces</h2>
         <p className="text-sm text-muted-foreground -mt-1">
           {"Scroll to discover what's buzzing right now"}
