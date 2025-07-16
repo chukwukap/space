@@ -122,6 +122,8 @@ export function BottomNav() {
                 </Link>
               );
             }
+            // for testing
+            <>{JSON.stringify(context)}</>;
 
             // Profile tab: show user pfp if available, else fallback to icon
             if (isProfile) {
