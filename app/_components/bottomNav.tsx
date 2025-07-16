@@ -53,37 +53,15 @@ const NAV_ITEMS: NavItem[] = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const navRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   // Auto-hide on scroll (mobile UX)
   const [visible, setVisible] = useState(true);
   const prevScrollY = useRef(0);
 
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
-
-  // Determine active index (special handling for dynamic routes)
   const activeIdx = NAV_ITEMS.findIndex((item) => {
-    if (item.isCenter) return false; // Host button treated separately
+    if (item.isCenter) return false;
     if (item.href === "/") return pathname === "/";
     return pathname.startsWith(item.href);
   });
-
-  // Update pill position when active / hovered changes
-  useEffect(() => {
-    const idx = hoveredIdx !== null ? hoveredIdx : activeIdx;
-    if (idx === -1) return;
-    const el = itemRefs.current[idx];
-    const nav = navRef.current;
-    if (el && nav) {
-      const navRect = nav.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      setPillStyle({
-        left: elRect.left - navRect.left + elRect.width / 2 - 40, // pill width/2 (80/2)
-        width: 80,
-      });
-    }
-  }, [hoveredIdx, activeIdx]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -112,23 +90,9 @@ export function BottomNav() {
         visible ? "translate-y-0" : "translate-y-[150%]",
       )}
     >
-      <div
-        ref={navRef}
-        className="h-14 flex items-center justify-between px-3 relative"
-      >
-        {/* Animated pill */}
-        <span
-          className="absolute top-1/2 -translate-y-1/2 h-10 rounded-full bg-primary/20 transition-all duration-300"
-          style={{
-            left: pillStyle.left,
-            width: pillStyle.width,
-            pointerEvents: "none",
-          }}
-        />
-
+      <div className="h-14 flex items-center justify-between px-3">
         {NAV_ITEMS.map(({ href, label, icon: Icon, isCenter }, idx) => {
-          const isActive = activeIdx === idx && hoveredIdx === null;
-          const isHovered = hoveredIdx === idx;
+          const isActive = activeIdx === idx;
 
           // Center button special styling
           if (isCenter) {
@@ -148,17 +112,10 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
-              ref={(el) => {
-                itemRefs.current[idx] = el;
-              }}
               className={cn(
-                "relative flex flex-col items-center gap-0.5 px-4 py-2 text-xs transition-colors",
-                isActive || isHovered
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-primary",
+                "flex flex-col items-center gap-0.5 px-4 py-2 text-xs",
+                isActive ? "text-primary" : "text-muted-foreground",
               )}
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
             >
               {/* Profile avatar for Inbox when label is Inbox and there's user pfp? We'll keep icon simple */}
               <Icon className="w-5 h-5" />

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@/app/providers/userProvider";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,11 @@ export function Header() {
   const prevScrollY = useRef(0);
   // Header is now route-agnostic
   const { user } = useUser();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const ROOT_ROUTES = ["/", "/discover", "/activity", "/inbox"];
+  const showBack = !ROOT_ROUTES.some((r) => pathname.startsWith(r));
 
   useEffect(() => {
     // Handler for scroll event
@@ -49,16 +55,37 @@ export function Header() {
         visible ? "translate-y-0" : "-translate-y-full",
       )}
     >
-      {/* Left – avatar triggers profile */}
-      <Link href="/profile" className="flex items-center gap-2">
-        <Image
-          src={user?.pfpUrl || "/icon.png"}
-          alt="profile"
-          width={28}
-          height={28}
-          className="rounded-full object-cover"
-        />
-      </Link>
+      {/* Left – back arrow or avatar */}
+      {showBack ? (
+        <button
+          onClick={() => router.back()}
+          aria-label="Go back"
+          className="p-2 -ml-2"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="w-6 h-6"
+          >
+            <path
+              fillRule="evenodd"
+              d="M15.78 19.28a.75.75 0 01-1.06 0L7.47 12l7.25-7.28a.75.75 0 111.06 1.06L9.56 12l6.22 6.22a.75.75 0 010 1.06z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+      ) : (
+        <Link href="/profile" className="flex items-center gap-2">
+          <Image
+            src={user?.pfpUrl || "/icon.png"}
+            alt="profile"
+            width={28}
+            height={28}
+            className="rounded-full object-cover"
+          />
+        </Link>
+      )}
 
       {/* Center – logo or title */}
       <div className="flex-1 flex justify-center">
