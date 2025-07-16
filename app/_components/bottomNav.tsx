@@ -64,24 +64,35 @@ export function BottomNav() {
   });
 
   useEffect(() => {
+    // Prefer the main scroll container (body remains fixed)
+    const scroller = document.querySelector("main") ?? window;
+
+    const getScrollPos = () =>
+      scroller === window
+        ? window.scrollY
+        : (scroller as HTMLElement).scrollTop;
+
     const onScroll = () => {
-      const cur = window.scrollY;
+      const cur = getScrollPos();
       if (cur < 10) {
         setVisible(true);
       } else if (cur > prevScrollY.current) {
         setVisible(false);
-      } else {
+      } else if (cur < prevScrollY.current) {
         setVisible(true);
       }
       prevScrollY.current = cur;
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Hide nav on specific pages (e.g., live Space)
-  const hideNav = /^\/space\//.test(pathname);
-  if (hideNav) return null;
+  // Render nav only on top-level tabs
+  const showNav = ["/", "/discover", "/activity", "/inbox"].some(
+    (p) => pathname === p,
+  );
+  if (!showNav) return null;
 
   return (
     <nav
