@@ -193,7 +193,8 @@ export default function LandingClient() {
           {"Scroll to discover what's buzzing right now"}
         </p>
       </section>
-
+      {/* for testing */}
+      <>{JSON.stringify(context)}</>
       <section className="mt-6 flex flex-col gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
         {mockSpaces.map((s) => (
@@ -209,7 +210,6 @@ export default function LandingClient() {
           />
         ))}
       </section>
-
       {/* Create Space Drawer */}
       <Drawer shouldScaleBackground={false}>
         <DrawerTrigger asChild>
