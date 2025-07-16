@@ -3,56 +3,59 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Home, Compass, Mic, Bell, Mail } from "lucide-react";
+import { Home, Compass, Microphone, Bell, Mail } from "iconoir-react";
 import { cn } from "@/lib/utils";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import Image from "next/image";
 
+/**
+ * NavItem type for bottom navigation.
+ * The icon is a React component (Lucide icon).
+ */
 type NavItem = {
   href: string;
   label: string;
-  icon: typeof Home; // using lucide type equivalently
+  icon: typeof Home;
   isCenter?: boolean;
+  isProfile?: boolean;
 };
 
 // ---------------------------------------------------------------------------
 // BottomNav – persistent mobile tab bar
-// • Five primary destinations: Feed, Discover, Host, Activity, Inbox
+// • Five primary destinations: Feed, Discover, Host, Activity, Profile
 // • Center tab (Host) is visually elevated for quick creation flow
 // • Animated pill highlights active / hovered tab
 // • Hides on downward scroll, shows on upward scroll (native feel)
 // Security: purely presentational, does not expose sensitive data.
 // ---------------------------------------------------------------------------
 
-const NAV_ITEMS: NavItem[] = [
-  {
-    href: "/",
-    label: "Feed",
-    icon: Home,
-  },
-  {
-    href: "/discover",
-    label: "Discover",
-    icon: Compass,
-  },
-  {
-    href: "/#create", // anchor that triggers create flow
-    label: "Host",
-    icon: Mic,
-    isCenter: true,
-  },
-  {
-    href: "/activity",
-    label: "Activity",
-    icon: Bell,
-  },
-  {
-    href: "/inbox",
-    label: "Inbox",
-    icon: Mail,
-  },
-] as const;
-
 export function BottomNav() {
   const pathname = usePathname();
+  const { context } = useMiniKit();
+
+  // Build nav items dynamically to access context for profile tab
+  const NAV_ITEMS: NavItem[] = [
+    {
+      href: "/",
+      label: "Spaces",
+      icon: Home,
+    },
+
+    {
+      href: "/#create", // anchor that triggers create flow
+      label: "Host",
+      icon: Microphone,
+      isCenter: true,
+    },
+
+    {
+      href: "/profile",
+      label: context?.user?.username ?? "Profile",
+      icon: Mail,
+      isProfile: true,
+    },
+  ];
+
   // Auto-hide on scroll (mobile UX)
   const [visible, setVisible] = useState(true);
   const prevScrollY = useRef(0);
@@ -102,38 +105,74 @@ export function BottomNav() {
       )}
     >
       <div className="h-14 flex items-center justify-between px-3">
-        {NAV_ITEMS.map(({ href, label, icon: Icon, isCenter }, idx) => {
-          const isActive = activeIdx === idx;
+        {NAV_ITEMS.map(
+          ({ href, label, icon: Icon, isCenter, isProfile }, idx) => {
+            const isActive = activeIdx === idx;
 
-          // Center button special styling
-          if (isCenter) {
+            // Center button special styling
+            if (isCenter) {
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="relative flex flex-col items-center justify-center -mt-6 bg-secondary text-secondary-foreground p-4 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-transform"
+                >
+                  <Icon className="w-6 h-6" />
+                  <span className="sr-only">{label}</span>
+                </Link>
+              );
+            }
+
+            // Profile tab: show user pfp if available, else fallback to icon
+            if (isProfile) {
+              const pfpUrl = context?.user?.pfpUrl;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 px-4 py-2 text-xs",
+                    isActive ? "text-primary" : "text-muted-foreground",
+                  )}
+                  aria-label={label}
+                >
+                  {pfpUrl ? (
+                    <span className="w-6 h-6 rounded-full overflow-hidden border-2 border-primary/60 shadow-sm mb-0.5">
+                      {/* Security: alt text is user's name or Profile */}
+                      <Image
+                        src={pfpUrl}
+                        width={24}
+                        height={24}
+                        alt={label}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        draggable={false}
+                      />
+                    </span>
+                  ) : (
+                    <Icon className="w-5 h-5" />
+                  )}
+                  <span>{label}</span>
+                </Link>
+              );
+            }
+
+            // Default nav item
             return (
               <Link
                 key={href}
                 href={href}
-                className="relative flex flex-col items-center justify-center -mt-6 bg-secondary text-secondary-foreground p-4 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-transform"
+                className={cn(
+                  "flex flex-col items-center gap-0.5 px-4 py-2 text-xs",
+                  isActive ? "text-primary" : "text-muted-foreground",
+                )}
               >
-                <Icon className="w-6 h-6" />
-                <span className="sr-only">{label}</span>
+                <Icon className="w-5 h-5" />
+                <span>{label}</span>
               </Link>
             );
-          }
-
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex flex-col items-center gap-0.5 px-4 py-2 text-xs",
-                isActive ? "text-primary" : "text-muted-foreground",
-              )}
-            >
-              {/* Profile avatar for Inbox when label is Inbox and there's user pfp? We'll keep icon simple */}
-              <Icon className="w-5 h-5" />
-              <span>{label}</span>
-            </Link>
-          );
-        })}
+          },
+        )}
       </div>
     </nav>
   );

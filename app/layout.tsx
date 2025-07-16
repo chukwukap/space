@@ -16,44 +16,44 @@ import { BottomNav } from "./_components/bottomNav";
 // Inter: A modern, clean, and highly readable font with a unique character.
 // DM Sans: A modern, clean, and highly readable font with a unique character.
 
-import { Sora, Space_Grotesk, Manrope, Inter, DM_Sans } from "next/font/google";
+import { Sora } from "next/font/google";
 import { cn } from "@/lib/utils";
 
 // Professional font setup for
-export const sora = Sora({
+const sora = Sora({
   subsets: ["latin"],
   variable: "--font-sora",
   display: "swap",
   weight: ["400", "500", "700"],
 });
 
-export const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  display: "swap",
-  weight: ["400", "500", "700"],
-});
+//  const spaceGrotesk = Space_Grotesk({
+//   subsets: ["latin"],
+//   variable: "--font-space-grotesk",
+//   display: "swap",
+//   weight: ["400", "500", "700"],
+// });
 
-export const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
-  weight: ["400", "500", "700"],
-});
+//  const manrope = Manrope({
+//   subsets: ["latin"],
+//   variable: "--font-manrope",
+//   display: "swap",
+//   weight: ["400", "500", "700"],
+// });
 
-export const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-  weight: ["400", "500", "700"],
-});
+//  const inter = Inter({
+//   subsets: ["latin"],
+//   variable: "--font-inter",
+//   display: "swap",
+//   weight: ["400", "500", "700"],
+// });
 
-export const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  display: "swap",
-  weight: ["400", "500", "700"],
-});
+//  const dmSans = DM_Sans({
+//   subsets: ["latin"],
+//   variable: "--font-dm-sans",
+//   display: "swap",
+//   weight: ["400", "500", "700"],
+// });
 
 /**
  * Set viewport for responsive design.

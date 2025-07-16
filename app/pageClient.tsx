@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/drawer";
 import { SpaceMetadata } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Microphone } from "iconoir-react";
+import { Mic } from "lucide-react";
 import { Room } from "livekit-server-sdk";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -21,6 +21,8 @@ import { useAddFrame, useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount, useConnect } from "wagmi";
 import { toast } from "sonner";
 import MobileHeader from "./_components/mobileHeader";
+
+// import MobileHeader from "./_components/mobileHeader";
 
 const ShareSheet = dynamic(() => import("./_components/shareSheet"), {
   ssr: false,
@@ -40,7 +42,9 @@ export default function LandingClient() {
   const [frameAdded, setFrameAdded] = useState(false);
 
   // State for the list of spaces
+
   const [spaces, setSpaces] = useState<Space[]>([]);
+  console.log(spaces);
   // Drawer-controlled form state
   const [title, setTitle] = useState("");
   const [record, setRecord] = useState(false);
@@ -180,8 +184,8 @@ export default function LandingClient() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pt-12">
-      <MobileHeader />
+    <div className="flex flex-col min-h-screen">
+      <MobileHeader title="Live Spaces" showBack={false} right={<>hello</>} />
       {/* Live Spaces heading */}
       <section id="explore" className="px-6 mt-4">
         <h2 className="text-2xl font-extrabold">Live Spaces</h2>
@@ -190,12 +194,12 @@ export default function LandingClient() {
         </p>
       </section>
 
-      <section className="mt-6 flex gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
-        {/* Hide default scrollbar */}
+      <section className="mt-6 flex flex-col gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
-        {spaces.map((s) => (
+        {mockSpaces.map((s) => (
           <SpaceCard
             key={s.name}
+            // @ts-expect-error - mock spaces
             space={s}
             onClick={() =>
               router.push(
@@ -216,7 +220,7 @@ export default function LandingClient() {
             aria-label="Create Space"
             type="button"
           >
-            <Microphone className="w-7 h-7 text-primary-foreground" />
+            <Mic className="w-7 h-7 text-primary-foreground" />
           </button>
         </DrawerTrigger>
 
@@ -279,50 +283,229 @@ export default function LandingClient() {
 }
 
 function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
+  const listeners =
+    space.numParticipants ?? Math.floor(Math.random() * 500) + 10;
+
   return (
-    <motion.article
-      whileHover={{ scale: 1.04 }}
-      transition={{ type: "spring", stiffness: 260, damping: 20 }}
-      className="relative w-64 shrink-0 snap-center cursor-pointer rounded-3xl overflow-hidden glow-hover"
+    <motion.div
+      whileTap={{ scale: 0.97 }}
+      className="w-full cursor-pointer rounded-xl glass-card p-4 flex items-center gap-4"
       onClick={onClick}
     >
-      {/* Gradient backdrop */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-30" />
-      {/* Frosted glass overlay */}
-      <div className="relative p-5 glass-card backdrop-blur-[6px] flex flex-col h-full">
-        <div className="flex items-center gap-2 text-xs uppercase font-semibold mb-3">
-          <Microphone className="w-4 h-4 text-destructive animate-pulse" />
-          Live
-        </div>
+      {/* Host avatar placeholder */}
+      <div className="w-12 h-12 rounded-full overflow-hidden bg-muted shrink-0">
+        <Image
+          src="/icon.png"
+          alt="host"
+          width={48}
+          height={48}
+          className="object-cover w-full h-full"
+        />
+      </div>
 
-        <h3 className="text-lg font-bold leading-snug mb-4 line-clamp-3 flex-1">
+      {/* Title & meta */}
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold leading-snug line-clamp-2">
           {space.title || "Untitled Space"}
         </h3>
-
-        <div className="flex items-center gap-2 text-sm">
-          <div className="flex -space-x-2">
-            {Array.from({ length: space.numParticipants })
-              .slice(0, 3)
-              .map((_, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full bg-muted border-2 border-background overflow-hidden"
-                >
-                  <Image
-                    width={32}
-                    height={32}
-                    src="/icon.png"
-                    alt="pfp"
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              ))}
-          </div>
-          <span className="ml-1 text-xs font-medium bg-background/60 px-2 py-0.5 rounded-full">
-            {space.numParticipants} listening
-          </span>
-        </div>
+        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+          <Mic className="w-3 h-3 text-destructive" />
+          <span>{listeners} listening</span>
+          {space.recording && (
+            <span className="ml-2 px-1.5 py-0.5 bg-primary/20 text-primary rounded">
+              REC
+            </span>
+          )}
+        </p>
       </div>
-    </motion.article>
+
+      {/* Join badge */}
+      <span className="text-sm font-medium px-3 py-1 rounded-full bg-primary text-primary-foreground shrink-0">
+        Join
+      </span>
+    </motion.div>
   );
 }
+
+const mockSpaces = [
+  {
+    sid: "spc_001",
+    name: "defi-deep-dive",
+    metadata: "{}",
+    creationTime: 1718457600,
+    title: "DeFi Deep Dive",
+    hostId: "fid_1001",
+    recording: false,
+  },
+  {
+    sid: "spc_002",
+    name: "nft-night-chat",
+    metadata: "{}",
+    creationTime: 1718461200,
+    title: "NFT Night Chat",
+    hostId: "fid_1002",
+    recording: true,
+  },
+  {
+    sid: "spc_003",
+    name: "builder-banter",
+    metadata: "{}",
+    creationTime: 1718464800,
+    title: "Builder Banter",
+    hostId: "fid_1003",
+    recording: false,
+  },
+  {
+    sid: "spc_004",
+    name: "onchain-gaming",
+    metadata: "{}",
+    creationTime: 1718468400,
+    title: "On-Chain Gaming Roundtable",
+    hostId: "fid_1004",
+    recording: true,
+  },
+  {
+    sid: "spc_005",
+    name: "solidity-surgery",
+    metadata: "{}",
+    creationTime: 1718472000,
+    title: "Solidity Surgery",
+    hostId: "fid_1005",
+    recording: false,
+  },
+  {
+    sid: "spc_006",
+    name: "governance-gossip",
+    metadata: "{}",
+    creationTime: 1718475600,
+    title: "Governance Gossip",
+    hostId: "fid_1006",
+    recording: false,
+  },
+  {
+    sid: "spc_007",
+    name: "rollup-roundup",
+    metadata: "{}",
+    creationTime: 1718479200,
+    title: "Rollup Round-up",
+    hostId: "fid_1007",
+    recording: true,
+  },
+  {
+    sid: "spc_008",
+    name: "vc-viewpoint",
+    metadata: "{}",
+    creationTime: 1718482800,
+    title: "VC Viewpoint",
+    hostId: "fid_1008",
+    recording: false,
+  },
+  {
+    sid: "spc_009",
+    name: "ai-meets-crypto",
+    metadata: "{}",
+    creationTime: 1718486400,
+    title: "AI meets Crypto",
+    hostId: "fid_1009",
+    recording: true,
+  },
+  {
+    sid: "spc_010",
+    name: "dao-town-hall",
+    metadata: "{}",
+    creationTime: 1718490000,
+    title: "DAO Town Hall",
+    hostId: "fid_1010",
+    recording: false,
+  },
+  {
+    sid: "spc_011",
+    name: "layers-lattes",
+    metadata: "{}",
+    creationTime: 1718493600,
+    title: "Layers & Lattes ☕",
+    hostId: "fid_1011",
+    recording: false,
+  },
+  {
+    sid: "spc_012",
+    name: "privacy-protocols",
+    metadata: "{}",
+    creationTime: 1718497200,
+    title: "Privacy Protocols AMA",
+    hostId: "fid_1012",
+    recording: true,
+  },
+  {
+    sid: "spc_013",
+    name: "zkevm-zoners",
+    metadata: "{}",
+    creationTime: 1718500800,
+    title: "zkEVM Zone",
+    hostId: "fid_1013",
+    recording: false,
+  },
+  {
+    sid: "spc_014",
+    name: "wallet-war-stories",
+    metadata: "{}",
+    creationTime: 1718504400,
+    title: "Wallet War Stories",
+    hostId: "fid_1014",
+    recording: false,
+  },
+  {
+    sid: "spc_015",
+    name: "reactive-research",
+    metadata: "{}",
+    creationTime: 1718508000,
+    title: "Reactive Research",
+    hostId: "fid_1015",
+    recording: true,
+  },
+  {
+    sid: "spc_016",
+    name: "base-builder-time",
+    metadata: "{}",
+    creationTime: 1718511600,
+    title: "Base Builder Time",
+    hostId: "fid_1016",
+    recording: false,
+  },
+  {
+    sid: "spc_017",
+    name: "tokenomics-talk",
+    metadata: "{}",
+    creationTime: 1718515200,
+    title: "Tokenomics Talk",
+    hostId: "fid_1017",
+    recording: true,
+  },
+  {
+    sid: "spc_018",
+    name: "security-sunday",
+    metadata: "{}",
+    creationTime: 1718518800,
+    title: "Security Sunday",
+    hostId: "fid_1018",
+    recording: false,
+  },
+  {
+    sid: "spc_019",
+    name: "design-in-defi",
+    metadata: "{}",
+    creationTime: 1718522400,
+    title: "Design in DeFi",
+    hostId: "fid_1019",
+    recording: true,
+  },
+  {
+    sid: "spc_020",
+    name: "rugpull-radio",
+    metadata: "{}",
+    creationTime: 1718526000,
+    title: "Rugpull Radio",
+    hostId: "fid_1020",
+    recording: false,
+  },
+];
