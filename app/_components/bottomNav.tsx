@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Home, Compass, Microphone, Bell, Mail } from "iconoir-react";
+import { Home, Microphone, Mail } from "iconoir-react";
 import { cn } from "@/lib/utils";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import Image from "next/image";
