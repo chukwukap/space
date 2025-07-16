@@ -1,17 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import {
-  Drawer,
-  DrawerTrigger,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+// Drawer components no longer needed here (global CreateSpaceButton handles)
 import { SpaceMetadata } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+// import MobileHeader from "./_components/mobileHeader";
 import { Mic } from "lucide-react";
 import { Room } from "livekit-server-sdk";
 import Image from "next/image";
@@ -210,66 +206,7 @@ export default function LandingClient() {
           />
         ))}
       </section>
-      {/* Create Space Drawer */}
-      <Drawer shouldScaleBackground={false}>
-        <DrawerTrigger asChild>
-          <button
-            id="create-space-btn"
-            className="fixed bottom-24 right-6 w-16 h-16 rounded-full flex items-center justify-center glass-card glow-hover border-primary/30 bg-primary/80 text-primary-foreground shadow-2xl backdrop-blur-md z-50"
-            style={{ color: "white" }}
-            aria-label="Create Space"
-            type="button"
-          >
-            <Mic className="w-7 h-7 text-primary-foreground" />
-          </button>
-        </DrawerTrigger>
-
-        <DrawerContent className="glass-card backdrop-blur-xl rounded-t-3xl border border-white/10 px-0 pb-10 text-foreground">
-          <div className="w-full px-8 pt-8 flex flex-col gap-6">
-            <DrawerHeader className="text-center mb-4">
-              <DrawerTitle>Create your Space</DrawerTitle>
-            </DrawerHeader>
-
-            <div className="flex flex-col gap-3">
-              <label className="text-left text-sm font-medium">
-                Space title
-              </label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Building in public in 2025"
-                className="w-full px-4 py-3 rounded-xl bg-muted/20 focus:bg-background border border-border focus:ring-2 focus:ring-primary/50 outline-none transition-colors disabled:opacity-50"
-                disabled={creating}
-              />
-            </div>
-
-            <label className="flex items-center gap-3 cursor-pointer select-none text-sm">
-              <input
-                type="checkbox"
-                checked={record}
-                onChange={(e) => setRecord(e.target.checked)}
-                className="h-5 w-5 rounded-md border border-border accent-primary"
-              />
-              Record this Space (coming soon)
-            </label>
-
-            {createError && (
-              <div className="text-red-400 text-sm mb-2 text-center">
-                {createError}
-              </div>
-            )}
-
-            <Button
-              className="w-full"
-              onClick={handleCreateSpace}
-              disabled={!title.trim() || creating}
-              aria-busy={creating}
-            >
-              {creating ? "Starting..." : "Start your Space"}
-            </Button>
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {/* Global CreateSpaceButton handles creation flow */}
       <NotificationBanner />
       {shareOpen && (
         <ShareSheet
