@@ -3,9 +3,10 @@
 import { type ReactNode } from "react";
 import { base } from "wagmi/chains";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
-import { UserProvider } from "./userProvider";
+// import { UserProvider } from "./userProvider";
 import { ThemeProvider } from "./themeProvider";
 import { MotionProvider } from "./motionProvider";
+import { Toaster } from "sonner";
 
 export function Providers(props: { children: ReactNode }) {
   return (
@@ -23,7 +24,15 @@ export function Providers(props: { children: ReactNode }) {
             },
           }}
         >
-          <UserProvider>{props.children}</UserProvider>
+          {/* <UserProvider> */}
+          <Toaster
+            position="top-center"
+            richColors
+            swipeDirections={["top"]}
+            duration={3000}
+          />
+          {props.children}
+          {/* </UserProvider> */}
         </MiniKitProvider>
       </MotionProvider>
     </ThemeProvider>

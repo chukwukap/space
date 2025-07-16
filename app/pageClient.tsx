@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-// CountUp no longer needed after simplifying hero
 import { useRouter } from "next/navigation";
 import {
   Drawer,
@@ -12,7 +11,6 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { SpaceMetadata } from "@/lib/types";
-import { useUser } from "./providers/userProvider";
 import { Button } from "@/components/ui/button";
 import { Microphone } from "iconoir-react";
 import { Room } from "livekit-server-sdk";
@@ -20,7 +18,8 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import NotificationBanner from "./_components/notificationBanner";
 import { useAddFrame, useMiniKit } from "@coinbase/onchainkit/minikit";
-import { Check, Plus } from "iconoir-react";
+import { useAccount, useConnect } from "wagmi";
+import { toast } from "sonner";
 
 const ShareSheet = dynamic(() => import("./_components/shareSheet"), {
   ssr: false,
@@ -34,47 +33,10 @@ type Space = Room & SpaceMetadata;
 export default function LandingClient() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const router = useRouter();
-  const user = useUser();
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
   const addFrame = useAddFrame();
   const [frameAdded, setFrameAdded] = useState(false);
-
-  useEffect(() => {
-    if (!isFrameReady) {
-      setFrameReady();
-    }
-  }, [setFrameReady, isFrameReady]);
-
-  const handleAddFrame = useCallback(async () => {
-    const frameAdded = await addFrame();
-    setFrameAdded(Boolean(frameAdded));
-  }, [addFrame]);
-
-  const saveFrameButton = useMemo(() => {
-    if (context && !context.client.added) {
-      return (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleAddFrame}
-          className="text-[var(--app-accent)] p-4"
-        >
-          <Plus className="text-[#0052FF]" />
-          Save Frame
-        </Button>
-      );
-    }
-
-    if (frameAdded) {
-      return (
-        <div className="flex items-center space-x-1 text-sm font-medium text-[#0052FF] animate-fade-out">
-          <Check className="text-[#0052FF]" />
-          <span>Saved</span>
-        </div>
-      );
-    }
-
-    return null;
-  }, [context, frameAdded, handleAddFrame]);
 
   // State for the list of spaces
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -87,6 +49,26 @@ export default function LandingClient() {
 
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
+
+  useEffect(() => {
+    if (!isFrameReady) {
+      setFrameReady();
+    }
+  }, [setFrameReady, isFrameReady]);
+
+  useEffect(() => {
+    // Only add frame if not already added and not already triggered
+    if (context && !context.client.added && !frameAdded) {
+      (async () => {
+        try {
+          const added = await addFrame();
+          setFrameAdded(Boolean(added));
+        } catch (err) {
+          console.error(err);
+        }
+      })();
+    }
+  }, [context, addFrame, frameAdded]);
 
   /* ----------------------------------------- */
   /* Fetch live spaces list every 5 s          */
@@ -121,16 +103,47 @@ export default function LandingClient() {
   }, []);
 
   /**
+   * Prompt user to connect wallet if not connected.
+   * Uses the first available connector.
+   */
+  const promptWalletConnect = useCallback(() => {
+    if (connectors && connectors.length > 0) {
+      connect({ connector: connectors[0] });
+      toast.info("Please connect your wallet to host a Space.");
+    } else {
+      toast.error(
+        "No wallet connector found. Please install a wallet extension.",
+      );
+    }
+  }, [connect, connectors]);
+
+  /**
    * Handles the creation of a new Space by calling the POST /api/spaces endpoint.
+   * If wallet is not connected, prompts user to connect immediately.
+   * Uses fid as hostId if available, else uses wallet address.
    */
   async function handleCreateSpace() {
     if (!title.trim()) return;
-    if (!user.user?.fid && !user.user?.id) {
-      alert("Please sign in to host a Space.");
+
+    // Prompt wallet connect immediately if not connected
+    if (!address) {
+      promptWalletConnect();
       return;
     }
+
+    // Security: Only allow if wallet is connected
+    if (!isConnected) {
+      setCreateError("Please connect your wallet to host a Space.");
+      toast.error("Please connect your wallet to host a Space.");
+      return;
+    }
+
     setCreating(true);
     setCreateError(null);
+
+    // Use fid if available, else use wallet address
+    const hostId =
+      context?.user?.fid != null ? String(context.user.fid) : address;
 
     try {
       const res = await fetch("/api/spaces", {
@@ -138,7 +151,7 @@ export default function LandingClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          hostId: String(user.user?.fid ?? user.user?.id),
+          hostId,
           recording: record,
         }),
       });
@@ -146,6 +159,7 @@ export default function LandingClient() {
       if (!res.ok) {
         const error = await res.json();
         setCreateError(error?.error || "Failed to create space.");
+        toast.error(error?.error || "Failed to create space.");
         setCreating(false);
         return;
       }
@@ -154,9 +168,11 @@ export default function LandingClient() {
       const path = `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`;
       setShareUrl(`${window.location.origin}${path}`);
       setShareOpen(true);
+      toast.success("Space created! Share your link.");
     } catch (error: unknown) {
       console.error(error);
       setCreateError("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setCreating(false);
     }
@@ -164,7 +180,6 @@ export default function LandingClient() {
 
   return (
     <div className="flex flex-col min-h-screen ">
-      {saveFrameButton}
       {/* HERO */}
       <section className="relative bg-gradient-to-br from-primary/30 via-secondary/20 to-accent/30 rounded-b-[2rem] pb-20 pt-24 px-6 text-center shadow-lg overflow-hidden">
         <motion.h1
@@ -184,8 +199,6 @@ export default function LandingClient() {
           Host live audio shows, let fans tip in USDC, and grow an audience you
           actually control.
         </motion.p>
-
-        {/* Hero intentionally minimal – no live stats to maintain focus */}
       </section>
 
       {/* Section heading */}
@@ -217,9 +230,16 @@ export default function LandingClient() {
         <DrawerTrigger asChild>
           <button
             id="create-space-btn"
-            className="fixed bottom-24 right-6 w-16 h-16 rounded-full flex items-center justify-center glass-card glow-hover border-primary/30 bg-primary/80 text-primary-foreground shadow-2xl backdrop-blur-md"
+            className="fixed bottom-24 right-6 w-16 h-16 rounded-full flex items-center justify-center glass-card glow-hover border-primary/30 bg-primary/80 text-primary-foreground shadow-2xl backdrop-blur-md z-50"
+            style={{ color: "white" }}
+            aria-label="Create Space"
+            type="button"
           >
-            <Microphone className="w-7 h-7" />
+            <Microphone
+              className="w-7 h-7"
+              color="currentColor"
+              style={{ color: "#fff" }}
+            />
           </button>
         </DrawerTrigger>
 
@@ -329,5 +349,3 @@ function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
     </motion.article>
   );
 }
-
-// LandingStat removed – hero kept intentionally simple
