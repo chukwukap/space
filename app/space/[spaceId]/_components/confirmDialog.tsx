@@ -12,13 +12,13 @@ interface Props {
 export default function ConfirmDialog({
   title,
   subtitle,
-  confirmLabel = "Yes",
+  confirmLabel = "Confirm",
   onConfirm,
   onCancel,
 }: Props) {
   return (
     <div className="z-50 flex items-center justify-center ">
-      <div className="bg-card rounded-xl p-6 w-80 shadow-lg animate-fade-in text-foreground">
+      <div className="bg-card rounded-xl p-6 w-80 shadow-lg text-foreground">
         <h3 className="font-semibold text-lg mb-2 text-center">{title}</h3>
         {subtitle && (
           <p className="text-sm mb-6 text-center text-muted-foreground">
@@ -27,7 +27,7 @@ export default function ConfirmDialog({
         )}
         <div className="flex justify-end gap-3">
           <Button variant="ghost" size="sm" onClick={onCancel}>
-            No
+            Cancel
           </Button>
           <Button size="sm" onClick={onConfirm}>
             {confirmLabel}

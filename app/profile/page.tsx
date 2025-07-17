@@ -13,6 +13,17 @@ import {
 } from "lucide-react";
 import MobileHeader from "../_components/mobileHeader";
 import { ThemeToggle } from "../_components/themeToggle";
+import {
+  useAccount,
+  useChainId,
+  useConnect,
+  useConnectors,
+  useSignTypedData,
+} from "wagmi";
+import { getSpendPermTypedData } from "@/lib/utils";
+import { approveSpendPermission } from "@/actions/spendPermission";
+import { useState } from "react";
+import { Address } from "viem";
 
 /**
  * UserProfilePage – shows public profile information.
@@ -28,7 +39,62 @@ import { ThemeToggle } from "../_components/themeToggle";
  * handled server-side and never rendered directly.
  */
 export default function UserProfilePage() {
-  const { user } = useUser();
+  const { user, refreshUser } = useUser();
+
+  // Spend Permission signing hooks
+  const account = useAccount();
+  const chainIdHook = useChainId();
+  const { connectAsync } = useConnect();
+  const connectors = useConnectors();
+  const { signTypedDataAsync } = useSignTypedData();
+
+  const [signing, setSigning] = useState(false);
+
+  const hasSpendPerm = Boolean(user?.spendPerm);
+
+  /**
+   * Initiates the spend permission signing flow.
+   * Steps:
+   * 1. Ensure wallet connection (connect if necessary)
+   * 2. Generate typed data for SpendPermission
+   * 3. Request signature from the wallet
+   * 4. Submit on-chain approval via server action
+   * 5. Refresh user context to reflect new permission status
+   */
+  const handleSignPermission = async () => {
+    if (signing) return;
+    setSigning(true);
+    try {
+      let addr = account.address;
+      let cid = chainIdHook;
+
+      // Connect wallet if not connected yet
+      if (!addr) {
+        const res = await connectAsync({ connector: connectors[0] });
+        addr = res.accounts[0] as Address;
+        cid = (res as { chainId?: number }).chainId ?? chainIdHook;
+      }
+
+      if (!addr || !cid) throw new Error("Wallet connection failed");
+
+      const spendPermTypedData = getSpendPermTypedData(addr as Address, cid);
+
+      const signature = await signTypedDataAsync(spendPermTypedData);
+
+      await approveSpendPermission(
+        spendPermTypedData.message,
+        signature,
+        addr as Address,
+      );
+
+      // Refresh user data to reflect new permission
+      await refreshUser?.();
+    } catch (err) {
+      console.error("[profile] spend perm signing error", err);
+    } finally {
+      setSigning(false);
+    }
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const miniKit = useMiniKit() as any;
 
@@ -164,6 +230,25 @@ export default function UserProfilePage() {
           />
           <StatCard label="Followers" value={profile.stats.followers} />
           <StatCard label="Following" value={profile.stats.following} />
+        </div>
+
+        {/* Spend Permission – tipping */}
+        <div className="mt-8">
+          {hasSpendPerm ? (
+            <p className="text-sm text-green-600 font-medium">
+              Tipping enabled – spend permission active ✅
+            </p>
+          ) : (
+            <Button
+              onClick={handleSignPermission}
+              disabled={signing}
+              className="w-full sm:w-auto"
+            >
+              {signing
+                ? "Awaiting signature…"
+                : "Enable Tipping (Sign Permission)"}
+            </Button>
+          )}
         </div>
       </div>
 

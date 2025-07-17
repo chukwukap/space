@@ -42,6 +42,7 @@ model User {
   username    String? // @handle
   avatarUrl   String?
   createdAt   DateTime @default(now())
+  spendPerm   Json?
 
   // Relations
   hostedSpaces Space[]       @relation("HostedSpaces")
@@ -53,9 +54,11 @@ model User {
 
 model Space {
   id           String      @id @default(uuid())
+  livekitName  String      @unique // LiveKit room name|id
   title        String
-  hostId       Int
-  host         User        @relation("HostedSpaces", fields: [hostId], references: [id])
+  hostFid      Int
+  hostAddress  String
+  host         User        @relation("HostedSpaces", fields: [hostFid], references: [fid])
   status       SpaceStatus @default(LIVE)
   recording    Boolean     @default(false)
   recordingUrl String?
@@ -67,31 +70,31 @@ model Space {
   tips         Tip[]
   reactions    Reaction[]
 
-  @@index([hostId])
+  @@index([hostFid])
 }
 
 model Participant {
   id       String    @id @default(uuid())
   spaceId  String
-  userId   Int
+  fid      Int
   role     Role
   joinedAt DateTime  @default(now())
   leftAt   DateTime?
 
   // Relations
   space Space @relation(fields: [spaceId], references: [id])
-  user  User  @relation(fields: [userId], references: [id])
+  user  User  @relation(fields: [fid], references: [fid])
 
-  @@unique([spaceId, userId])
+  @@unique([spaceId, fid])
   @@index([spaceId])
-  @@index([userId])
+  @@index([fid])
 }
 
 model Tip {
   id          String   @id @default(uuid())
   spaceId     String
-  fromId      Int
-  toId        Int
+  fromFid     Int
+  toFid       Int
   amount      Decimal  @db.Decimal(18, 6)
   tokenSymbol String // e.g. "USDC", "ETH"
   txHash      String   @unique
@@ -99,13 +102,13 @@ model Tip {
 
   // Relations
   space    Space     @relation(fields: [spaceId], references: [id])
-  from     User      @relation("tipsSent", fields: [fromId], references: [id])
-  to       User      @relation("tipsReceived", fields: [toId], references: [id])
+  from     User      @relation("tipsSent", fields: [fromFid], references: [fid])
+  to       User      @relation("tipsReceived", fields: [toFid], references: [fid])
   reaction Reaction?
 
   @@index([spaceId])
-  @@index([fromId])
-  @@index([toId])
+  @@index([fromFid])
+  @@index([toFid])
 }
 
 model Reaction {

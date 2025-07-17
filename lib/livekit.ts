@@ -1,4 +1,4 @@
-import { RoomServiceClient, AccessToken, Room } from "livekit-server-sdk";
+import { RoomServiceClient, Room } from "livekit-server-sdk";
 
 /**
  * LiveKit server-side helper utilities for UmbraSwap.
@@ -9,7 +9,7 @@ import { RoomServiceClient, AccessToken, Room } from "livekit-server-sdk";
 const {
   LIVEKIT_API_KEY = "",
   LIVEKIT_API_SECRET = "",
-  LIVEKIT_URL = "https://spaces.vercel.app",
+  LIVEKIT_URL,
 } = process.env as Record<string, string>;
 
 if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
@@ -28,8 +28,9 @@ export const roomService = new RoomServiceClient(
   LIVEKIT_API_SECRET,
 );
 
-export const livekitWsUrl: string =
-  process.env.NEXT_PUBLIC_LIVEKIT_WS_URL || LIVEKIT_URL.replace(/^http/, "ws");
+export const LIVEKIT_SERVER_URL: string =
+  process.env.NEXT_PUBLIC_LIVEKIT_SERVER_URL ||
+  LIVEKIT_URL.replace(/^http/, "ws");
 
 /**
  * Ensures that a room exists. If it does not, it will be created with the
@@ -45,51 +46,6 @@ export async function ensureRoom(roomId: string) {
   } catch {
     // If room already exists, LiveKit returns 409; safe to ignore
   }
-}
-
-/**
- * Creates a new LiveKit room with the given title and creator.
- * Returns the created room object.
- */
-export async function createRoom(title: string, creator: string) {
-  const roomId = crypto.randomUUID();
-  const room = await roomService.createRoom({
-    name: roomId,
-    metadata: JSON.stringify({ title, creator }),
-  });
-  return room;
-}
-
-/**
- * Generates a signed JWT that allows a user to join the specified LiveKit
- * room. The token grants the user permission to publish & subscribe (host
- * determines actual permissions client-side).
- */
-export async function generateAccessToken({
-  roomName,
-  userId,
-}: {
-  roomName: string;
-  userId: string;
-}): Promise<string> {
-  if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-    throw new Error(
-      "LiveKit credentials are not configured. Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET env vars.",
-    );
-  }
-
-  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-    identity: userId,
-  });
-
-  at.addGrant({
-    roomJoin: true,
-    room: roomName,
-    canPublish: true,
-    canSubscribe: true,
-  });
-
-  return await at.toJwt();
 }
 
 /**
@@ -109,3 +65,7 @@ export async function getRoom(roomId: string): Promise<Room | null> {
     return null;
   }
 }
+
+export const LIVEKIT_TOKEN_ENDPOINT: string =
+  process.env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT ||
+  LIVEKIT_URL.replace(/^http/, "https") + "/token";

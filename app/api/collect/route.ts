@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPublicClient, getSpenderWalletClient } from "@/lib/spender";
+import { getPublicClient, getSpenderWalletClient } from "@/lib/utils";
 import {
   spendPermissionManagerAbi,
   spendPermissionManagerAddress,
@@ -8,29 +8,22 @@ import { ERC20_ABI } from "@/lib/abi/ERC20";
 import { prisma } from "@/lib/prisma";
 import { USDC_ADDRESS } from "@/lib/constants";
 
-import { parseUnits, Address } from "viem";
+import { Address } from "viem";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      spendPermission,
-      signature,
-      amount,
-      decimals = 6,
-      spaceId,
-      fromId,
-      toId,
-    } = body;
+    const { spendPermissionMessage, signature, spaceId, tipperFid, tippeeFid } =
+      body;
 
-    if (!amount || !spaceId || !fromId || !toId) {
+    if (
+      !spendPermissionMessage ||
+      !signature ||
+      !spaceId ||
+      !tipperFid ||
+      !tippeeFid
+    ) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
-    }
-
-    const MAX_TIP_AMOUNT = 100; // 100 USDC in units (decimals 6)
-
-    if (Number(amount) > MAX_TIP_AMOUNT) {
-      return NextResponse.json({ error: "amount too large" }, { status: 400 });
     }
 
     const spender = await getSpenderWalletClient();
@@ -41,7 +34,7 @@ export async function POST(req: NextRequest) {
       address: spendPermissionManagerAddress,
       abi: spendPermissionManagerAbi,
       functionName: "approveWithSignature",
-      args: [spendPermission, signature],
+      args: [spendPermissionMessage, signature],
     });
 
     await publicClient.waitForTransactionReceipt({ hash: approveTx });
@@ -51,14 +44,17 @@ export async function POST(req: NextRequest) {
       address: spendPermissionManagerAddress,
       abi: spendPermissionManagerAbi,
       functionName: "spend",
-      args: [spendPermission, amount],
+      args: [spendPermissionMessage, spendPermissionMessage.allowance],
     });
+
     await publicClient.waitForTransactionReceipt({
       hash: spendTx,
     });
 
     // look up recipient address from DB
-    const recipient = await prisma.user.findUnique({ where: { id: toId } });
+    const recipient = await prisma.user.findUnique({
+      where: { fid: tippeeFid },
+    });
     if (!recipient?.address) {
       return NextResponse.json(
         { error: "recipient address missing" },
@@ -71,22 +67,22 @@ export async function POST(req: NextRequest) {
       address: USDC_ADDRESS,
       abi: ERC20_ABI,
       functionName: "transfer",
-      args: [recipient.address as Address, parseUnits(amount, decimals)],
+      args: [recipient.address as Address, spendPermissionMessage.allowance],
     });
 
     await publicClient.waitForTransactionReceipt({ hash: transferTx });
 
     // record tip
-    await prisma.tip.create({
-      data: {
-        spaceId,
-        fromId,
-        toId,
-        amount,
-        tokenSymbol: "USDC",
-        txHash: transferTx,
-      },
-    });
+    // await prisma.tip.create({
+    //   data: {
+    //     spaceId,
+    //     fromId,
+    //     toId,
+    //     amount,
+    //     tokenSymbol: "USDC",
+    //     txHash: transferTx,
+    //   },
+    // });
 
     return NextResponse.json({ status: "success", spendTx, transferTx });
   } catch (err) {

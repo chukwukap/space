@@ -1,20 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AccessToken } from "livekit-server-sdk";
+import { AccessToken, TrackSource } from "livekit-server-sdk";
 
 // Do not cache endpoint result
 export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   const roomName = req.nextUrl.searchParams.get("roomName");
-  const username = req.nextUrl.searchParams.get("name");
+  const identity = req.nextUrl.searchParams.get("identity");
+  const name = req.nextUrl.searchParams.get("name");
+  const metadata = JSON.parse(req.nextUrl.searchParams.get("metadata") ?? "{}");
+
+  console.log("metadata", metadata);
   if (!roomName) {
     return NextResponse.json(
       { error: 'Missing "roomName" query parameter' },
       { status: 400 },
     );
-  } else if (!username) {
+  } else if (!identity) {
     return NextResponse.json(
-      { error: 'Missing "username" query parameter' },
+      { error: 'Missing "identity" query parameter' },
+      { status: 400 },
+    );
+  } else if (!name) {
+    return NextResponse.json(
+      { error: 'Missing "name" query parameter' },
+      { status: 400 },
+    );
+  } else if (metadata === undefined) {
+    return NextResponse.json(
+      { error: 'Missing "metadata" query parameter' },
       { status: 400 },
     );
   }
@@ -30,12 +44,14 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const at = new AccessToken(apiKey, apiSecret, { identity: username });
+  const at = new AccessToken(apiKey, apiSecret, { identity, name, metadata });
   at.addGrant({
     room: roomName,
     roomJoin: true,
-    canPublish: true,
-    canSubscribe: true,
+    canPublish: metadata.isHost,
+    canSubscribe: true, //
+    canPublishSources: [TrackSource.MICROPHONE], // only allow microphone
+    roomRecord: false,
   });
 
   return NextResponse.json(

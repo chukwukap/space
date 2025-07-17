@@ -1,4 +1,6 @@
 export const USDC_DECIMALS = 6;
+export const SPEND_PERMISSION_ALLOWANCE =
+  process.env.NEXT_PUBLIC_PERMISSION_ALLOWANCE || "20";
 
 /**
  * USDC contract address on the current chain (Base or Base Sepolia).

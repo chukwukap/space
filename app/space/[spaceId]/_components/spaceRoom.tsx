@@ -3,13 +3,12 @@
 import {
   LiveKitRoom,
   RoomAudioRenderer,
-  useParticipants,
   useRoomContext,
   useToken,
 } from "@livekit/components-react";
+import { FireFlame, HandCash, Heart, Percentage } from "iconoir-react";
 
-import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   ConnectionState,
   Participant as LKParticipant,
@@ -19,16 +18,13 @@ import "@livekit/components-styles";
 import dynamic from "next/dynamic";
 import { AvatarWithControls } from "./avatar";
 import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react"; // icon for minimize
-import { useUser } from "@/app/providers/userProvider";
 import { useSpaceStore } from "./spaceStore";
 import ReactionOverlay from "./ReactionOverlay";
 import BottomBar from "./bottomBar";
 import HandRaiseQueue from "./HandRaiseQueue";
 import ReactionPicker, { ReactionType } from "./ReactionPicker";
 import MobileHeader from "@/app/_components/mobileHeader";
-import { Address, Hex, parseUnits } from "viem";
-import { USDC_ADDRESS, USDC_DECIMALS } from "@/lib/constants";
+import { Address } from "viem";
 import {
   useAccount,
   useChainId,
@@ -36,45 +32,71 @@ import {
   useConnectors,
   useSignTypedData,
 } from "wagmi";
-import { spendPermissionManagerAddress } from "@/lib/abi/SpendPermissionManager";
+import { ParticipantMetadata, SpaceMetadata } from "@/lib/types";
+import { Laugh } from "lucide-react";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import { LIVEKIT_SERVER_URL, LIVEKIT_TOKEN_ENDPOINT } from "@/lib/livekit";
+import { getSpendPermTypedData } from "@/lib/utils";
+import { approveSpendPermission } from "@/actions/spendPermission";
 
 // Use the new reusable drawer component instead of the previous custom sheet.
 const InviteDrawer = dynamic(() => import("@/app/_components/inviteDrawer"), {
   ssr: false,
 });
 
-// Compact overlay shown when the host minimises the main Space UI.
-const MiniSpaceSheet = dynamic(
-  () => import("@/app/_components/miniSpaceSheet"),
-  {
-    ssr: false,
-  },
-);
-
 const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
 
-interface SpaceRoomProps {
-  serverUrl: string;
-  spaceId: string;
+/**
+ * SpaceRoom connects the user to the LiveKit room and renders the room UI.
+ */
+export default function SpaceRoom({ spaceId }: { spaceId: string }) {
+  const { context } = useMiniKit();
+  const roomName = spaceId;
+
+  const pMetadata: ParticipantMetadata = {
+    isHost: false,
+    pfpUrl: context?.user?.pfpUrl ?? null,
+    fid: context?.user?.fid ?? null,
+  };
+
+  const localParticipantToken = useToken(LIVEKIT_TOKEN_ENDPOINT, roomName, {
+    userInfo: {
+      identity: context?.user?.fid?.toString() ?? "",
+      name: context?.user?.username ?? "unknown_user",
+      metadata: JSON.stringify(pMetadata),
+    },
+  });
+  const [inviteOpen, setInviteOpen] = useState(false);
+
+  return (
+    <>
+      <MobileHeader showBack />
+      <LiveKitRoom token={localParticipantToken} serverUrl={LIVEKIT_SERVER_URL}>
+        <SpaceLayout onInviteClick={() => setInviteOpen(true)} />
+
+        {inviteOpen && (
+          <InviteDrawer
+            people={[]}
+            defaultOpen={true}
+            onSend={() => setInviteOpen(false)}
+          />
+        )}
+
+        <RoomAudioRenderer />
+      </LiveKitRoom>
+    </>
+  );
 }
 
 /**
  * SpaceLayout displays the current state of the room, including host, speakers, and listeners.
  * It also provides a leave button that disconnects the user securely and navigates home.
  */
-function SpaceLayout({
-  spaceId,
-  onMinimize,
-  onInviteClick,
-}: {
-  spaceId: string;
-  onMinimize: () => void;
-  onInviteClick: () => void;
-}) {
+function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
   const room = useRoomContext();
   const spaceStore = useSpaceStore();
-  const participants = useParticipants();
-  console.log("participants", participants[0]);
+  const { context } = useMiniKit();
+
   const router = useRouter();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   // Host hand-raise queue panel state
@@ -84,15 +106,20 @@ function SpaceLayout({
   const { connectAsync } = useConnect();
   const connectors = useConnectors();
   const { signTypedDataAsync } = useSignTypedData();
-  const { user } = useUser();
 
-  const getParticipantBySid = (sid: string | null) => {
-    if (!sid) return undefined;
-    if (room.localParticipant.sid === sid) return room.localParticipant;
-    return room.remoteParticipants.get(sid);
-  };
+  const roomMetadata: SpaceMetadata = room.metadata
+    ? JSON.parse(room.metadata)
+    : {};
 
-  const host = getParticipantBySid(spaceStore.hostSid) ?? room.localParticipant;
+  const host = room.getParticipantByIdentity(
+    roomMetadata.hostFid?.toString?.(),
+  ); // TODO: get host by sid
+
+  if (!host) {
+    alert("Host not found");
+    console.error("Host not found");
+  }
+
   // Active speakers are those currently speaking
   const activeSpeakers = room.activeSpeakers;
   // All remote participants in the room
@@ -105,7 +132,7 @@ function SpaceLayout({
   );
 
   // Determine if local participant is host (fallback to first participant)
-  const isHost = host?.identity === participants[0]?.identity;
+  const isHost = host?.identity === room.localParticipant.identity;
 
   const handRaiseList = [...spaceStore.handQueue.values()];
 
@@ -125,7 +152,6 @@ function SpaceLayout({
           { reliable: true },
         );
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("[LiveKit] Failed to publish data", err);
       }
     },
@@ -147,30 +173,40 @@ function SpaceLayout({
     };
   }, [room]);
 
-  useEffect(() => {
-    // initialize recording flag from room metadata
-    try {
-      const meta = room.metadata ? JSON.parse(room.metadata) : {};
-      spaceStore.setRecording(!!meta.recording);
-    } catch {}
+  // --- Track if the space has ended (host left) ---
+  const [spaceEnded, setSpaceEnded] = useState(false);
+  const endedRef = useRef(false);
 
+  useEffect(() => {
+    spaceStore.setRecording(room.isRecording);
     // set initial host
-    spaceStore.setHost(room.localParticipant.sid);
+    spaceStore.setHost(host?.sid ?? null);
 
     const handleParticipantConnected = (p: LKParticipant) => {
       // Speaker if has publish permission (mic enabled)
-      if (p.isMicrophoneEnabled) spaceStore.addSpeaker(p);
+      if (p.isSpeaking) spaceStore.addSpeaker(p);
     };
 
+    // If the host leaves, end the space for everyone
     const handleParticipantDisconnected = (p: LKParticipant) => {
       spaceStore.removeSpeaker(p.sid);
       spaceStore.dequeueHand(p.sid);
+
+      // If the host left, end the space for everyone
       if (spaceStore.hostSid === p.sid) {
-        // promote first speaker or first participant
-        const next =
-          [...spaceStore.speakers.keys()][0] ||
-          room.remoteParticipants.keys().next().value;
-        spaceStore.setHost(next ?? room.localParticipant.sid);
+        // Only run once
+        if (!endedRef.current) {
+          endedRef.current = true;
+          setSpaceEnded(true);
+          // Optionally, disconnect from the room after a short delay to allow UI to show the ended message
+          setTimeout(() => {
+            try {
+              room?.disconnect();
+            } catch (e) {
+              console.error("Error disconnecting from room", e);
+            }
+          }, 1000);
+        }
       }
     };
 
@@ -188,6 +224,7 @@ function SpaceLayout({
     room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
     room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
     room.on(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
+
     return () => {
       room.off(RoomEvent.ParticipantConnected, handleParticipantConnected);
       room.off(
@@ -196,7 +233,7 @@ function SpaceLayout({
       );
       room.off(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
     };
-  }, [room]);
+  }, [room, spaceStore, host]);
 
   const toggleMic = useCallback(() => {
     room.localParticipant.setMicrophoneEnabled(!isLocalMuted);
@@ -221,42 +258,18 @@ function SpaceLayout({
    * Data message handler (invite, reactions, etc.)
    * ----------------------------------------------------------------- */
   const [likes, setLikes] = useState(0);
+
   const [reactions, setReactions] = useState<
-    Array<{ id: number; left: number; emoji: string }>
+    Array<{ id: number; left: number; emoji: React.ReactNode }>
   >([]);
 
-  const reactionEmojis: Record<ReactionType, string> = {
-    heart: "❤️",
-    clap: "👏",
-    fire: "🔥",
-    lol: "😂",
-    hundred: "💯",
+  const reactionEmojis: Record<ReactionType, React.ReactNode> = {
+    heart: <Heart />,
+    clap: <HandCash />,
+    fire: <FireFlame />,
+    lol: <Laugh />,
+    hundred: <Percentage />,
   };
-
-  const reactionTipWei: Record<ReactionType, string> = {
-    heart:
-      typeof window !== "undefined"
-        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").heart ?? "1")
-        : "1",
-    clap:
-      typeof window !== "undefined"
-        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").clap ?? "2")
-        : "2",
-    fire:
-      typeof window !== "undefined"
-        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").fire ?? "5")
-        : "5",
-    lol:
-      typeof window !== "undefined"
-        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").lol ?? "3")
-        : "3",
-    hundred:
-      typeof window !== "undefined"
-        ? (JSON.parse(localStorage.getItem("tipAmounts") || "{}").hundred ??
-          "10")
-        : "10",
-  };
-
   /* Connection state banner */
   const [networkState, setNetworkState] = useState<string | null>(null);
 
@@ -283,7 +296,7 @@ function SpaceLayout({
     };
   }, [room]);
 
-  const addFloatingReaction = (emoji: string) => {
+  const addFloatingReaction = (emoji: React.ReactNode) => {
     const id = Date.now();
     setReactions((prev) => [
       ...prev,
@@ -341,13 +354,14 @@ function SpaceLayout({
     return () => {
       room.off(RoomEvent.DataReceived, handleData);
     };
-  }, [room]);
+  }, [reactionEmojis, room]);
 
   /** ----------------------------------------- */
   /* Reaction handling with tip                */
   /** ----------------------------------------- */
   const [pickerOpen, setPickerOpen] = useState(false);
   /** Currently selected participant to tip (host or speaker). */
+
   const [tipRecipient, setTipRecipient] = useState<LKParticipant | null>(null);
 
   const handleSendReaction = async (type: ReactionType) => {
@@ -357,105 +371,67 @@ function SpaceLayout({
     sendData({ type: "reaction", reactionType: type });
 
     try {
-      let addr = account.address as Address | undefined;
+      let addr = account.address;
       if (!addr) {
         const res = await connectAsync({ connector: connectors[0] });
         addr = res.accounts[0] as Address;
       }
       if (!addr) return;
+      const spendPerm = getSpendPermTypedData(addr, chainId);
 
-      const allowanceUnits = reactionTipWei[type];
+      const signature = await signTypedDataAsync(spendPerm);
 
-      const spendPerm = {
-        account: addr,
-        spender: process.env.NEXT_PUBLIC_SPENDER_ADDRESS as Address,
-        token: USDC_ADDRESS,
-        allowance: parseUnits(allowanceUnits, USDC_DECIMALS),
-        period: 86_400,
-        start: 0,
-        end: 281_474_976_710_655,
-        salt: BigInt(Date.now()),
-        extraData: "0x" as Hex,
-      } as const;
+      const txHash = await approveSpendPermission(
+        spendPerm.message,
+        signature,
+        addr,
+      );
 
-      const signature = (await signTypedDataAsync({
-        domain: {
-          name: "Spend Permission Manager",
-          version: "1",
-          chainId,
-          verifyingContract: spendPermissionManagerAddress,
-        },
-        types: {
-          SpendPermission: [
-            { name: "account", type: "address" },
-            { name: "spender", type: "address" },
-            { name: "token", type: "address" },
-            { name: "allowance", type: "uint160" },
-            { name: "period", type: "uint48" },
-            { name: "start", type: "uint48" },
-            { name: "end", type: "uint48" },
-            { name: "salt", type: "uint256" },
-            { name: "extraData", type: "bytes" },
-          ],
-        },
-        primaryType: "SpendPermission",
-        message: spendPerm,
-      })) as Hex;
+      const tippeeId = JSON.parse(tipRecipient?.metadata ?? "{}").fid;
 
-      const replacer = (k: string, v: unknown) =>
-        typeof v === "bigint" ? v.toString() : v;
-
-      const fromId = user?.id ?? null;
-      const toId = tipRecipient ? parseInt(tipRecipient.identity) : null;
-
-      await fetch("/api/collect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          {
-            spendPermission: spendPerm,
-            signature,
-            amount: allowanceUnits,
-            decimals: USDC_DECIMALS,
-            spaceId,
-            fromId,
-            toId,
-          },
-          replacer,
-        ),
-      });
+      // await fetch("/api/collect", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     spendPermissionMessage: spendPerm.message,
+      //     signature,
+      //     spaceId: room.name,
+      //     tipperFid: context?.user?.fid?.toString(), // TODO: switch this back to user db id;
+      //     tippeeFid: tippeeId,
+      //   }),
+      // });
 
       /* Persist reaction and tip for analytics */
-      if (fromId && toId) {
-        try {
-          const reactionRes = await fetch("/api/reactions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              spaceId,
-              userId: fromId,
-              type,
-            }),
-          });
-          const reaction = await reactionRes.json();
+      // if (fromId && toId) {
+      //   try {
+      //     const reactionRes = await fetch("/api/reactions", {
+      //       method: "POST",
+      //       headers: { "Content-Type": "application/json" },
+      //       body: JSON.stringify({
+      //         spaceId,
+      //         userId: fromId,
+      //         type,
+      //       }),
+      //     });
+      //     const reaction = await reactionRes.json();
 
-          await fetch("/api/tips", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              spaceId,
-              fromId,
-              toId,
-              amount: allowanceUnits,
-              tokenSymbol: "USDC",
-              txHash: "pending", // will be updated server-side
-              reactionId: reaction.id,
-            }),
-          });
-        } catch (err) {
-          console.error("[tip persist] failed", err);
-        }
-      }
+      //     await fetch("/api/tips", {
+      //       method: "POST",
+      //       headers: { "Content-Type": "application/json" },
+      //       body: JSON.stringify({
+      //         spaceId,
+      //         fromId,
+      //         toId,
+      //         amount: allowanceUnits,
+      //         tokenSymbol: "USDC",
+      //         txHash: "pending", // will be updated server-side
+      //         reactionId: reaction.id,
+      //       }),
+      //     });
+      //   } catch (err) {
+      //     console.error("[tip persist] failed", err);
+      //   }
+      // }
     } catch (err) {
       console.error("[reaction tip] failed", err);
     }
@@ -482,6 +458,25 @@ function SpaceLayout({
     );
   }
 
+  // If the space has ended (host left), show a message and block further interaction
+  if (spaceEnded) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-center px-6">
+        <h2 className="text-2xl font-bold mb-2">Space Ended</h2>
+        <p className="text-muted-foreground mb-6">
+          The host has ended this Space. <br />
+          Thank you for joining!
+        </p>
+        <a
+          href="/"
+          className="inline-block px-6 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition"
+        >
+          Back to Home
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="gap-4 min-h-screen bg-background text-foreground">
       {/* Network banner */}
@@ -501,19 +496,12 @@ function SpaceLayout({
           <span className="text-xs text-muted-foreground">
             {participantCount} · listeners
           </span>
-          <button
-            className="text-foreground/70 hover:text-foreground transition-colors"
-            aria-label="Minimise Space"
-            onClick={onMinimize}
-          >
-            <ChevronDown className="w-5 h-5" />
-          </button>
         </div>
         <button
           className="text-red-500 font-semibold"
           onClick={() => setConfirmDialogOpen(true)}
         >
-          Leave
+          {isHost ? "End" : "Leave"}
         </button>
       </header>
 
@@ -531,9 +519,9 @@ function SpaceLayout({
         <AvatarWithControls
           p={host as LKParticipant}
           size={56}
-          isSpeaking={host.isSpeaking}
+          isSpeaking={host?.isSpeaking}
           isHost
-          remoteMuted={!host.isMicrophoneEnabled}
+          remoteMuted={!host?.isMicrophoneEnabled}
           roleLabel="Host"
           onTip={() => {
             setTipRecipient(host as LKParticipant);
@@ -607,11 +595,20 @@ function SpaceLayout({
         <ConfirmDialog
           title="Leave Room"
           subtitle="Are you sure you want to leave the room?"
-          confirmLabel="Leave"
+          confirmLabel={isHost ? "End Space" : "Leave"}
           onCancel={() => setConfirmDialogOpen(false)}
           onConfirm={() => {
             try {
               // Gracefully disconnect from the LiveKit room before navigating away.
+              if (isHost) {
+                try {
+                  fetch(`/api/spaces?spaceId=${room.name}`, {
+                    method: "DELETE",
+                  });
+                } catch (e) {
+                  console.error("end space api fail", e);
+                }
+              }
               room?.disconnect();
             } catch (err) {
               // Log error for observability, but do not expose details to the user
@@ -667,83 +664,5 @@ function SpaceLayout({
       {/* Floating reactions overlay */}
       <ReactionOverlay reactions={reactions} />
     </div>
-  );
-}
-
-// Removed inline component definitions; now imported modular versions.
-
-/**
- * SpaceRoom connects the user to the LiveKit room and renders the room UI.
- * SECURITY: The token is generated server-side and passed as a prop. Never expose API secrets on the client.
- */
-export default function SpaceRoom({ serverUrl, spaceId }: SpaceRoomProps) {
-  const params = useSearchParams();
-  const roomToken = useToken("space", spaceId);
-  const title = params.get("title") || "Space";
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [minimized, setMinimized] = useState(false);
-  const user = useUser();
-  const router = useRouter();
-
-  return (
-    <>
-      <MobileHeader showBack title={decodeURIComponent(title)} />
-      <LiveKitRoom
-        token={roomToken}
-        serverUrl={serverUrl}
-        data-lk-theme="default"
-        connectOptions={{ autoSubscribe: true }}
-        options={{
-          audioCaptureDefaults: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            channelCount: 2,
-            sampleRate: 48000,
-            sampleSize: 16,
-            latency: 100,
-          },
-        }}
-        style={{ height: "100vh", width: "100%" }}
-        video={false}
-        audio={false}
-      >
-        {minimized ? (
-          <MiniSpaceSheet
-            onClose={() => setMinimized(false)}
-            onEnd={() => {
-              try {
-                // TODO: gracefully disconnect; for now redirect to home
-                router.push("/");
-              } catch {
-                router.push("/");
-              }
-            }}
-            host={{
-              name: user?.user?.username ?? "You",
-              avatarUrl: "/icon.png",
-              verified: true,
-            }}
-            listeners={0}
-          />
-        ) : (
-          <SpaceLayout
-            spaceId={spaceId}
-            onMinimize={() => setMinimized(true)}
-            onInviteClick={() => setInviteOpen(true)}
-          />
-        )}
-
-        {inviteOpen && (
-          <InviteDrawer
-            people={[]}
-            defaultOpen={true}
-            onSend={() => setInviteOpen(false)}
-          />
-        )}
-
-        <RoomAudioRenderer />
-      </LiveKitRoom>
-    </>
   );
 }

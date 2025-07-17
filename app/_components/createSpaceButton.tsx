@@ -14,9 +14,9 @@ import { Mic } from "lucide-react";
 import { toast } from "sonner";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
-import { QRCodeSVG } from "qrcode.react";
-import { Copy, Share2, QrCode, MessageCircle } from "lucide-react";
+import { ShareAndroid, Copy } from "iconoir-react";
 import { castInvite } from "@/lib/farcaster";
+import { Room } from "livekit-server-sdk";
 
 /**
  * CreateSpaceButton is hidden on space details (live room) pages.
@@ -33,7 +33,6 @@ export default function CreateSpaceButton() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [qr, setQr] = useState(false);
 
   // Hide button if on a space details page (/space/[room])
   // This matches any route starting with /space/ and followed by something
@@ -57,8 +56,8 @@ export default function CreateSpaceButton() {
     setCreating(true);
     setCreateError(null);
 
-    const hostId =
-      context?.user?.fid != null ? String(context.user.fid) : address;
+    const hostFid = context?.user?.fid;
+    const hostAddress = address;
 
     try {
       const res = await fetch("/api/spaces", {
@@ -66,7 +65,8 @@ export default function CreateSpaceButton() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          hostId,
+          hostFid,
+          hostAddress,
           recording: record,
         }),
       });
@@ -74,8 +74,9 @@ export default function CreateSpaceButton() {
         const err = await res.json();
         throw new Error(err.error || "Failed to create space");
       }
-      const livekitRoom = await res.json();
-      const path = `/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`;
+
+      const livekitRoom: Room = await res.json();
+      const path = `/space/${livekitRoom.name}`;
       setShareUrl(`${window.location.origin}${path}`);
       setOpen(true);
       toast.success("Space created! Share your link.");
@@ -151,59 +152,34 @@ export default function CreateSpaceButton() {
           ) : (
             <div className="w-full px-8 pt-8 flex flex-col gap-6 items-center">
               <DrawerHeader className="text-center mb-2">
-                <DrawerTitle>You’re live! Spread the word</DrawerTitle>
+                <DrawerTitle>You&apos;re live! Spread the word</DrawerTitle>
               </DrawerHeader>
-              {!qr ? (
-                <div className="grid grid-cols-2 gap-4 w-full">
-                  <Button
-                    variant="secondary"
-                    className="flex-col gap-1"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(shareUrl);
-                      toast.success("Link copied");
-                    }}
-                  >
-                    <Copy /> Copy link
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="flex-col gap-1"
-                    onClick={async () => {
-                      if (!context?.client) return;
-                      await castInvite(context.client as unknown, {
-                        url: shareUrl,
-                      });
-                      setOpen(false);
-                    }}
-                  >
-                    <Share2 /> Cast it
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="flex-col gap-1"
-                    onClick={() => setQr(true)}
-                  >
-                    <QrCode /> QR
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-col gap-1"
-                    onClick={() => setOpen(false)}
-                  >
-                    <MessageCircle /> Maybe later
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-4">
-                  <QRCodeSVG
-                    value={shareUrl}
-                    size={160}
-                    bgColor="transparent"
-                    fgColor="#000"
-                  />
-                  <Button onClick={() => setQr(false)}>Back</Button>
-                </div>
-              )}
+
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <Button
+                  variant="secondary"
+                  className="flex-col gap-1"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(shareUrl);
+                    toast.success("Link copied");
+                  }}
+                >
+                  <Copy /> Copy link
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="flex-col gap-1"
+                  onClick={async () => {
+                    if (!context?.client) return;
+                    await castInvite(context.client as unknown, {
+                      url: shareUrl,
+                    });
+                    setOpen(false);
+                  }}
+                >
+                  <ShareAndroid /> Cast it
+                </Button>
+              </div>
             </div>
           )}
         </DrawerContent>

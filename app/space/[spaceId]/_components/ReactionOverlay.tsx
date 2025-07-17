@@ -1,5 +1,5 @@
 interface Props {
-  reactions: Array<{ id: number; left: number; emoji: string }>;
+  reactions: Array<{ id: number; left: number; emoji: React.ReactNode }>;
 }
 
 export default function ReactionOverlay({ reactions }: Props) {

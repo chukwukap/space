@@ -10,7 +10,7 @@
  * @param isMuted - Is the participant muted?
  * @param isSpeaking - Is the participant currently speaking?
  * @param isHandRaised - Has the participant raised their hand?
- * @param photoUrl - Optional profile photo URL
+ * @param pfpUrl - Optional profile photo URL
  */
 import { useMemo } from "react";
 import { Participant } from "livekit-client";
@@ -33,7 +33,7 @@ type AvatarWithControlsProps = {
   isLocal?: boolean;
   isSpeaking?: boolean;
   isHandRaised?: boolean;
-  photoUrl?: string;
+  pfpUrl?: string;
   /** Callback for host to invite this participant to speak */
   onInvite?: () => void;
   /** Host control: mute/unmute remote speaker */
@@ -54,7 +54,7 @@ export function AvatarWithControls({
   isLocal = false,
   isSpeaking,
   isHandRaised,
-  photoUrl,
+  pfpUrl,
   onInvite,
   onToggleRemoteMute,
   onDemote,
@@ -62,6 +62,16 @@ export function AvatarWithControls({
   roleLabel,
   onTip,
 }: AvatarWithControlsProps) {
+  // Memoize meta to avoid unnecessary recalculations and to ensure stable reference for useMemo dependencies
+  const meta = useMemo(() => {
+    try {
+      return p.metadata ? JSON.parse(p.metadata) : {};
+    } catch {
+      // Defensive: If metadata is malformed, return empty object
+      return {};
+    }
+  }, [p.metadata]);
+
   // Derive initials if no photo
   const initials = useMemo(() => {
     if (!p.identity) return "";
@@ -72,14 +82,13 @@ export function AvatarWithControls({
 
   // Fallback: use participant metadata for photo if available
   const avatarUrl = useMemo(() => {
-    if (photoUrl) return photoUrl;
+    if (pfpUrl) return pfpUrl;
     try {
-      const meta = p.metadata ? JSON.parse(p.metadata) : {};
-      return meta.photoUrl || undefined;
+      return meta.pfpUrl;
     } catch {
       return undefined;
     }
-  }, [photoUrl, p.metadata]);
+  }, [pfpUrl, meta]);
 
   // Determine mute state securely
   const muted =
@@ -101,12 +110,11 @@ export function AvatarWithControls({
   const handRaised = useMemo(() => {
     if (typeof isHandRaised === "boolean") return isHandRaised;
     try {
-      const meta = p.metadata ? JSON.parse(p.metadata) : {};
       return !!meta.handRaised;
     } catch {
       return false;
     }
-  }, [isHandRaised, p.metadata]);
+  }, [isHandRaised, meta]);
 
   // Accessibility: Compose label
   const ariaLabel = [
