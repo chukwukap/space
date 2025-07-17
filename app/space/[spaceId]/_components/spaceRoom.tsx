@@ -7,8 +7,7 @@ import {
   useToken,
 } from "@livekit/components-react";
 import { FireFlame, HandCash, Heart, Percentage } from "iconoir-react";
-
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useMemo, useEffect, useState, useCallback, useRef } from "react";
 import {
   ConnectionState,
   Participant as LKParticipant,
@@ -35,6 +34,7 @@ import {
 import { ParticipantMetadata, SpaceMetadata } from "@/lib/types";
 import { Laugh } from "lucide-react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import { useUser } from "@/app/providers/userProvider";
 import { LIVEKIT_SERVER_URL, LIVEKIT_TOKEN_ENDPOINT } from "@/lib/livekit";
 import { getSpendPermTypedData } from "@/lib/utils";
 import { approveSpendPermission } from "@/actions/spendPermission";
@@ -51,19 +51,20 @@ const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
  */
 export default function SpaceRoom({ spaceId }: { spaceId: string }) {
   const { context } = useMiniKit();
+  const { user } = useUser();
   const roomName = spaceId;
 
-  const pMetadata: ParticipantMetadata = {
+  const initPMetadata: ParticipantMetadata = {
     isHost: false,
-    pfpUrl: context?.user?.pfpUrl ?? null,
-    fid: context?.user?.fid ?? null,
+    pfpUrl: user?.pfpUrl ?? context?.user?.pfpUrl ?? null,
+    fid: user?.fid ?? context?.user?.fid ?? null,
   };
 
   const localParticipantToken = useToken(LIVEKIT_TOKEN_ENDPOINT, roomName, {
     userInfo: {
-      identity: context?.user?.fid?.toString() ?? "",
-      name: context?.user?.username ?? "unknown_user",
-      metadata: JSON.stringify(pMetadata),
+      identity: user?.id?.toString() ?? "",
+      name: user?.username ?? context?.user?.username ?? "unknown_user",
+      metadata: JSON.stringify(initPMetadata),
     },
   });
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -95,7 +96,6 @@ export default function SpaceRoom({ spaceId }: { spaceId: string }) {
 function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
   const room = useRoomContext();
   const spaceStore = useSpaceStore();
-  const { context } = useMiniKit();
 
   const router = useRouter();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -263,18 +263,22 @@ function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
     Array<{ id: number; left: number; emoji: React.ReactNode }>
   >([]);
 
-  const reactionEmojis: Record<ReactionType, React.ReactNode> = {
-    heart: <Heart />,
-    clap: <HandCash />,
-    fire: <FireFlame />,
-    lol: <Laugh />,
-    hundred: <Percentage />,
-  };
+  // Memoise emojis so reference is stable across renders (satisfies eslint rules)
+  const reactionEmojis = useMemo<Record<ReactionType, React.ReactNode>>(
+    () => ({
+      heart: <Heart />,
+      clap: <HandCash />,
+      fire: <FireFlame />,
+      lol: <Laugh />,
+      hundred: <Percentage />,
+    }),
+    [],
+  );
   /* Connection state banner */
   const [networkState, setNetworkState] = useState<string | null>(null);
 
   /* ------------------ Recording badge ------------------ */
-  const recordingBadge = spaceStore.recording ? (
+  const recordingBadge = room.isRecording ? (
     <span className="bg-red-600 animate-pulse rounded px-1.5 py-0.5 text-[10px] font-semibold">
       REC
     </span>
@@ -360,9 +364,6 @@ function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
   /* Reaction handling with tip                */
   /** ----------------------------------------- */
   const [pickerOpen, setPickerOpen] = useState(false);
-  /** Currently selected participant to tip (host or speaker). */
-
-  const [tipRecipient, setTipRecipient] = useState<LKParticipant | null>(null);
 
   const handleSendReaction = async (type: ReactionType) => {
     // optimistic display
@@ -381,13 +382,7 @@ function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
 
       const signature = await signTypedDataAsync(spendPerm);
 
-      const txHash = await approveSpendPermission(
-        spendPerm.message,
-        signature,
-        addr,
-      );
-
-      const tippeeId = JSON.parse(tipRecipient?.metadata ?? "{}").fid;
+      await approveSpendPermission(spendPerm.message, signature, addr);
 
       // await fetch("/api/collect", {
       //   method: "POST",
