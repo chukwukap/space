@@ -28,10 +28,6 @@ export const roomService = new RoomServiceClient(
   LIVEKIT_API_SECRET,
 );
 
-export const LIVEKIT_SERVER_URL: string =
-  process.env.NEXT_PUBLIC_LIVEKIT_SERVER_URL ||
-  LIVEKIT_URL.replace(/^http/, "ws");
-
 /**
  * Ensures that a room exists. If it does not, it will be created with the
  * provided name. LiveKit Cloud will auto-create rooms on first join, but we
@@ -65,7 +61,3 @@ export async function getRoom(roomId: string): Promise<Room | null> {
     return null;
   }
 }
-
-export const LIVEKIT_TOKEN_ENDPOINT: string =
-  process.env.NEXT_PUBLIC_LIVEKIT_TOKEN_ENDPOINT ||
-  LIVEKIT_URL.replace(/^http/, "https") + "/token";

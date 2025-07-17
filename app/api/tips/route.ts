@@ -23,18 +23,18 @@ export async function GET(req: NextRequest) {
 /* POST /api/tips */
 export async function POST(req: NextRequest) {
   try {
-    const { spaceId, fromId, toId, amount, tokenSymbol, txHash, reactionId } =
+    const { spaceId, fromFid, toFid, amount, tokenSymbol, txHash, reactionId } =
       await req.json();
 
-    if (!spaceId || !fromId || !toId || !amount || !tokenSymbol || !txHash) {
+    if (!spaceId || !fromFid || !toFid || !amount || !tokenSymbol || !txHash) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
 
     const tip = await prisma.tip.create({
       data: {
         spaceId,
-        fromId,
-        toId,
+        fromFid,
+        toFid,
         amount,
         tokenSymbol,
         txHash,

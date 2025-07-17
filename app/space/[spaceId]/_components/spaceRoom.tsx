@@ -35,9 +35,9 @@ import { ParticipantMetadata, SpaceMetadata } from "@/lib/types";
 import { Laugh } from "lucide-react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useUser } from "@/app/providers/userProvider";
-import { LIVEKIT_SERVER_URL, LIVEKIT_TOKEN_ENDPOINT } from "@/lib/livekit";
 import { getSpendPermTypedData } from "@/lib/utils";
 import { approveSpendPermission } from "@/actions/spendPermission";
+import { NEXT_PUBLIC_LK_SERVER_URL } from "@/lib/constants";
 
 // Use the new reusable drawer component instead of the previous custom sheet.
 const InviteDrawer = dynamic(() => import("@/app/_components/inviteDrawer"), {
@@ -60,7 +60,7 @@ export default function SpaceRoom({ spaceId }: { spaceId: string }) {
     fid: user?.fid ?? context?.user?.fid ?? null,
   };
 
-  const localParticipantToken = useToken(LIVEKIT_TOKEN_ENDPOINT, roomName, {
+  const localParticipantToken = useToken("/api/token", roomName, {
     userInfo: {
       identity: user?.id?.toString() ?? "",
       name: user?.username ?? context?.user?.username ?? "unknown_user",
@@ -72,7 +72,10 @@ export default function SpaceRoom({ spaceId }: { spaceId: string }) {
   return (
     <>
       <MobileHeader showBack />
-      <LiveKitRoom token={localParticipantToken} serverUrl={LIVEKIT_SERVER_URL}>
+      <LiveKitRoom
+        token={localParticipantToken}
+        serverUrl={NEXT_PUBLIC_LK_SERVER_URL}
+      >
         <SpaceLayout onInviteClick={() => setInviteOpen(true)} />
 
         {inviteOpen && (
@@ -518,10 +521,6 @@ function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
           isHost
           remoteMuted={!host?.isMicrophoneEnabled}
           roleLabel="Host"
-          onTip={() => {
-            setTipRecipient(host as LKParticipant);
-            setPickerOpen(true);
-          }}
         />
         {/* Speakers */}
         {speakers.map((s) => (
@@ -542,10 +541,6 @@ function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
             isSpeaking={s.isSpeaking}
             remoteMuted={!s.isMicrophoneEnabled}
             roleLabel="Speaker"
-            onTip={() => {
-              setTipRecipient(s as LKParticipant);
-              setPickerOpen(true);
-            }}
           />
         ))}
         {/* Listeners */}
@@ -624,6 +619,7 @@ function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
         onToggleMic={toggleMic}
         onRaiseHand={raiseHand}
         onOpenReactionPicker={() => setPickerOpen(true)}
+        onTipClick={() => setPickerOpen(true)}
         likes={likes}
         handRaiseCount={handRaisedCount}
         isHost={isHost}
@@ -636,7 +632,6 @@ function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
           onPick={(t) => handleSendReaction(t)}
           onClose={() => {
             setPickerOpen(false);
-            setTipRecipient(null);
           }}
         />
       )}

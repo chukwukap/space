@@ -63,7 +63,7 @@ export default function LandingClient() {
             return {
               ...space,
               title: metadata.title,
-              hostId: metadata.hostId,
+              hostFid: metadata.hostFid,
             };
           });
           setSpaces(spaces);

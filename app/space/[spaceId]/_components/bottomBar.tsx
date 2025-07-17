@@ -17,6 +17,8 @@ interface Props {
   handRaiseCount: number;
   isHost: boolean;
   onQueueClick: () => void;
+  /** Opens tipping (reaction picker) */
+  onTipClick: () => void;
   /**
    * Callback fired when the user taps the “Invite” button. This will open the
    * {@link InviteDrawer} supplied by the parent component. Keeping it lifted
@@ -36,6 +38,7 @@ export default function BottomBar({
   handRaiseCount,
   isHost,
   onQueueClick,
+  onTipClick,
 
   onInviteClick,
   className,
@@ -57,6 +60,7 @@ export default function BottomBar({
         icon={HeartIcon}
         onClick={onOpenReactionPicker}
       />
+      <BarButton label="Tip" icon={HeartIcon} onClick={onTipClick} />
       {isHost && handRaiseCount > 0 && (
         <BarButton
           label={`Queue(${handRaiseCount})`}

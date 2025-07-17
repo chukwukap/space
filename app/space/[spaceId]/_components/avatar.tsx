@@ -18,7 +18,6 @@ import {
   Microphone as MicIcon,
   MicrophoneMute as MicOffIcon,
   HandContactless as HandIcon, // placeholder for hand icon
-  Crown as CrownIcon,
   User as UserIcon,
   PlusCircle as InviteIcon,
   MicrophoneMute as MuteRemoteIcon,
@@ -43,8 +42,6 @@ type AvatarWithControlsProps = {
   onDemote?: () => void;
   /** Optional role label e.g. "Host", "Speaker" */
   roleLabel?: string;
-  /** Callback: open tip picker for this participant */
-  onTip?: () => void;
 };
 
 export function AvatarWithControls({
@@ -60,7 +57,6 @@ export function AvatarWithControls({
   onDemote,
   remoteMuted,
   roleLabel,
-  onTip,
 }: AvatarWithControlsProps) {
   // Memoize meta to avoid unnecessary recalculations and to ensure stable reference for useMemo dependencies
   const meta = useMemo(() => {
@@ -74,11 +70,11 @@ export function AvatarWithControls({
 
   // Derive initials if no photo
   const initials = useMemo(() => {
-    if (!p.identity) return "";
-    const parts = p.identity.split(" ");
+    if (!p.name) return "";
+    const parts = p.name.split(" ");
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
-  }, [p.identity]);
+  }, [p.name]);
 
   // Fallback: use participant metadata for photo if available
   const avatarUrl = useMemo(() => {
@@ -165,16 +161,6 @@ export function AvatarWithControls({
           </span>
         )}
 
-        {/* Host crown */}
-        {isHost && (
-          <span
-            className="absolute -top-2 -right-2 z-20 drop-shadow"
-            title="Host"
-          >
-            <CrownIcon className="w-5 h-5 text-yellow-400 bg-white rounded-full p-0.5" />
-          </span>
-        )}
-
         {/* Hand raise */}
         {handRaised && (
           <span
@@ -254,37 +240,29 @@ export function AvatarWithControls({
           </button>
         )}
 
-        {/* Tip button */}
-        {onTip && (
-          <button
-            onClick={onTip}
-            className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
-            title="Tip"
-          >
-            <span className="text-sm">💸</span>
-          </button>
-        )}
+        {/* Tip button removed */}
 
         {/* Local user highlight ring */}
         {isLocal && (
           <span className="absolute inset-0 rounded-full ring-2 ring-cyan-400 pointer-events-none animate-pulse" />
         )}
       </div>
-      {roleLabel && (
+      {/* Host label below avatar, Twitter Spaces style */}
+      {isHost ? (
+        <span className="flex items-center gap-1 mt-1 text-[11px] font-semibold text-yellow-500">
+          Host
+        </span>
+      ) : roleLabel ? (
         <span className="text-[10px] text-muted-foreground flex items-center gap-1 leading-none">
           {/* Bullet */}
           <span
             className={`inline-block w-1 h-1 rounded-full ${
-              isHost
-                ? "bg-primary"
-                : speaking
-                  ? "bg-secondary"
-                  : "bg-muted-foreground"
+              speaking ? "bg-secondary" : "bg-muted-foreground"
             }`}
           />
           {roleLabel}
         </span>
-      )}
+      ) : null}
     </div>
   );
 }
