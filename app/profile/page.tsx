@@ -236,7 +236,7 @@ export default function UserProfilePage() {
         <div className="mt-8">
           {hasSpendPerm ? (
             <p className="text-sm text-green-600 font-medium">
-              Tipping enabled – spend permission active ✅
+              Tipping enabled - spend permission active ✅
             </p>
           ) : (
             <Button
