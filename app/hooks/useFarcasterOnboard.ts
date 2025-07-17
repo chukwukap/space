@@ -1,12 +1,11 @@
 import { useEffect, useRef } from "react";
 import { User } from "@/lib/types";
+import { Context } from "@farcaster/frame-sdk";
 
 interface Params {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any | null;
+  context: Context.FrameContext | null;
   user: User | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mutate: () => Promise<any> | void;
+  mutate: () => Promise<void> | void;
 }
 
 export function useFarcasterOnboard({ context, user, mutate }: Params) {
@@ -16,38 +15,17 @@ export function useFarcasterOnboard({ context, user, mutate }: Params) {
     if (postedRef.current) return;
     if (!context) return;
 
-    const userObj = context.user as unknown as {
-      fid?: number;
-      username?: string;
-      displayName?: string;
-      name?: string;
-      pfpUrl?: string;
-    } | null;
-    const clientObj = context.client as unknown as {
-      fid?: number;
-      clientFid?: number;
-      username?: string;
-      displayName?: string;
-      name?: string;
-      pfpUrl?: string;
-    } | null;
+    const userObj = context.user;
 
-    const fid = userObj?.fid ?? clientObj?.fid ?? clientObj?.clientFid;
+    const fid = userObj?.fid;
 
     if (!fid) return;
 
     if (user) return; // already onboarded
 
     // Extract username & pfp
-    const username =
-      userObj?.username ??
-      clientObj?.username ??
-      userObj?.displayName ??
-      clientObj?.displayName ??
-      userObj?.name ??
-      clientObj?.name ??
-      "";
-    const avatarUrl = userObj?.pfpUrl ?? clientObj?.pfpUrl ?? "";
+    const username = userObj?.username ?? userObj?.displayName ?? "";
+    const avatarUrl = userObj?.pfpUrl ?? "";
 
     (async () => {
       try {

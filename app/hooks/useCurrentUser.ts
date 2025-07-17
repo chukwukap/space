@@ -19,6 +19,7 @@ export function useCurrentUser(params: {
   const hasParams = Object.values(params).some(
     (v) => v !== undefined && v !== "",
   );
+  console.log("params", params);
   const search = hasParams
     ? new URLSearchParams(
         Object.fromEntries(
@@ -39,5 +40,5 @@ export function useCurrentUser(params: {
     userLoading: isLoading,
     userError: error?.message ?? null,
     refreshUser: mutate,
-  } as const;
+  };
 }

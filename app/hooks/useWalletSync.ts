@@ -4,8 +4,7 @@ import { User } from "@/lib/types";
 interface Params {
   user: User | null;
   walletAddress?: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mutate: () => Promise<any> | void;
+  mutate: () => Promise<void> | void;
 }
 
 export function useWalletSync({ user, walletAddress, mutate }: Params) {

@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode } from "react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
 import { User } from "@/lib/types";
@@ -17,10 +17,6 @@ interface UserContextType {
   refreshUser: () => Promise<void>;
 }
 
-interface UserProviderProps {
-  children: ReactNode;
-}
-
 /**
  * UserContext provides user state and actions throughout the app.
  */
@@ -35,28 +31,17 @@ const UserContext = createContext<UserContextType>({
  * UserProvider manages user onboarding and state, supporting both Farcaster and wallet-only users.
  * Security: All user data is handled securely and never exposed to the client unless necessary.
  */
-export function UserProvider({ children }: UserProviderProps) {
+export function UserProvider({ children }: { children: ReactNode }) {
   const { context } = useMiniKit();
   const { address: walletAddress } = useAccount();
 
-  // ---------------- Extract identifiers ----------------
-  // Farcaster fid (if any)
-  const userObj = context?.user as unknown as { fid?: number } | undefined;
-  const clientObj = context?.client as unknown as {
-    fid?: number;
-    clientFid?: number;
-  } | null;
-
-  const fid = userObj?.fid ?? clientObj?.fid ?? clientObj?.clientFid;
-
-  // ---------------- SWR fetch ----------------
   const {
     user,
     userLoading,
     userError,
     refreshUser: swrRefresh,
   } = useCurrentUser({
-    fid,
+    fid: context?.user?.fid ?? undefined,
     address: walletAddress ?? undefined,
   });
 
@@ -64,9 +49,8 @@ export function UserProvider({ children }: UserProviderProps) {
     await swrRefresh();
   };
 
-  // ---------------- Side-effects ----------------
-  useFarcasterOnboard({ context, user, mutate: swrRefresh });
-  useWalletSync({ user, walletAddress, mutate: swrRefresh });
+  useFarcasterOnboard({ context, user, mutate: refreshUser });
+  useWalletSync({ user, walletAddress, mutate: refreshUser });
 
   return (
     <UserContext.Provider
