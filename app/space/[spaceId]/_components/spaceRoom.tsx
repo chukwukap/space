@@ -114,14 +114,7 @@ function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
     ? JSON.parse(room.metadata)
     : {};
 
-  const host = room.getParticipantByIdentity(
-    roomMetadata.hostFid?.toString?.(),
-  ); // TODO: get host by sid
-
-  if (!host) {
-    alert("Host not found");
-    console.error("Host not found");
-  }
+  const host = room.getParticipantByIdentity(roomMetadata.hostId);
 
   // Active speakers are those currently speaking
   const activeSpeakers = room.activeSpeakers;
