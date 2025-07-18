@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Drawer,
   DrawerTrigger,
@@ -23,6 +23,7 @@ import { useUser } from "../providers/userProvider";
  */
 export default function CreateSpaceButton() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, refreshUser } = useUser();
   const { address: walletAddress } = useAccount();
   const { connect, connectors, status: connectStatus } = useConnect();
@@ -46,6 +47,7 @@ export default function CreateSpaceButton() {
   /**
    * Handles the creation of a new Space.
    * Prompts wallet connect only when needed, and refreshes user after connect.
+   * Navigates to the new space page after creation.
    */
   async function handleCreateSpace() {
     if (!title.trim()) return;
@@ -67,10 +69,8 @@ export default function CreateSpaceButton() {
 
     // If user is missing fid, refresh user and prompt
     if (!user?.fid) {
-      // await refreshUser();
       setCreateError("Please complete your Farcaster profile to host a Space.");
       toast.error("Please complete your Farcaster profile to host a Space.");
-      // return;
     }
 
     setCreating(true);
@@ -99,10 +99,12 @@ export default function CreateSpaceButton() {
       const path = `/space/${livekitRoom.name}`;
       setShareUrl(`${window.location.origin}${path}`);
       setOpen(true);
-      toast.success("Space created! Share your link.");
+      toast.success("Space created! Redirecting you...");
       setTitle("");
+
+      // Navigate to the new space page
+      router.push(path);
     } catch (e: unknown) {
-      // const msg = e instanceof Error ? e.message : "Unknown error";
       setCreateError("Failed to create space");
       console.error(e);
       toast.error("Failed to create space");

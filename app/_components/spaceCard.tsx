@@ -1,10 +1,6 @@
 "use client";
-import { useRouter } from "next/navigation";
-import { SpaceSummary } from "@/lib/types";
 
-interface SpaceCardProps {
-  space: SpaceSummary;
-}
+import { useRouter } from "next/navigation";
 
 // Derive a deterministic background colour from a string (simple hash)
 function stringToColor(str: string): string {
@@ -28,7 +24,16 @@ function Avatar({ id }: { id: string }) {
   );
 }
 
-export default function SpaceCard({ space }: SpaceCardProps) {
+export default function SpaceCard({
+  space,
+}: {
+  space: {
+    id: string;
+    title: string;
+    avatars: string[];
+    listeners: number;
+  };
+}) {
   const router = useRouter();
   return (
     <div
