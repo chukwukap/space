@@ -76,6 +76,11 @@ export async function POST(request: Request) {
       hostAddress?: string;
       recording?: boolean;
     };
+    console.log("title", title);
+    console.log("hostFid", hostFid);
+    console.log("hostId", hostId);
+    console.log("hostAddress", hostAddress);
+    console.log("recording", recording);
 
     if (!title || !hostFid || !hostAddress || !hostId) {
       return new Response(

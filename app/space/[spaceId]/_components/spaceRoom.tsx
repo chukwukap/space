@@ -13,7 +13,7 @@ import {
   Participant as LKParticipant,
   RoomEvent,
 } from "livekit-client";
-import "@livekit/components-styles";
+// import "@livekit/components-styles";
 import dynamic from "next/dynamic";
 import { AvatarWithControls } from "./avatar";
 import { useRouter } from "next/navigation";
@@ -114,6 +114,7 @@ function SpaceLayout({
   const spaceStore = useSpaceStore();
 
   const router = useRouter();
+
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   // Host hand-raise queue panel state
   const [queueOpen, setQueueOpen] = useState(false);
@@ -284,11 +285,13 @@ function SpaceLayout({
     [],
   );
   /* Connection state banner */
-  const [networkState, setNetworkState] = useState<string | null>(null);
+  const [networkState, setNetworkState] = useState<ConnectionState | null>(
+    null,
+  );
 
   /* ------------------ Recording badge ------------------ */
   const recordingBadge = room.isRecording ? (
-    <span className="bg-red-600 animate-pulse rounded px-1.5 py-0.5 text-[10px] font-semibold">
+    <span className="bg-red-600 animate-pulse rounded px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-50">
       REC
     </span>
   ) : null;
@@ -360,7 +363,9 @@ function SpaceLayout({
           default:
             break;
         }
-      } catch {}
+      } catch (err) {
+        console.error("[LiveKit] Failed to handle data", err);
+      }
     };
 
     room.on(RoomEvent.DataReceived, handleData);
@@ -490,11 +495,11 @@ function SpaceLayout({
       {/* Network banner */}
       {networkState && (
         <div className="w-full bg-yellow-600 text-center text-sm py-1 z-50">
-          {networkState === "reconnecting"
+          {networkState === ConnectionState.Reconnecting
             ? "Reconnecting…"
-            : networkState === "disconnected"
+            : networkState === ConnectionState.Disconnected
               ? "Disconnected. Rejoining…"
-              : networkState}
+              : networkState.toString()}
         </div>
       )}
 
