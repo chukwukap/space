@@ -31,9 +31,8 @@ import {
   useConnectors,
   useSignTypedData,
 } from "wagmi";
-import { ParticipantMetadata, SpaceMetadata } from "@/lib/types";
+import { ParticipantMetadata, SpaceMetadata, User } from "@/lib/types";
 import { Laugh } from "lucide-react";
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useUser } from "@/app/providers/userProvider";
 import { getSpendPermTypedData } from "@/lib/utils";
 import { approveSpendPermission } from "@/actions/spendPermission";
@@ -50,24 +49,33 @@ const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
  * SpaceRoom connects the user to the LiveKit room and renders the room UI.
  */
 export default function SpaceRoom({ spaceId }: { spaceId: string }) {
-  const { context } = useMiniKit();
   const { user } = useUser();
   const roomName = spaceId;
 
-  const initPMetadata: ParticipantMetadata = {
-    isHost: false,
-    pfpUrl: user?.pfpUrl ?? context?.user?.pfpUrl ?? null,
-    fid: user?.fid ?? context?.user?.fid ?? null,
-  };
+  const localParticipantToken = useToken(
+    "/api/token",
+    roomName,
+    user
+      ? {
+          userInfo: {
+            identity: user.id.toString(),
+            name: user.username,
+            metadata: JSON.stringify({
+              isHost: false,
+              pfpUrl: user?.pfpUrl ?? null,
+              fid: user?.fid ?? null,
+            } as ParticipantMetadata),
+          },
+        }
+      : undefined,
+  );
 
-  const localParticipantToken = useToken("/api/token", roomName, {
-    userInfo: {
-      identity: user?.id?.toString() ?? "",
-      name: user?.username ?? context?.user?.username ?? "unknown_user",
-      metadata: JSON.stringify(initPMetadata),
-    },
-  });
   const [inviteOpen, setInviteOpen] = useState(false);
+
+  // If user is not found, show error message, but after all hooks
+  if (!user) {
+    return <div>user not found</div>;
+  }
 
   return (
     <>
@@ -76,7 +84,7 @@ export default function SpaceRoom({ spaceId }: { spaceId: string }) {
         token={localParticipantToken}
         serverUrl={NEXT_PUBLIC_LK_SERVER_URL}
       >
-        <SpaceLayout onInviteClick={() => setInviteOpen(true)} />
+        <SpaceLayout user={user} onInviteClick={() => setInviteOpen(true)} />
 
         {inviteOpen && (
           <InviteDrawer
@@ -85,7 +93,6 @@ export default function SpaceRoom({ spaceId }: { spaceId: string }) {
             onSend={() => setInviteOpen(false)}
           />
         )}
-
         <RoomAudioRenderer />
       </LiveKitRoom>
     </>
@@ -96,7 +103,13 @@ export default function SpaceRoom({ spaceId }: { spaceId: string }) {
  * SpaceLayout displays the current state of the room, including host, speakers, and listeners.
  * It also provides a leave button that disconnects the user securely and navigates home.
  */
-function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
+function SpaceLayout({
+  user,
+  onInviteClick,
+}: {
+  user: User;
+  onInviteClick: () => void;
+}) {
   const room = useRoomContext();
   const spaceStore = useSpaceStore();
 
@@ -378,7 +391,11 @@ function SpaceLayout({ onInviteClick }: { onInviteClick: () => void }) {
 
       const signature = await signTypedDataAsync(spendPerm);
 
-      await approveSpendPermission(spendPerm.message, signature, addr);
+      await approveSpendPermission(
+        spendPerm.message,
+        signature,
+        parseInt(user.id),
+      );
 
       // await fetch("/api/collect", {
       //   method: "POST",

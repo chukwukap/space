@@ -256,7 +256,7 @@ export default function UserProfilePage() {
                     {new Date(space.startedAt).toLocaleDateString()}{" "}
                     {space.endedAt && (
                       <span className="ml-1">
-                        – Ended {new Date(space.endedAt).toLocaleDateString()}
+                        - Ended {new Date(space.endedAt).toLocaleDateString()}
                       </span>
                     )}
                   </div>
