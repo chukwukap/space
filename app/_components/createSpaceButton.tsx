@@ -51,6 +51,7 @@ export default function CreateSpaceButton() {
    */
   async function handleCreateSpace() {
     if (!title.trim()) return;
+    if (!user) return;
 
     // If wallet not connected, prompt connect and refresh user
     if (!walletAddress) {
@@ -76,7 +77,7 @@ export default function CreateSpaceButton() {
     setCreating(true);
     setCreateError(null);
 
-    const hostFid = user?.fid || 0;
+    const hostFid = user?.fid;
     const hostAddress = walletAddress;
 
     try {
@@ -86,6 +87,7 @@ export default function CreateSpaceButton() {
         body: JSON.stringify({
           title: title.trim(),
           hostFid,
+          hostId: user.id,
           hostAddress,
           recording: record,
         }),
