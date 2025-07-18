@@ -125,8 +125,7 @@ export default function LandingPageClient() {
 // Card for each space in the list
 function SpaceCard({ space, onClick }: { space: Room; onClick: () => void }) {
   const metadata = JSON.parse(space.metadata ?? "{}") as SpaceMetadata;
-  const listeners =
-    space.numParticipants ?? Math.floor(Math.random() * 500) + 10;
+  const listeners = space.numParticipants;
 
   return (
     <motion.div
