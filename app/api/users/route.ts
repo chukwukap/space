@@ -1,17 +1,19 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/lib/generated/prisma";
 
 /* ------------------------------------------------------------------ */
-/* Helpers                                                             */
+/* Helpers                                                            */
 /* ------------------------------------------------------------------ */
+/**
+ * Sanitizes a value to a non-empty string or undefined.
+ */
 function sanitizeString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== "" ? value : undefined;
 }
 
 /* ------------------------------------------------------------------ */
-/* GET /api/user                                                       */
+/* GET /api/user                                                      */
 /* ------------------------------------------------------------------ */
 // Query params supported: id, fid, address, username
 export async function GET(req: NextRequest) {
@@ -29,7 +31,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const ors: unknown[] = [];
+    // Build OR conditions with correct Prisma type
+    const ors: Prisma.UserWhereInput[] = [];
     if (id) ors.push({ id: Number(id) });
     if (fid) ors.push({ fid: Number(fid) });
     if (address) ors.push({ address: address.toLowerCase() });
@@ -42,8 +45,7 @@ export async function GET(req: NextRequest) {
       });
 
     const user = await prisma.user.findFirst({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      where: { OR: ors as any },
+      where: { OR: ors },
       include: { tipsSent: true, tipsReceived: true },
     });
 
@@ -61,7 +63,7 @@ export async function GET(req: NextRequest) {
 }
 
 /* ------------------------------------------------------------------ */
-/* POST /api/user                                                      */
+/* POST /api/user                                                     */
 /* ------------------------------------------------------------------ */
 // Upsert user. Accepts: fid, address, username, avatarUrl, displayName
 export async function POST(req: NextRequest) {
@@ -78,13 +80,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Normalise address to lowercase
+    // Normalize address to lowercase
     const normAddress: string | undefined = address
       ? address.toLowerCase()
       : undefined;
 
-    // Try to locate existing user
-    const ors2: unknown[] = [];
+    // Build OR conditions with correct Prisma type
+    const ors2: Prisma.UserWhereInput[] = [];
     if (fid) ors2.push({ fid: Number(fid) });
     if (normAddress) ors2.push({ address: normAddress });
     if (username)
@@ -95,12 +97,11 @@ export async function POST(req: NextRequest) {
         },
       });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existing = await prisma.user.findFirst({
-      where: { OR: ors2 as any },
+      where: { OR: ors2 },
     });
 
-    let user: unknown;
+    let user;
     if (existing) {
       user = await prisma.user.update({
         where: { id: existing.id },
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
 }
 
 /* ------------------------------------------------------------------ */
-/* PATCH /api/user                                                     */
+/* PATCH /api/user                                                    */
 /* ------------------------------------------------------------------ */
 // Accepts userId and fields to update (address, avatarUrl, displayName, username)
 export async function PATCH(req: NextRequest) {

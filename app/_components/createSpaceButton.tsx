@@ -122,7 +122,7 @@ export default function CreateSpaceButton() {
             className="fixed bottom-24 right-6 w-16 h-16 rounded-full flex items-center justify-center glass-card glow-hover border-primary/30 bg-primary/80 text-primary-foreground shadow-2xl backdrop-blur-md z-50"
             aria-label="Create Space"
             type="button"
-            onClick={handleCreateSpace}
+            onClick={() => setOpen(true)}
           >
             <Mic className="w-7 h-7 dark:text-white text-black" />
           </button>
