@@ -14,9 +14,9 @@ import { Mic } from "lucide-react";
 import { toast } from "sonner";
 import { ShareAndroid, Copy } from "iconoir-react";
 import { castInvite } from "@/lib/farcaster";
-import { Room } from "livekit-server-sdk";
 import { useAccount, useConnect } from "wagmi";
 import { useUser } from "../providers/userProvider";
+import { Space } from "@/lib/generated/prisma";
 
 /**
  * CreateSpaceButton is hidden on space details (live room) pages.
@@ -97,8 +97,8 @@ export default function CreateSpaceButton() {
         throw new Error(err.error || "Failed to create space");
       }
 
-      const livekitRoom: Room = await res.json();
-      const path = `/space/${livekitRoom.name}`;
+      const space: Space = await res.json();
+      const path = `/space/${space.livekitName}`;
       setShareUrl(`${window.location.origin}${path}`);
       setOpen(true);
       toast.success("Space created! Redirecting you...");

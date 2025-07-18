@@ -1,4 +1,14 @@
 import { Address } from "viem";
+import { Prisma } from "@/lib/generated/prisma";
+
+export type SpaceWithHostParticipant = Prisma.SpaceGetPayload<{
+  include: {
+    participants: {
+      where: { role: "HOST" };
+      include: { user: true };
+    };
+  };
+}>;
 
 export interface User {
   id: string;

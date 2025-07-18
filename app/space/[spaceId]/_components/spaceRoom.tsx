@@ -31,7 +31,11 @@ import {
   useConnectors,
   useSignTypedData,
 } from "wagmi";
-import { ParticipantMetadata, SpaceMetadata, User } from "@/lib/types";
+import {
+  ParticipantMetadata,
+  SpaceWithHostParticipant,
+  User,
+} from "@/lib/types";
 import { Laugh } from "lucide-react";
 import { useUser } from "@/app/providers/userProvider";
 import { getSpendPermTypedData } from "@/lib/utils";
@@ -48,9 +52,13 @@ const ConfirmDialog = dynamic(() => import("./confirmDialog"), { ssr: false });
 /**
  * SpaceRoom connects the user to the LiveKit room and renders the room UI.
  */
-export default function SpaceRoom({ spaceId }: { spaceId: string }) {
+export default function SpaceRoom({
+  space,
+}: {
+  space: SpaceWithHostParticipant;
+}) {
   const { user } = useUser();
-  const roomName = spaceId;
+  const roomName = space.livekitName;
 
   const localParticipantToken = useToken(
     "/api/token",
@@ -61,7 +69,7 @@ export default function SpaceRoom({ spaceId }: { spaceId: string }) {
             identity: user.id.toString(),
             name: user.username,
             metadata: JSON.stringify({
-              isHost: false,
+              isHost: space.hostFid === user?.fid,
               pfpUrl: user?.pfpUrl ?? null,
               fid: user?.fid ?? null,
             } as ParticipantMetadata),
@@ -84,7 +92,11 @@ export default function SpaceRoom({ spaceId }: { spaceId: string }) {
         token={localParticipantToken}
         serverUrl={NEXT_PUBLIC_LK_SERVER_URL}
       >
-        <SpaceLayout user={user} onInviteClick={() => setInviteOpen(true)} />
+        <SpaceLayout
+          user={user}
+          onInviteClick={() => setInviteOpen(true)}
+          space={space}
+        />
 
         {inviteOpen && (
           <InviteDrawer
@@ -106,9 +118,11 @@ export default function SpaceRoom({ spaceId }: { spaceId: string }) {
 function SpaceLayout({
   user,
   onInviteClick,
+  space,
 }: {
   user: User;
   onInviteClick: () => void;
+  space: SpaceWithHostParticipant;
 }) {
   const room = useRoomContext();
   const spaceStore = useSpaceStore();
@@ -124,11 +138,7 @@ function SpaceLayout({
   const connectors = useConnectors();
   const { signTypedDataAsync } = useSignTypedData();
 
-  const roomMetadata: SpaceMetadata = room.metadata
-    ? JSON.parse(room.metadata)
-    : {};
-
-  const host = room.getParticipantByIdentity(roomMetadata.hostId);
+  const host = room.getParticipantByIdentity(space.id);
 
   // Active speakers are those currently speaking
   const activeSpeakers = room.activeSpeakers;

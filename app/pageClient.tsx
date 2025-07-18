@@ -5,22 +5,22 @@ import useSWR from "swr";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAddFrame, useMiniKit } from "@coinbase/onchainkit/minikit";
-import { Room } from "livekit-server-sdk";
 import Image from "next/image";
 import MobileHeader from "./_components/mobileHeader";
 import { Microphone } from "iconoir-react";
 import { ThemeToggle } from "./_components/themeToggle";
-import { SpaceMetadata } from "@/lib/types";
+
+import { SpaceWithHostParticipant } from "@/lib/types";
 
 /**
  * Space type extends Room with additional metadata fields.
  */
 
 // SWR fetcher for spaces, parsing metadata for each space
-const fetcher = async (url: string): Promise<Room[]> => {
+const fetcher = async (url: string): Promise<SpaceWithHostParticipant[]> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch");
-  const data: Room[] = await res.json();
+  const data: SpaceWithHostParticipant[] = await res.json();
   return data;
 };
 
@@ -56,7 +56,7 @@ export default function LandingPageClient() {
     data: spaces,
     error,
     isLoading,
-  } = useSWR<Room[]>("/api/spaces", fetcher, {
+  } = useSWR<SpaceWithHostParticipant[]>("/api/spaces", fetcher, {
     refreshInterval: 5000,
   });
 
@@ -110,23 +110,47 @@ export default function LandingPageClient() {
 
       <section className="mt-6 flex flex-col gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
-        {spaces?.map((s) => (
-          <SpaceCard
-            key={s.name}
-            space={s}
-            onClick={() => router.push(`/space/${s.name}`)}
-          />
-        ))}
+        {spaces && spaces.length > 0 ? (
+          spaces.map((s) => (
+            <SpaceCard
+              key={s.id}
+              space={s}
+              onClick={() => router.push(`/space/${s.livekitName}`)}
+            />
+          ))
+        ) : (
+          <div className="w-full flex flex-col items-center justify-center py-12 text-center">
+            <Image
+              src="/empty-space.svg"
+              alt="No spaces"
+              width={80}
+              height={80}
+              className="mb-4 opacity-80"
+            />
+            <h4
+              className="text-lg font-semibold mb-1"
+              style={{ fontFamily: "Sora, sans-serif" }}
+            >
+              No Sonic Spaces are live right now
+            </h4>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+              Check back soon or start your own to get the conversation going!
+            </p>
+          </div>
+        )}
       </section>
     </div>
   );
 }
 
 // Card for each space in the list
-function SpaceCard({ space, onClick }: { space: Room; onClick: () => void }) {
-  const metadata = JSON.parse(space.metadata ?? "{}") as SpaceMetadata;
-  const listeners = space.numParticipants;
-
+function SpaceCard({
+  space,
+  onClick,
+}: {
+  space: SpaceWithHostParticipant;
+  onClick: () => void;
+}) {
   return (
     <motion.div
       whileTap={{ scale: 0.97 }}
@@ -147,12 +171,12 @@ function SpaceCard({ space, onClick }: { space: Room; onClick: () => void }) {
       {/* Title & meta */}
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold leading-snug line-clamp-2">
-          {metadata.title || "Untitled Space"}
+          {space.title}
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
           <Microphone className="w-3 h-3 text-destructive" />
-          <span>{listeners} listening</span>
-          {space.activeRecording && (
+          <span>{space.participants.length} listening</span>
+          {space.recording && (
             <span className="ml-2 px-1.5 py-0.5 bg-primary/20 text-primary rounded">
               REC
             </span>

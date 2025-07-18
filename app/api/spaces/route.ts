@@ -8,6 +8,10 @@ export const revalidate = 0;
  * Handles GET requests to fetch all active Sonic Space rooms.
  * If ?names=room1,room2 is provided, returns only those active spaces (LIVE status) with matching livekitName.
  * Otherwise, returns all active spaces (LIVE status).
+ *
+ * Each space returned includes:
+ *  - the host participant (role: HOST) and their user info
+ *  - the total participants count
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -22,38 +26,42 @@ export async function GET(request: Request) {
     if (names.length === 0) names = undefined;
   }
 
-  // Query active spaces from the database
+  // Query active spaces from the database, including the host participant and their user info
   let spaces;
   if (names && names.length > 0) {
-    // Fetch only spaces with livekitName in names and status LIVE
     spaces = await prisma.space.findMany({
       where: {
         livekitName: { in: names },
         status: "LIVE",
       },
       orderBy: { createdAt: "desc" },
+      include: {
+        participants: {
+          where: { role: "HOST" },
+          include: { user: true },
+        },
+        _count: {
+          select: { participants: true },
+        },
+      },
     });
   } else {
-    // Fetch all active spaces (LIVE)
     spaces = await prisma.space.findMany({
       where: { status: "LIVE" },
       orderBy: { createdAt: "desc" },
+      include: {
+        participants: {
+          where: { role: "HOST" },
+          include: { user: true },
+        },
+        _count: {
+          select: { participants: true },
+        },
+      },
     });
   }
 
-  // Security: Only return safe, necessary fields for the client
-  const safeSpaces = spaces.map((space) => ({
-    id: space.id,
-    livekitName: space.livekitName,
-    title: space.title,
-    hostFid: space.hostFid,
-    hostAddress: space.hostAddress,
-    recording: space.recording,
-    createdAt: space.createdAt,
-    // Add more fields as needed, but avoid leaking sensitive info
-  }));
-
-  return Response.json(safeSpaces);
+  return Response.json(spaces);
 }
 
 /**
@@ -124,7 +132,7 @@ export async function POST(request: Request) {
       metadata: JSON.stringify(metadata),
     });
 
-    await prisma.space.create({
+    const space = await prisma.space.create({
       data: {
         title: metadata.title,
         livekitName: livekitRoom.name,
@@ -132,6 +140,9 @@ export async function POST(request: Request) {
         hostAddress: metadata.hostAddress,
         recording: metadata.recording,
         status: "LIVE",
+      },
+      include: {
+        host: true,
       },
     });
 
@@ -144,7 +155,7 @@ export async function POST(request: Request) {
     // DB hostId already int; no change needed
 
     // Always respond with LiveKit room info
-    return new Response(JSON.stringify(livekitRoom), {
+    return new Response(JSON.stringify(space), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
@@ -190,8 +201,6 @@ export async function PATCH(request: Request) {
 
     meta.ended = true;
     await roomService.updateRoomMetadata(livekitName, JSON.stringify(meta));
-
-    // Optionally set status in DB
 
     await prisma.space.update({
       where: { livekitName },
