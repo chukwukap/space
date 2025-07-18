@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     // Fire-and-forget notifications (no await to keep response fast)
     // sendLiveSpaceNotifications(
     //   parseInt(hostFid),
-    //   `${process.env.NEXT_PUBLIC_URL}/space/${livekitRoom.name}?title=${encodeURIComponent(title)}`,
+    //   `${process.env.NEXT_PUBLIC_URL}/spaces/${livekitRoom.name}?title=${encodeURIComponent(title)}`,
     //   title,
     // ).catch(console.error);
     // DB hostId already int; no change needed

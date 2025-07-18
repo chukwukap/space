@@ -38,7 +38,7 @@ export default function SpaceCard({
   return (
     <div
       className="bg-primary/90 hover:bg-primary transition-colors rounded-2xl p-4 shadow-md text-primary-foreground cursor-pointer"
-      onClick={() => router.push(`/space/${space.id}`)}
+      onClick={() => router.push(`/spaces/${space.id}`)}
     >
       <div className="text-xs uppercase mb-2 flex items-center gap-1">
         <span className="inline-block w-1 h-1 rounded-full bg-destructive animate-pulse" />

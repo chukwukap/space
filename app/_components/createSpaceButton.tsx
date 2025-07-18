@@ -98,7 +98,7 @@ export default function CreateSpaceButton() {
       }
 
       const livekitRoom: Room = await res.json();
-      const path = `/space/${livekitRoom.name}`;
+      const path = `/spaces/${livekitRoom.name}`;
       setShareUrl(`${window.location.origin}${path}`);
       setOpen(true);
       toast.success("Space created! Redirecting you...");
