@@ -12,20 +12,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Mic } from "lucide-react";
 import { toast } from "sonner";
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
-import { useAccount } from "wagmi";
 import { ShareAndroid, Copy } from "iconoir-react";
 import { castInvite } from "@/lib/farcaster";
 import { Room } from "livekit-server-sdk";
+import { useAccount, useConnect } from "wagmi";
+import { useUser } from "../providers/userProvider";
 
 /**
  * CreateSpaceButton is hidden on space details (live room) pages.
  */
 export default function CreateSpaceButton() {
   const pathname = usePathname();
-
-  const { context } = useMiniKit();
-  const { address, isConnected } = useAccount();
+  const { user, refreshUser } = useUser();
+  const { address: walletAddress } = useAccount();
+  const { connect, connectors, status: connectStatus } = useConnect();
 
   const [title, setTitle] = useState("");
   const [record, setRecord] = useState(false);
@@ -43,21 +43,41 @@ export default function CreateSpaceButton() {
     return null;
   }
 
+  /**
+   * Handles the creation of a new Space.
+   * Prompts wallet connect only when needed, and refreshes user after connect.
+   */
   async function handleCreateSpace() {
     if (!title.trim()) return;
-    if (!address) {
-      return;
-    }
-    if (!isConnected) {
+
+    // If wallet not connected, prompt connect and refresh user
+    if (!walletAddress) {
       setCreateError("Please connect your wallet to host a Space.");
-      toast.error("Please connect your wallet to host a Space.");
+      if (connectors && connectors.length > 0 && connectStatus !== "pending") {
+        try {
+          connect({ connector: connectors[0] });
+          await refreshUser();
+          toast.success("Wallet connected! Please try again.");
+        } catch {
+          toast.error("Failed to connect wallet.");
+        }
+      }
       return;
     }
+
+    // If user is missing fid, refresh user and prompt
+    if (!user?.fid) {
+      // await refreshUser();
+      setCreateError("Please complete your Farcaster profile to host a Space.");
+      toast.error("Please complete your Farcaster profile to host a Space.");
+      // return;
+    }
+
     setCreating(true);
     setCreateError(null);
 
-    const hostFid = context?.user?.fid;
-    const hostAddress = address;
+    const hostFid = user?.fid || 0;
+    const hostAddress = walletAddress;
 
     try {
       const res = await fetch("/api/spaces", {
@@ -82,9 +102,10 @@ export default function CreateSpaceButton() {
       toast.success("Space created! Share your link.");
       setTitle("");
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      setCreateError(msg);
-      toast.error(msg);
+      // const msg = e instanceof Error ? e.message : "Unknown error";
+      setCreateError("Failed to create space");
+      console.error(e);
+      toast.error("Failed to create space");
     } finally {
       setCreating(false);
     }
@@ -97,11 +118,11 @@ export default function CreateSpaceButton() {
           <button
             id="create-space-btn"
             className="fixed bottom-24 right-6 w-16 h-16 rounded-full flex items-center justify-center glass-card glow-hover border-primary/30 bg-primary/80 text-primary-foreground shadow-2xl backdrop-blur-md z-50"
-            style={{ color: "white" }}
             aria-label="Create Space"
             type="button"
+            onClick={handleCreateSpace}
           >
-            <Mic className="w-7 h-7 text-primary-foreground" />
+            <Mic className="w-7 h-7 dark:text-white text-black" />
           </button>
         </DrawerTrigger>
 
@@ -170,8 +191,11 @@ export default function CreateSpaceButton() {
                   variant="secondary"
                   className="flex-col gap-1"
                   onClick={async () => {
-                    if (!context?.client) return;
-                    await castInvite(context.client as unknown, {
+                    if (!user?.fid) {
+                      toast.error("Please connect your wallet to cast.");
+                      return;
+                    }
+                    await castInvite(user.fid, {
                       url: shareUrl,
                     });
                     setOpen(false);

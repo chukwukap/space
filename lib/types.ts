@@ -1,15 +1,5 @@
 import { Address } from "viem";
 
-export interface SpaceSummary {
-  id: string;
-  title: string;
-  listeners: number;
-  hostName: string;
-  hostRole: string;
-  hostBio: string;
-  avatars: string[]; // up to two avatars
-}
-
 export interface User {
   id: string;
   fid?: number;
@@ -26,6 +16,7 @@ export interface User {
 export interface SpaceMetadata {
   title: string;
   hostFid: string;
+  hostId: string;
   hostAddress: string;
   recording: boolean;
   ended: boolean;

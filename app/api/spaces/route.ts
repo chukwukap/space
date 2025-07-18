@@ -5,25 +5,60 @@ import { SpaceMetadata } from "@/lib/types";
 export const revalidate = 0;
 
 /**
- * Handles GET requests to fetch all active spaces.
- * Returns a list of spaces from the LiveKit service.
+ * Handles GET requests to fetch all active Sonic Space rooms.
+ * If ?names=room1,room2 is provided, returns only those active spaces (LIVE status) with matching livekitName.
+ * Otherwise, returns all active spaces (LIVE status).
  */
-export async function GET() {
-  const spaces = await roomService.listRooms();
-  const data = await Promise.all(
-    spaces.map(async (space) => {
-      // Optionally, you could fetch participant avatars here for richer UI.
-      return space;
-    }),
-  );
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const namesParam = searchParams.get("names");
+  let names: string[] | undefined = undefined;
 
-  return Response.json(data);
+  if (namesParam) {
+    names = namesParam
+      .split(",")
+      .map((n) => n.trim())
+      .filter((n) => n.length > 0);
+    if (names.length === 0) names = undefined;
+  }
+
+  // Query active spaces from the database
+  let spaces;
+  if (names && names.length > 0) {
+    // Fetch only spaces with livekitName in names and status LIVE
+    spaces = await prisma.space.findMany({
+      where: {
+        livekitName: { in: names },
+        status: "LIVE",
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  } else {
+    // Fetch all active spaces (LIVE)
+    spaces = await prisma.space.findMany({
+      where: { status: "LIVE" },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  // Security: Only return safe, necessary fields for the client
+  const safeSpaces = spaces.map((space) => ({
+    id: space.id,
+    livekitName: space.livekitName,
+    title: space.title,
+    hostFid: space.hostFid,
+    hostAddress: space.hostAddress,
+    recording: space.recording,
+    createdAt: space.createdAt,
+    // Add more fields as needed, but avoid leaking sensitive info
+  }));
+
+  return Response.json(safeSpaces);
 }
 
 /**
  * Handles POST requests to create a new space.
  * - Ensures the LiveKit room is created.
- * - Optionally persists the space in the database, but does not fail the route if DB write fails.
  * - Always returns the created LiveKit room info.
  */
 export async function POST(request: Request) {
@@ -31,18 +66,22 @@ export async function POST(request: Request) {
     const {
       title,
       hostFid,
+      hostId,
       hostAddress,
       recording = false,
     } = (await request.json()) as {
       title?: string;
       hostFid?: string;
+      hostId?: string;
       hostAddress?: string;
       recording?: boolean;
     };
 
-    if (!title || !hostFid || !hostAddress) {
+    if (!title || !hostFid || !hostAddress || !hostId) {
       return new Response(
-        JSON.stringify({ error: "title, hostFid, and hostAddress required" }),
+        JSON.stringify({
+          error: "title, hostFid, hostId, and hostAddress required",
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -53,11 +92,25 @@ export async function POST(request: Request) {
     const metadata: SpaceMetadata = {
       title,
       hostFid,
+      hostId,
       hostAddress,
       recording,
       ended: false,
     };
 
+    const hostUser = await prisma.user.findUnique({
+      where: {
+        id: parseInt(hostId),
+        fid: parseInt(hostFid),
+      },
+    });
+
+    if (!hostUser) {
+      return new Response(JSON.stringify({ error: "Host user not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     const livekitRoomId = crypto.randomUUID().slice(0, 6);
 
     // Ensure LiveKit room exists first for reliability and security
@@ -66,22 +119,16 @@ export async function POST(request: Request) {
       metadata: JSON.stringify(metadata),
     });
 
-    // Try to persist in DB, but do not fail if this step fails
-    try {
-      await prisma.space.create({
-        data: {
-          title: metadata.title,
-          livekitName: livekitRoom.name,
-          hostFid: parseInt(metadata.hostFid),
-          hostAddress: metadata.hostAddress,
-          recording: metadata.recording,
-          status: "LIVE",
-        },
-      });
-    } catch (dbError) {
-      // Log DB error for observability, but do not fail the route
-      console.error("[POST /api/spaces] DB persist failed:", dbError);
-    }
+    await prisma.space.create({
+      data: {
+        title: metadata.title,
+        livekitName: livekitRoom.name,
+        hostFid: parseInt(metadata.hostFid),
+        hostAddress: metadata.hostAddress,
+        recording: metadata.recording,
+        status: "LIVE",
+      },
+    });
 
     // Fire-and-forget notifications (no await to keep response fast)
     // sendLiveSpaceNotifications(
@@ -140,12 +187,11 @@ export async function PATCH(request: Request) {
     await roomService.updateRoomMetadata(livekitName, JSON.stringify(meta));
 
     // Optionally set status in DB
-    try {
-      await prisma.space.update({
-        where: { livekitName },
-        data: { status: "ENDED" },
-      });
-    } catch {}
+
+    await prisma.space.update({
+      where: { livekitName },
+      data: { status: "ENDED" },
+    });
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },

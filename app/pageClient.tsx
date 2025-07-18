@@ -1,38 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { SpaceMetadata } from "@/lib/types";
 import { useAddFrame, useMiniKit } from "@coinbase/onchainkit/minikit";
 import { Room } from "livekit-server-sdk";
 import Image from "next/image";
 import MobileHeader from "./_components/mobileHeader";
 import { Microphone } from "iconoir-react";
 import { ThemeToggle } from "./_components/themeToggle";
+import { SpaceMetadata } from "@/lib/types";
 
 /**
  * Space type extends Room with additional metadata fields.
  */
-type Space = Room & SpaceMetadata;
 
-export default function LandingClient() {
+// SWR fetcher for spaces, parsing metadata for each space
+const fetcher = async (url: string): Promise<Room[]> => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch");
+  const data: Room[] = await res.json();
+  return data;
+};
+
+export default function LandingPageClient() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const router = useRouter();
   const addFrame = useAddFrame();
   const [frameAdded, setFrameAdded] = useState(false);
 
-  const [spaces, setSpaces] = useState<Space[]>([]);
-  console.log(spaces[0]);
-
+  // Prepare frame on mount
   useEffect(() => {
     if (!isFrameReady) {
       setFrameReady();
     }
   }, [setFrameReady, isFrameReady]);
 
+  // Add frame if not already added
   useEffect(() => {
-    // Only add frame if not already added and not already triggered
     if (context && !context.client.added && !frameAdded) {
       (async () => {
         try {
@@ -45,39 +51,46 @@ export default function LandingClient() {
     }
   }, [context, addFrame, frameAdded]);
 
-  /* ----------------------------------------- */
-  /* Fetch live spaces list every 5 s          */
-  /* ----------------------------------------- */
-  useEffect(() => {
-    async function fetchSpaces() {
-      try {
-        const res = await fetch("/api/spaces");
-        const data = await res.json();
+  // SWR for live spaces, refresh every 5s
+  const {
+    data: spaces,
+    error,
+    isLoading,
+  } = useSWR<Room[]>("/api/spaces", fetcher, {
+    refreshInterval: 5000,
+  });
 
-        if (res.ok) {
-          // Parse metadata for each space and update state
-          const spaces = data.map((space: Space) => {
-            const metadata = JSON.parse(
-              space.metadata ?? "{}",
-            ) as SpaceMetadata;
-            return {
-              ...space,
-              title: metadata.title,
-              hostFid: metadata.hostFid,
-            };
-          });
-          setSpaces(spaces);
-        }
-      } catch {
-        // Silently ignore fetch errors for now
-      }
-    }
-    fetchSpaces();
-    // const id = setInterval(fetchSpaces, 5_000);
-    // return () => clearInterval(id);
-  }, []);
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <MobileHeader
+          title="Spaces"
+          showBack={false}
+          right={<ThemeToggle />}
+          lowerVisible={false}
+        />
+        <section className="p-6 text-center text-lg font-medium">
+          Loading spaces...
+        </section>
+      </div>
+    );
+  }
 
-  // Creation handled by global button
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <MobileHeader
+          title="Spaces"
+          showBack={false}
+          right={<ThemeToggle />}
+          lowerVisible={false}
+        />
+        <section className="p-6 text-center text-lg text-red-500 font-medium">
+          Failed to load spaces.
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -97,16 +110,11 @@ export default function LandingClient() {
 
       <section className="mt-6 flex flex-col gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
-        {mockSpaces.map((s) => (
+        {spaces?.map((s) => (
           <SpaceCard
             key={s.name}
-            // @ts-expect-error - mock spaces
             space={s}
-            onClick={() =>
-              router.push(
-                `/space/${s.name}?title=${encodeURIComponent(s.title)}`,
-              )
-            }
+            onClick={() => router.push(`/space/${s.name}`)}
           />
         ))}
       </section>
@@ -114,7 +122,9 @@ export default function LandingClient() {
   );
 }
 
-function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
+// Card for each space in the list
+function SpaceCard({ space, onClick }: { space: Room; onClick: () => void }) {
+  const metadata = JSON.parse(space.metadata ?? "{}") as SpaceMetadata;
   const listeners =
     space.numParticipants ?? Math.floor(Math.random() * 500) + 10;
 
@@ -138,12 +148,12 @@ function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
       {/* Title & meta */}
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold leading-snug line-clamp-2">
-          {space.title || "Untitled Space"}
+          {metadata.title || "Untitled Space"}
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
           <Microphone className="w-3 h-3 text-destructive" />
           <span>{listeners} listening</span>
-          {space.recording && (
+          {space.activeRecording && (
             <span className="ml-2 px-1.5 py-0.5 bg-primary/20 text-primary rounded">
               REC
             </span>
@@ -159,185 +169,185 @@ function SpaceCard({ space, onClick }: { space: Space; onClick: () => void }) {
   );
 }
 
-const mockSpaces = [
-  {
-    sid: "spc_001",
-    name: "defi-deep-dive",
-    metadata: "{}",
-    creationTime: 1718457600,
-    title: "DeFi Deep Dive",
-    hostId: "fid_1001",
-    recording: false,
-  },
-  {
-    sid: "spc_002",
-    name: "nft-night-chat",
-    metadata: "{}",
-    creationTime: 1718461200,
-    title: "NFT Night Chat",
-    hostId: "fid_1002",
-    recording: true,
-  },
-  {
-    sid: "spc_003",
-    name: "builder-banter",
-    metadata: "{}",
-    creationTime: 1718464800,
-    title: "Builder Banter",
-    hostId: "fid_1003",
-    recording: false,
-  },
-  {
-    sid: "spc_004",
-    name: "onchain-gaming",
-    metadata: "{}",
-    creationTime: 1718468400,
-    title: "On-Chain Gaming Roundtable",
-    hostId: "fid_1004",
-    recording: true,
-  },
-  {
-    sid: "spc_005",
-    name: "solidity-surgery",
-    metadata: "{}",
-    creationTime: 1718472000,
-    title: "Solidity Surgery",
-    hostId: "fid_1005",
-    recording: false,
-  },
-  {
-    sid: "spc_006",
-    name: "governance-gossip",
-    metadata: "{}",
-    creationTime: 1718475600,
-    title: "Governance Gossip",
-    hostId: "fid_1006",
-    recording: false,
-  },
-  {
-    sid: "spc_007",
-    name: "rollup-roundup",
-    metadata: "{}",
-    creationTime: 1718479200,
-    title: "Rollup Round-up",
-    hostId: "fid_1007",
-    recording: true,
-  },
-  {
-    sid: "spc_008",
-    name: "vc-viewpoint",
-    metadata: "{}",
-    creationTime: 1718482800,
-    title: "VC Viewpoint",
-    hostId: "fid_1008",
-    recording: false,
-  },
-  {
-    sid: "spc_009",
-    name: "ai-meets-crypto",
-    metadata: "{}",
-    creationTime: 1718486400,
-    title: "AI meets Crypto",
-    hostId: "fid_1009",
-    recording: true,
-  },
-  {
-    sid: "spc_010",
-    name: "dao-town-hall",
-    metadata: "{}",
-    creationTime: 1718490000,
-    title: "DAO Town Hall",
-    hostId: "fid_1010",
-    recording: false,
-  },
-  {
-    sid: "spc_011",
-    name: "layers-lattes",
-    metadata: "{}",
-    creationTime: 1718493600,
-    title: "Layers & Lattes ☕",
-    hostId: "fid_1011",
-    recording: false,
-  },
-  {
-    sid: "spc_012",
-    name: "privacy-protocols",
-    metadata: "{}",
-    creationTime: 1718497200,
-    title: "Privacy Protocols AMA",
-    hostId: "fid_1012",
-    recording: true,
-  },
-  {
-    sid: "spc_013",
-    name: "zkevm-zoners",
-    metadata: "{}",
-    creationTime: 1718500800,
-    title: "zkEVM Zone",
-    hostId: "fid_1013",
-    recording: false,
-  },
-  {
-    sid: "spc_014",
-    name: "wallet-war-stories",
-    metadata: "{}",
-    creationTime: 1718504400,
-    title: "Wallet War Stories",
-    hostId: "fid_1014",
-    recording: false,
-  },
-  {
-    sid: "spc_015",
-    name: "reactive-research",
-    metadata: "{}",
-    creationTime: 1718508000,
-    title: "Reactive Research",
-    hostId: "fid_1015",
-    recording: true,
-  },
-  {
-    sid: "spc_016",
-    name: "base-builder-time",
-    metadata: "{}",
-    creationTime: 1718511600,
-    title: "Base Builder Time",
-    hostId: "fid_1016",
-    recording: false,
-  },
-  {
-    sid: "spc_017",
-    name: "tokenomics-talk",
-    metadata: "{}",
-    creationTime: 1718515200,
-    title: "Tokenomics Talk",
-    hostId: "fid_1017",
-    recording: true,
-  },
-  {
-    sid: "spc_018",
-    name: "security-sunday",
-    metadata: "{}",
-    creationTime: 1718518800,
-    title: "Security Sunday",
-    hostId: "fid_1018",
-    recording: false,
-  },
-  {
-    sid: "spc_019",
-    name: "design-in-defi",
-    metadata: "{}",
-    creationTime: 1718522400,
-    title: "Design in DeFi",
-    hostId: "fid_1019",
-    recording: true,
-  },
-  {
-    sid: "spc_020",
-    name: "rugpull-radio",
-    metadata: "{}",
-    creationTime: 1718526000,
-    title: "Rugpull Radio",
-    hostId: "fid_1020",
-    recording: false,
-  },
-];
+// const mockSpaces = [
+//   {
+//     sid: "spc_001",
+//     name: "defi-deep-dive",
+//     metadata: "{}",
+//     creationTime: 1718457600,
+//     title: "DeFi Deep Dive",
+//     hostId: "fid_1001",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_002",
+//     name: "nft-night-chat",
+//     metadata: "{}",
+//     creationTime: 1718461200,
+//     title: "NFT Night Chat",
+//     hostId: "fid_1002",
+//     recording: true,
+//   },
+//   {
+//     sid: "spc_003",
+//     name: "builder-banter",
+//     metadata: "{}",
+//     creationTime: 1718464800,
+//     title: "Builder Banter",
+//     hostId: "fid_1003",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_004",
+//     name: "onchain-gaming",
+//     metadata: "{}",
+//     creationTime: 1718468400,
+//     title: "On-Chain Gaming Roundtable",
+//     hostId: "fid_1004",
+//     recording: true,
+//   },
+//   {
+//     sid: "spc_005",
+//     name: "solidity-surgery",
+//     metadata: "{}",
+//     creationTime: 1718472000,
+//     title: "Solidity Surgery",
+//     hostId: "fid_1005",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_006",
+//     name: "governance-gossip",
+//     metadata: "{}",
+//     creationTime: 1718475600,
+//     title: "Governance Gossip",
+//     hostId: "fid_1006",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_007",
+//     name: "rollup-roundup",
+//     metadata: "{}",
+//     creationTime: 1718479200,
+//     title: "Rollup Round-up",
+//     hostId: "fid_1007",
+//     recording: true,
+//   },
+//   {
+//     sid: "spc_008",
+//     name: "vc-viewpoint",
+//     metadata: "{}",
+//     creationTime: 1718482800,
+//     title: "VC Viewpoint",
+//     hostId: "fid_1008",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_009",
+//     name: "ai-meets-crypto",
+//     metadata: "{}",
+//     creationTime: 1718486400,
+//     title: "AI meets Crypto",
+//     hostId: "fid_1009",
+//     recording: true,
+//   },
+//   {
+//     sid: "spc_010",
+//     name: "dao-town-hall",
+//     metadata: "{}",
+//     creationTime: 1718490000,
+//     title: "DAO Town Hall",
+//     hostId: "fid_1010",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_011",
+//     name: "layers-lattes",
+//     metadata: "{}",
+//     creationTime: 1718493600,
+//     title: "Layers & Lattes ☕",
+//     hostId: "fid_1011",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_012",
+//     name: "privacy-protocols",
+//     metadata: "{}",
+//     creationTime: 1718497200,
+//     title: "Privacy Protocols AMA",
+//     hostId: "fid_1012",
+//     recording: true,
+//   },
+//   {
+//     sid: "spc_013",
+//     name: "zkevm-zoners",
+//     metadata: "{}",
+//     creationTime: 1718500800,
+//     title: "zkEVM Zone",
+//     hostId: "fid_1013",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_014",
+//     name: "wallet-war-stories",
+//     metadata: "{}",
+//     creationTime: 1718504400,
+//     title: "Wallet War Stories",
+//     hostId: "fid_1014",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_015",
+//     name: "reactive-research",
+//     metadata: "{}",
+//     creationTime: 1718508000,
+//     title: "Reactive Research",
+//     hostId: "fid_1015",
+//     recording: true,
+//   },
+//   {
+//     sid: "spc_016",
+//     name: "base-builder-time",
+//     metadata: "{}",
+//     creationTime: 1718511600,
+//     title: "Base Builder Time",
+//     hostId: "fid_1016",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_017",
+//     name: "tokenomics-talk",
+//     metadata: "{}",
+//     creationTime: 1718515200,
+//     title: "Tokenomics Talk",
+//     hostId: "fid_1017",
+//     recording: true,
+//   },
+//   {
+//     sid: "spc_018",
+//     name: "security-sunday",
+//     metadata: "{}",
+//     creationTime: 1718518800,
+//     title: "Security Sunday",
+//     hostId: "fid_1018",
+//     recording: false,
+//   },
+//   {
+//     sid: "spc_019",
+//     name: "design-in-defi",
+//     metadata: "{}",
+//     creationTime: 1718522400,
+//     title: "Design in DeFi",
+//     hostId: "fid_1019",
+//     recording: true,
+//   },
+//   {
+//     sid: "spc_020",
+//     name: "rugpull-radio",
+//     metadata: "{}",
+//     creationTime: 1718526000,
+//     title: "Rugpull Radio",
+//     hostId: "fid_1020",
+//     recording: false,
+//   },
+// ];
