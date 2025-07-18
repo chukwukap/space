@@ -15,8 +15,7 @@ export function useWalletSync({ user, walletAddress, mutate }: Params) {
 
     if (!user || !user.id) return;
     if (!walletAddress) return;
-    if (user.walletAddress?.toLowerCase() === walletAddress.toLowerCase())
-      return;
+    if (user.walletAddress === walletAddress) return;
 
     (async () => {
       try {

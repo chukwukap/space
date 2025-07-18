@@ -6,13 +6,13 @@ import {
   spendPermissionManagerAbi,
   spendPermissionManagerAddress,
 } from "@/lib/abi/SpendPermissionManager";
-import { Address } from "viem";
+
 import prisma from "@/lib/prisma";
 
 export async function approveSpendPermission(
   spendPermissionMessage: SpendPermission,
   signature: string,
-  from: Address,
+  userId: number,
 ) {
   const spender = await getSpenderWalletClient();
   const publicClient = await getPublicClient();
@@ -33,7 +33,7 @@ export async function approveSpendPermission(
   }
 
   await prisma.user.update({
-    where: { address: from },
+    where: { id: userId },
     data: {
       spendPerm: JSON.stringify({
         spendPermissionMessage,

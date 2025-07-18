@@ -4,142 +4,138 @@ import Image from "next/image";
 import { useUser } from "@/app/providers/userProvider";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import CountUp from "react-countup";
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import {
   Share2 as ShareIcon,
   Pencil as EditIcon,
-  Verified as VerifiedIcon,
+  Users as UsersIcon,
+  Gift as GiftIcon,
+  Smile as ReactionIcon,
+  Mic as SpaceIcon,
 } from "lucide-react";
 import MobileHeader from "../_components/mobileHeader";
 import { ThemeToggle } from "../_components/themeToggle";
-import {
-  useAccount,
-  useChainId,
-  useConnect,
-  useConnectors,
-  useSignTypedData,
-} from "wagmi";
-import { getSpendPermTypedData } from "@/lib/utils";
-import { approveSpendPermission } from "@/actions/spendPermission";
-import { useState } from "react";
-import { Address } from "viem";
+import useSWR from "swr";
+import * as React from "react";
 
-/**
- * UserProfilePage – shows public profile information.
- * --------------------------------------------------
- * Data model (coming soon):
- * • username, handle, verified, bio, location, website, joinDate
- * • avatarUrl, coverUrl
- * • stats: spacesHosted, totalEarnings, followers, following
- * • recentSpaces: Array<{ id, title, date, listeners }>
- * • badges: Array<{ id, label, icon }>
- *
- * SECURITY: No sensitive data is exposed. All wallet / private details are
- * handled server-side and never rendered directly.
- */
+// --- Types ---
+type UserProfile = {
+  id: number;
+  fid?: number | null;
+  address: string;
+  displayName?: string | null;
+  username?: string | null;
+  avatarUrl?: string | null;
+  createdAt: string;
+  spendPerm?: unknown;
+  hostedSpaces?: HostedSpace[];
+  participants?: Participant[];
+  tipsSent?: Tip[];
+  tipsReceived?: Tip[];
+  reactions?: Reaction[];
+};
+
+type HostedSpace = {
+  id: number;
+  title: string;
+  startedAt: string;
+  endedAt?: string | null;
+  coverUrl?: string | null;
+};
+
+type Participant = {
+  id: number;
+  spaceId: number;
+  joinedAt: string;
+  leftAt?: string | null;
+  space: HostedSpace;
+};
+
+type Tip = {
+  id: number;
+  amount: number;
+  createdAt: string;
+  toUser?: {
+    id: number;
+    displayName?: string | null;
+    username?: string | null;
+    avatarUrl?: string | null;
+  };
+  fromUser?: {
+    id: number;
+    displayName?: string | null;
+    username?: string | null;
+    avatarUrl?: string | null;
+  };
+};
+
+type Reaction = {
+  id: number;
+  emoji: string;
+  createdAt: string;
+  space?: HostedSpace;
+};
+
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error("Failed to fetch user profile");
+    return res.json();
+  });
+
 export default function UserProfilePage() {
-  const { user, refreshUser } = useUser();
+  const { user } = useUser();
 
-  // Spend Permission signing hooks
-  const account = useAccount();
-  const chainIdHook = useChainId();
-  const { connectAsync } = useConnect();
-  const connectors = useConnectors();
-  const { signTypedDataAsync } = useSignTypedData();
+  // Only fetch if user.id is available and a number
+  const userId = typeof user?.id === "number" ? user.id : undefined;
+  const {
+    data: profile,
+    error,
+    isLoading,
+  } = useSWR<UserProfile>(userId ? `/api/user?id=${userId}` : null, fetcher);
 
-  const [signing, setSigning] = useState(false);
+  // --- UI states ---
+  if (isLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="flex flex-col min-h-screen bg-background text-foreground items-center justify-center"
+      >
+        <MobileHeader
+          title="Profile"
+          showBack={true}
+          right={<ThemeToggle />}
+          lowerVisible={false}
+        />
+        <div className="mt-32 text-lg text-muted-foreground">
+          Loading profile…
+        </div>
+      </motion.div>
+    );
+  }
 
-  const hasSpendPerm = Boolean(user?.spendPerm);
+  if (error || !profile) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="flex flex-col min-h-screen bg-background text-foreground items-center justify-center"
+      >
+        <MobileHeader
+          title="Profile"
+          showBack={true}
+          right={<ThemeToggle />}
+          lowerVisible={false}
+        />
+        <div className="mt-32 text-lg text-muted-foreground">
+          Profile not found.
+        </div>
+      </motion.div>
+    );
+  }
 
-  /**
-   * Initiates the spend permission signing flow.
-   * Steps:
-   * 1. Ensure wallet connection (connect if necessary)
-   * 2. Generate typed data for SpendPermission
-   * 3. Request signature from the wallet
-   * 4. Submit on-chain approval via server action
-   * 5. Refresh user context to reflect new permission status
-   */
-  const handleSignPermission = async () => {
-    if (signing) return;
-    setSigning(true);
-    try {
-      let addr = account.address;
-      let cid = chainIdHook;
-
-      // Connect wallet if not connected yet
-      if (!addr) {
-        const res = await connectAsync({ connector: connectors[0] });
-        addr = res.accounts[0] as Address;
-        cid = (res as { chainId?: number }).chainId ?? chainIdHook;
-      }
-
-      if (!addr || !cid) throw new Error("Wallet connection failed");
-
-      const spendPermTypedData = getSpendPermTypedData(addr as Address, cid);
-
-      const signature = await signTypedDataAsync(spendPermTypedData);
-
-      await approveSpendPermission(
-        spendPermTypedData.message,
-        signature,
-        addr as Address,
-      );
-
-      // Refresh user data to reflect new permission
-      await refreshUser?.();
-    } catch (err) {
-      console.error("[profile] spend perm signing error", err);
-    } finally {
-      setSigning(false);
-    }
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const miniKit = useMiniKit() as any;
-
-  /* ------------------------------------------------------------------ */
-  /* Fallback demo data – replace once API endpoints are ready           */
-  /* ------------------------------------------------------------------ */
-  const profile = {
-    username: user?.username ?? "anon",
-    handle: user?.username ? `@${user.username}` : "@anon",
-    verified: true,
-    bio: "Web-native audio addict. I host Spaces about crypto, community and cool tech.",
-    location: "Metaverse",
-    website: "https://spaces.app",
-    joinDate: "Jan 2025",
-    avatarUrl: user?.pfpUrl ?? "/icon.png",
-    coverUrl: "/hero.png",
-    stats: {
-      spacesHosted: 12,
-      totalEarnings: 432.5, // USDC
-      followers: 891,
-      following: 120,
-    },
-    recentSpaces: [
-      {
-        id: "1",
-        title: "Building in Web3 – AMA",
-        date: "Yesterday",
-        listeners: 371,
-      },
-      {
-        id: "2",
-        title: "Token-gated Communities 101",
-        date: "3 days ago",
-        listeners: 184,
-      },
-    ],
-    badges: [
-      { id: "og", label: "OG Host" },
-      { id: "top-earner", label: "Top Earner" },
-    ],
-  };
-
-  /* ------------------------------------------------------------------ */
-  /* JSX                                                                */
-  /* ------------------------------------------------------------------ */
+  // --- Main Profile UI ---
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -153,10 +149,11 @@ export default function UserProfilePage() {
         right={<ThemeToggle />}
         lowerVisible={false}
       />
-      {/* Cover */}
+
+      {/* Cover (placeholder, as coverUrl is not in schema) */}
       <div className="relative w-full h-40 sm:h-56 md:h-64 overflow-hidden aurora-bg">
         <Image
-          src={profile.coverUrl}
+          src={"/hero.png"}
           alt="cover"
           fill
           priority
@@ -169,13 +166,12 @@ export default function UserProfilePage() {
         <div className="flex items-end justify-between w-full">
           <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-background overflow-hidden">
             <Image
-              src={profile.avatarUrl}
-              alt={profile.username}
+              src={profile.avatarUrl || "/icon.png"}
+              alt={profile.username || profile.displayName || "User"}
               fill
               className="object-cover"
             />
           </div>
-
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="icon" aria-label="Share profile">
               <ShareIcon className="w-5 h-5" />
@@ -189,132 +185,272 @@ export default function UserProfilePage() {
         {/* Name & handle */}
         <div className="mt-4">
           <h2 className="text-2xl font-bold flex items-center gap-1">
-            {profile.username}
-            {profile.verified && <VerifiedBadge />}
+            {profile.displayName || profile.username || "Spacer"}
           </h2>
-          <p className="text-muted-foreground">{profile.handle}</p>
-        </div>
-
-        {/* Bio & meta */}
-        <p className="mt-4 whitespace-pre-wrap leading-relaxed">
-          {profile.bio}
-        </p>
-        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-4">
-          <span>📍 {profile.location}</span>
-          {/* Coinbase Wallet Mini App Guideline: use sdk.actions.openUrl for external links */}
-          <button
-            onClick={() => {
-              try {
-                miniKit?.actions?.openUrl?.(profile.website);
-              } catch (err) {
-                console.error("Failed to open external URL", err);
-                // Fallback when running outside a mini app host
-                if (typeof window !== "undefined") {
-                  window.open(profile.website, "_blank", "noreferrer");
-                }
-              }
-            }}
-            className="hover:underline text-left"
-          >
-            🔗 Website
-          </button>
-          <span>🗓 Joined {profile.joinDate}</span>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
-          <StatCard label="Spaces Hosted" value={profile.stats.spacesHosted} />
-          <StatCard
-            label="Earnings (USDC)"
-            value={profile.stats.totalEarnings}
-          />
-          <StatCard label="Followers" value={profile.stats.followers} />
-          <StatCard label="Following" value={profile.stats.following} />
-        </div>
-
-        {/* Spend Permission – tipping */}
-        <div className="mt-8">
-          {hasSpendPerm ? (
-            <p className="text-sm text-green-600 font-medium">
-              Tipping enabled - spend permission active ✅
-            </p>
-          ) : (
-            <Button
-              onClick={handleSignPermission}
-              disabled={signing}
-              className="w-full sm:w-auto"
-            >
-              {signing
-                ? "Awaiting signature…"
-                : "Enable Tipping (Sign Permission)"}
-            </Button>
+          {profile.username && (
+            <p className="text-muted-foreground">@{profile.username}</p>
           )}
+        </div>
+
+        {/* Meta */}
+        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-4">
+          <span>
+            🗓 Joined{" "}
+            {new Date(profile.createdAt).toLocaleString("en-US", {
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
         </div>
       </div>
 
-      {/* Recent Spaces */}
-      <section className="px-6 mb-10">
-        <h3 className="text-xl font-semibold mb-4">Recent Spaces</h3>
-        {profile.recentSpaces.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No Spaces yet.</p>
-        ) : (
-          <ul className="space-y-4">
-            {profile.recentSpaces.map((s) => (
-              <li
-                key={s.id}
-                className="p-4 rounded-lg glass-card glow-hover transition flex items-center gap-3"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{s.title}</p>
-                  <span className="text-sm text-muted-foreground">
-                    {s.date} · {s.listeners} listeners
-                  </span>
-                </div>
-                <Button variant="ghost" size="sm">
-                  View
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+      {/* --- Profile Stats Section --- */}
+      <section className="px-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <StatCard
+            icon={<SpaceIcon className="w-6 h-6 text-primary" />}
+            label="Spaces Hosted"
+            value={profile.hostedSpaces?.length ?? 0}
+          />
+          <StatCard
+            icon={<UsersIcon className="w-6 h-6 text-secondary" />}
+            label="Spaces Joined"
+            value={profile.participants?.length ?? 0}
+          />
+          <StatCard
+            icon={<GiftIcon className="w-6 h-6 text-pink-500" />}
+            label="Tips Sent"
+            value={profile.tipsSent?.length ?? 0}
+          />
+          <StatCard
+            icon={<GiftIcon className="w-6 h-6 text-green-500" />}
+            label="Tips Received"
+            value={profile.tipsReceived?.length ?? 0}
+          />
+        </div>
       </section>
 
-      {/* Badges – simple pill list */}
-      <section className="px-6 mb-10">
-        <h3 className="text-xl font-semibold mb-4">Badges</h3>
-        {profile.badges.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No badges yet.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {profile.badges.map((b) => (
-              <span
-                key={b.id}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
+      {/* --- Hosted Spaces --- */}
+      {profile.hostedSpaces && profile.hostedSpaces.length > 0 && (
+        <SectionCard
+          title="Hosted Spaces"
+          icon={<SpaceIcon className="w-5 h-5 text-primary" />}
+        >
+          <div className="flex flex-col gap-3">
+            {profile.hostedSpaces.map((space) => (
+              <div
+                key={space.id}
+                className="flex items-center gap-3 rounded-xl bg-muted/60 p-3"
               >
-                {b.label}
-              </span>
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-primary/30 to-secondary/20">
+                  <Image
+                    src={space.coverUrl || "/hero.png"}
+                    alt={space.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-base">{space.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(space.startedAt).toLocaleDateString()}{" "}
+                    {space.endedAt && (
+                      <span className="ml-1">
+                        – Ended {new Date(space.endedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-        )}
-      </section>
+        </SectionCard>
+      )}
+
+      {/* --- Spaces Joined --- */}
+      {profile.participants && profile.participants.length > 0 && (
+        <SectionCard
+          title="Spaces Joined"
+          icon={<UsersIcon className="w-5 h-5 text-secondary" />}
+        >
+          <div className="flex flex-col gap-3">
+            {profile.participants.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center gap-3 rounded-xl bg-muted/60 p-3"
+              >
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-secondary/30 to-primary/20">
+                  <Image
+                    src={p.space.coverUrl || "/hero.png"}
+                    alt={p.space.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-base">{p.space.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Joined {new Date(p.joinedAt).toLocaleDateString()}
+                    {p.leftAt && (
+                      <span className="ml-1">
+                        - Left {new Date(p.leftAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
+      {/* --- Tips Sent --- */}
+      {profile.tipsSent && profile.tipsSent.length > 0 && (
+        <SectionCard
+          title="Tips Sent"
+          icon={<GiftIcon className="w-5 h-5 text-pink-500" />}
+        >
+          <div className="flex flex-col gap-3">
+            {profile.tipsSent.map((tip) => (
+              <div
+                key={tip.id}
+                className="flex items-center gap-3 rounded-xl bg-muted/60 p-3"
+              >
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-pink-400">
+                  <Image
+                    src={tip.toUser?.avatarUrl || "/icon.png"}
+                    alt={
+                      tip.toUser?.username || tip.toUser?.displayName || "User"
+                    }
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-base">
+                    {tip.toUser?.displayName || tip.toUser?.username || "User"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {tip.toUser?.username && <>@{tip.toUser.username} · </>}
+                    {new Date(tip.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <div className="font-bold text-pink-500 text-lg">
+                  +{tip.amount}
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
+      {/* --- Tips Received --- */}
+      {profile.tipsReceived && profile.tipsReceived.length > 0 && (
+        <SectionCard
+          title="Tips Received"
+          icon={<GiftIcon className="w-5 h-5 text-green-500" />}
+        >
+          <div className="flex flex-col gap-3">
+            {profile.tipsReceived.map((tip) => (
+              <div
+                key={tip.id}
+                className="flex items-center gap-3 rounded-xl bg-muted/60 p-3"
+              >
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-green-400">
+                  <Image
+                    src={tip.fromUser?.avatarUrl || "/icon.png"}
+                    alt={
+                      tip.fromUser?.username ||
+                      tip.fromUser?.displayName ||
+                      "User"
+                    }
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-base">
+                    {tip.fromUser?.displayName ||
+                      tip.fromUser?.username ||
+                      "User"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {tip.fromUser?.username && <>@{tip.fromUser.username} · </>}
+                    {new Date(tip.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <div className="font-bold text-green-500 text-lg">
+                  +{tip.amount}
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+
+      {/* --- Reactions --- */}
+      {profile.reactions && profile.reactions.length > 0 && (
+        <SectionCard
+          title="Reactions"
+          icon={<ReactionIcon className="w-5 h-5 text-yellow-500" />}
+        >
+          <div className="flex flex-col gap-3">
+            {profile.reactions.map((reaction) => (
+              <div
+                key={reaction.id}
+                className="flex items-center gap-3 rounded-xl bg-muted/60 p-3"
+              >
+                <span className="text-2xl">{reaction.emoji}</span>
+                <div className="flex-1">
+                  <div className="font-semibold text-base">
+                    {reaction.space?.title || "Space"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(reaction.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
     </motion.div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Reusable sub-components                                              */
+/* Reusable sub-components                                            */
 /* ------------------------------------------------------------------ */
-function StatCard({ label, value }: { label: string; value: number }) {
+type StatCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+};
+
+function StatCard({ icon, label, value }: StatCardProps) {
   return (
-    <div className="rounded-lg glass-card p-4 text-center glow-hover">
-      <p className="text-3xl font-extrabold leading-none text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-        <CountUp end={value} duration={1.4} separator="," />
-      </p>
-      <p className="text-sm text-muted-foreground mt-1">{label}</p>
+    <div className="rounded-xl bg-card shadow-md flex flex-col items-center justify-center py-5 px-2">
+      <div className="mb-2">{icon}</div>
+      <div className="text-2xl font-extrabold font-sora">{value}</div>
+      <div className="text-xs text-muted-foreground font-medium">{label}</div>
     </div>
   );
 }
 
-function VerifiedBadge() {
-  return <VerifiedIcon className="w-4 h-4 text-[#1D9BF0]" strokeWidth={2.5} />;
+type SectionCardProps = {
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+};
+
+function SectionCard({ title, icon, children }: SectionCardProps) {
+  return (
+    <section className="mb-8 px-6">
+      <div className="flex items-center gap-2 mb-3">
+        {icon}
+        <h3 className="text-lg font-bold font-sora">{title}</h3>
+      </div>
+      <div>{children}</div>
+    </section>
+  );
 }

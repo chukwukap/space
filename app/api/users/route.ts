@@ -31,11 +31,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Build OR conditions with correct Prisma type
     const ors: Prisma.UserWhereInput[] = [];
     if (id) ors.push({ id: Number(id) });
     if (fid) ors.push({ fid: Number(fid) });
-    if (address) ors.push({ address: address.toLowerCase() });
+    if (address) ors.push({ address: address });
     if (username)
       ors.push({
         username: {
@@ -80,12 +79,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Normalize address to lowercase
-    const normAddress: string | undefined = address
-      ? address.toLowerCase()
-      : undefined;
+    const normAddress: string | undefined = address ? address : undefined;
 
-    // Build OR conditions with correct Prisma type
     const ors2: Prisma.UserWhereInput[] = [];
     if (fid) ors2.push({ fid: Number(fid) });
     if (normAddress) ors2.push({ address: normAddress });
@@ -116,7 +111,7 @@ export async function POST(req: NextRequest) {
     } else {
       user = await prisma.user.create({
         data: {
-          fid: fid ? Number(fid) : 0,
+          fid: fid ? Number(fid) : null,
           address: normAddress ?? "",
           username: username ?? "",
           displayName: sanitizeString(displayName),
@@ -152,7 +147,7 @@ export async function PATCH(req: NextRequest) {
       );
 
     const data: Record<string, unknown> = {};
-    if (address) data.address = (address as string).toLowerCase();
+    if (address) data.address = address;
     if (avatarUrl) data.avatarUrl = sanitizeString(avatarUrl);
     if (displayName) data.displayName = sanitizeString(displayName);
     if (username) data.username = username;
