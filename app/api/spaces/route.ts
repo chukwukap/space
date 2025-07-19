@@ -136,7 +136,7 @@ export async function POST(request: Request) {
       data: {
         title: metadata.title,
         livekitName: livekitRoom.name,
-        hostFid: parseInt(metadata.hostFid),
+        hostId: parseInt(metadata.hostId),
         hostAddress: metadata.hostAddress,
         recording: metadata.recording,
         status: "LIVE",
