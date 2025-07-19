@@ -13,7 +13,7 @@ import { useMemo, useState } from "react";
 //   Participant as LKParticipant,
 //   RoomEvent,
 // } from "livekit-client";
-// import "@livekit/components-styles";
+import "@livekit/components-styles";
 import dynamic from "next/dynamic";
 // import { AvatarWithControls } from "./avatar";
 // import { useRouter } from "next/navigation";
