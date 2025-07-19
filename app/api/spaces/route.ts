@@ -40,6 +40,7 @@ export async function GET(request: Request) {
           where: { role: "HOST" },
           include: { user: true },
         },
+        host: true,
         _count: {
           select: { participants: true },
         },
@@ -54,6 +55,7 @@ export async function GET(request: Request) {
           where: { role: "HOST" },
           include: { user: true },
         },
+        host: true,
         _count: {
           select: { participants: true },
         },
@@ -136,7 +138,7 @@ export async function POST(request: Request) {
       data: {
         title: metadata.title,
         livekitName: livekitRoom.name,
-        hostId: parseInt(metadata.hostId),
+        hostId: hostUser.id,
         hostAddress: metadata.hostAddress,
         recording: metadata.recording,
         status: "LIVE",

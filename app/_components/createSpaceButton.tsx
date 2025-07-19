@@ -12,8 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Mic } from "lucide-react";
 import { toast } from "sonner";
-import { ShareAndroid, Copy } from "iconoir-react";
-import { castInvite } from "@/lib/farcaster";
 import { useAccount, useConnect } from "wagmi";
 import { useUser } from "../providers/userProvider";
 import { Space } from "@/lib/generated/prisma";
@@ -33,7 +31,6 @@ export default function CreateSpaceButton() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   // Hide button if on a space details page (/space/[room])
   // This matches any route starting with /space/ and followed by something
@@ -99,7 +96,7 @@ export default function CreateSpaceButton() {
 
       const space: Space = await res.json();
       const path = `/space/${space.livekitName}`;
-      setShareUrl(`${window.location.origin}${path}`);
+
       setOpen(true);
       toast.success("Space created! Redirecting you...");
       setTitle("");
@@ -131,85 +128,48 @@ export default function CreateSpaceButton() {
         </DrawerTrigger>
 
         <DrawerContent className="glass-card backdrop-blur-xl rounded-t-3xl border border-white/10 px-0 pb-10 text-foreground">
-          {shareUrl == null ? (
-            <div className="w-full px-8 pt-8 flex flex-col gap-6">
-              <DrawerHeader className="text-center mb-4">
-                <DrawerTitle>Create your Space</DrawerTitle>
-              </DrawerHeader>
+          <div className="w-full px-8 pt-8 flex flex-col gap-6">
+            <DrawerHeader className="text-center mb-4">
+              <DrawerTitle>Create your Space</DrawerTitle>
+            </DrawerHeader>
 
-              <div className="flex flex-col gap-3">
-                <label className="text-left text-sm font-medium">
-                  Space title
-                </label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="px-4 py-2 rounded-lg bg-input text-foreground placeholder:text-muted-foreground"
-                  placeholder="What are we talking about?"
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span>Record Space</span>
-                <input
-                  type="checkbox"
-                  checked={record}
-                  onChange={(e) => setRecord(e.target.checked)}
-                  className="w-5 h-5 accent-primary"
-                />
-              </div>
-
-              {createError && (
-                <div className="text-red-400 text-sm mb-2 text-center">
-                  {createError}
-                </div>
-              )}
-
-              <Button
-                className="w-full"
-                onClick={handleCreateSpace}
-                disabled={!title.trim() || creating}
-                aria-busy={creating}
-              >
-                {creating ? "Starting..." : "Start your Space"}
-              </Button>
+            <div className="flex flex-col gap-3">
+              <label className="text-left text-sm font-medium">
+                Space title
+              </label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="px-4 py-2 rounded-lg bg-input text-foreground placeholder:text-muted-foreground"
+                placeholder="What are we talking about?"
+              />
             </div>
-          ) : (
-            <div className="w-full px-8 pt-8 flex flex-col gap-6 items-center">
-              <DrawerHeader className="text-center mb-2">
-                <DrawerTitle>You&apos;re live! Spread the word</DrawerTitle>
-              </DrawerHeader>
 
-              <div className="grid grid-cols-2 gap-4 w-full">
-                <Button
-                  variant="secondary"
-                  className="flex-col gap-1"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(shareUrl);
-                    toast.success("Link copied");
-                  }}
-                >
-                  <Copy /> Copy link
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="flex-col gap-1"
-                  onClick={async () => {
-                    if (!user?.fid) {
-                      toast.error("Please connect your wallet to cast.");
-                      return;
-                    }
-                    await castInvite(user.fid, {
-                      url: shareUrl,
-                    });
-                    setOpen(false);
-                  }}
-                >
-                  <ShareAndroid /> Cast it
-                </Button>
-              </div>
+            <div className="flex items-center justify-between">
+              <span>Record Space</span>
+              <input
+                type="checkbox"
+                checked={record}
+                onChange={(e) => setRecord(e.target.checked)}
+                className="w-5 h-5 accent-primary"
+              />
             </div>
-          )}
+
+            {createError && (
+              <div className="text-red-400 text-sm mb-2 text-center">
+                {createError}
+              </div>
+            )}
+
+            <Button
+              className="w-full"
+              onClick={handleCreateSpace}
+              disabled={!title.trim() || creating}
+              aria-busy={creating}
+            >
+              {creating ? "Starting..." : "Start your Space"}
+            </Button>
+          </div>
         </DrawerContent>
       </Drawer>
     </>

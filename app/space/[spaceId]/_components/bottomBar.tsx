@@ -7,9 +7,10 @@ import {
   Share2 as ShareIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Participant } from "livekit-client";
 
 interface Props {
-  isSpeaker: boolean;
+  p: Participant | null;
   onToggleMic: () => void;
   onRaiseHand: () => void;
   onOpenReactionPicker: () => void;
@@ -19,18 +20,14 @@ interface Props {
   onQueueClick: () => void;
   /** Opens tipping (reaction picker) */
   onTipClick: () => void;
-  /**
-   * Callback fired when the user taps the “Invite” button. This will open the
-   * {@link InviteDrawer} supplied by the parent component. Keeping it lifted
-   * avoids tight coupling between the dumb BottomBar and the complex drawer
-   * state/logic.
-   */
+  /** Callback fired when the user taps the “Invite” button. */
   onInviteClick: () => void;
   className?: string;
+  handRaiseLoading?: boolean;
 }
 
 export default function BottomBar({
-  isSpeaker,
+  p,
   onToggleMic,
   onRaiseHand,
   onOpenReactionPicker,
@@ -39,9 +36,9 @@ export default function BottomBar({
   isHost,
   onQueueClick,
   onTipClick,
-
   onInviteClick,
   className,
+  handRaiseLoading = false,
 }: Props) {
   return (
     <footer
@@ -50,10 +47,16 @@ export default function BottomBar({
         className,
       )}
     >
-      {isSpeaker ? (
+      {p?.isMicrophoneEnabled ? (
         <BarButton label="Mic" icon={MicIcon} onClick={onToggleMic} />
       ) : (
-        <BarButton label="Request" icon={MicIcon} onClick={onRaiseHand} />
+        <BarButton
+          label={handRaiseLoading ? "..." : "Request"}
+          icon={MicIcon}
+          onClick={onRaiseHand}
+          disabled={handRaiseLoading}
+          loading={handRaiseLoading}
+        />
       )}
       <BarButton
         label={String(likes)}
@@ -86,15 +89,30 @@ interface BarButtonProps {
   label: string;
   icon: typeof MicIcon;
   onClick: () => void;
+  disabled?: boolean;
+  loading?: boolean;
 }
 
-function BarButton({ label, icon: IconCmp, onClick }: BarButtonProps) {
+function BarButton({
+  label,
+  icon: IconCmp,
+  onClick,
+  disabled,
+  loading,
+}: BarButtonProps) {
   return (
     <button
-      className="flex flex-col items-center text-foreground hover:opacity-90"
+      className="flex flex-col items-center text-foreground hover:opacity-90 disabled:opacity-50"
       onClick={onClick}
+      disabled={disabled}
     >
-      <IconCmp className="w-6 h-6" />
+      {loading ? (
+        <span className="w-6 h-6 flex items-center justify-center">
+          <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+        </span>
+      ) : (
+        <IconCmp className="w-6 h-6" />
+      )}
       <span className="text-[10px] mt-1">{label}</span>
     </button>
   );

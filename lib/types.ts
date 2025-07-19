@@ -7,6 +7,7 @@ export type SpaceWithHostParticipant = Prisma.SpaceGetPayload<{
       where: { role: "HOST" };
       include: { user: true };
     };
+    host: true;
   };
 }>;
 

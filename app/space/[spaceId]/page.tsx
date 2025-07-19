@@ -6,27 +6,39 @@ export const revalidate = 0;
 export default async function SpacePage({
   params,
 }: {
-  params: Promise<{ spaceId: string }>;
+  params: { spaceId: string };
 }) {
-  const { spaceId } = await params;
+  const { spaceId } = params;
 
-  const space = await prisma.space.findUnique({
-    where: { livekitName: spaceId },
-    include: {
-      participants: {
-        where: { role: "HOST" },
-        include: { user: true },
+  let spaceWithHost;
+  try {
+    spaceWithHost = await prisma.space.findUnique({
+      where: { livekitName: spaceId },
+      include: {
+        participants: {
+          where: { role: "HOST" },
+          include: { user: true },
+        },
+        host: true,
       },
-    },
-  });
+    });
+  } catch {
+    // Optionally log error here
+    return (
+      <div>
+        <h2>Database Error</h2>
+        <p>Could not load this space. Please try again later.</p>
+      </div>
+    );
+  }
 
-  if (!space) {
+  if (!spaceWithHost) {
     return <div>Space not found</div>;
   }
 
-  if (space.status !== "LIVE") {
+  if (spaceWithHost.status !== "LIVE") {
     return <div>This space has already ended</div>;
   }
 
-  return <SpaceRoom space={space} />;
+  return <SpaceRoom space={spaceWithHost} />;
 }

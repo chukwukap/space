@@ -6,7 +6,6 @@ import {
   useRoomContext,
   useToken,
 } from "@livekit/components-react";
-import { FireFlame, HandCash, Heart, Percentage } from "iconoir-react";
 import { useMemo, useEffect, useState, useCallback, useRef } from "react";
 import {
   ConnectionState,
@@ -22,7 +21,16 @@ import BottomBar from "./bottomBar";
 import HandRaiseQueue from "./HandRaiseQueue";
 import ReactionPicker, { ReactionType } from "./ReactionPicker";
 import MobileHeader from "@/app/_components/mobileHeader";
-import { Address } from "viem";
+import { ParticipantMetadata, SpaceWithHostParticipant } from "@/lib/types";
+import { useUser } from "@/app/providers/userProvider";
+import { approveSpendPermission } from "@/actions/spendPermission";
+import { NEXT_PUBLIC_LK_SERVER_URL } from "@/lib/constants";
+import { Participant as LiveKitParticipant } from "livekit-client";
+import TipModal from "./TipModal";
+import { toast } from "sonner";
+import { useHandRaise } from "@/app/hooks/useHandRaise";
+import { useLeaveRoom } from "@/app/hooks/useLeaveRoom";
+import { useTipReaction } from "@/app/hooks/useTipReaction";
 import {
   useAccount,
   useChainId,
@@ -30,12 +38,7 @@ import {
   useConnectors,
   useSignTypedData,
 } from "wagmi";
-import { ParticipantMetadata, SpaceWithHostParticipant } from "@/lib/types";
-import { Laugh } from "lucide-react";
-import { useUser } from "@/app/providers/userProvider";
-import { getSpendPermTypedData } from "@/lib/utils";
-import { approveSpendPermission } from "@/actions/spendPermission";
-import { NEXT_PUBLIC_LK_SERVER_URL } from "@/lib/constants";
+import { User } from "@/lib/types";
 
 // Use the new reusable drawer component instead of the previous custom sheet.
 const InviteDrawer = dynamic(() => import("@/app/_components/inviteDrawer"), {
@@ -125,36 +128,53 @@ function SpaceLayout({
   onInviteClick: () => void;
   space: SpaceWithHostParticipant;
 }) {
+  // All hooks at the top
   const { user } = useUser();
   const room = useRoomContext();
-
   const router = useRouter();
-
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  // Host hand-raise queue panel state
   const [queueOpen, setQueueOpen] = useState(false);
   const account = useAccount();
   const chainId = useChainId();
   const { connectAsync } = useConnect();
   const connectors = useConnectors();
   const { signTypedDataAsync } = useSignTypedData();
-
-  const host = room.getParticipantByIdentity(space.hostId.toString());
-
-  // All remote participants in the room
-  const remoteParticipants = Array.from(room.remoteParticipants.values());
-
-  // Listeners are remote participants who are not currently speaking
-  const listeners = remoteParticipants.filter(
-    (p) => !room.activeSpeakers.includes(p),
+  const [spaceEnded, setSpaceEnded] = useState(false);
+  const endedRef = useRef(false);
+  const [likes, setLikes] = useState(0);
+  const [reactions, setReactions] = useState<
+    Array<{ id: number; left: number; emoji: string }>
+  >([]);
+  const reactionEmojis = useMemo<Record<ReactionType, string>>(
+    () => ({
+      heart: "❤️",
+      clap: "👏",
+      fire: "🔥",
+      lol: "😂",
+      hundred: "💯",
+    }),
+    [],
   );
-
-  // Determine if local participant is host (fallback to first participant)
-  const isHost = host?.identity === room.localParticipant?.identity;
-
-  /** ------------------------------------------------------------------
-   * Helper – send data messages
-   * ----------------------------------------------------------------- */
+  const addFloatingReaction = (emoji: string) => {
+    const id = Date.now();
+    setReactions((prev) => [
+      ...prev,
+      { id, left: Math.random() * 80 + 10, emoji },
+    ]);
+    setTimeout(
+      () => setReactions((prev) => prev.filter((r) => r.id !== id)),
+      3000,
+    );
+  };
+  const [networkState, setNetworkState] = useState<ConnectionState | null>(
+    null,
+  );
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [handRaiseQueue, setHandRaiseQueue] = useState<LiveKitParticipant[]>(
+    [],
+  );
+  const [tipModalOpen, setTipModalOpen] = useState(false);
+  // Helper – send data messages (move above hooks)
   const sendData = useCallback(
     (message: Record<string, unknown>) => {
       try {
@@ -169,10 +189,155 @@ function SpaceLayout({
     [room],
   );
 
+  // Recipients: host + speakers
+  const hostRecipient = {
+    id: space.host.id.toString(),
+    name: space.host.displayName || space.host.username || "Host",
+    walletAddress: space.host.address,
+  };
+  const speakerRecipients = room.activeSpeakers.map((s) => {
+    // Try to find the corresponding participant in space.participants (if available)
+    const participant = space.participants.find(
+      (p) => p.user && p.user.id.toString() === s.identity,
+    );
+    return {
+      id: s.identity,
+      name: s.name || `Speaker ${s.identity}`,
+      walletAddress: participant?.user?.address || "",
+    };
+  });
+  const recipients = [hostRecipient, ...speakerRecipients];
+
+  const { onLeaveRoom, leaveLoading } = useLeaveRoom({
+    room,
+    user: user as User, // safe after guard
+    space,
+    router,
+    toast,
+  });
+  const { handleSendReaction, reactionLoading } = useTipReaction({
+    user: user as User, // safe after guard
+    space,
+    address: account.address,
+    chainId,
+    connect: () => connectAsync({ connector: connectors[0] }),
+    signTypedDataAsync,
+    approveSpendPermission,
+    sendData,
+    toast,
+    reactionEmojis,
+    addFloatingReaction,
+    setLikes,
+  });
+  const { onRaiseHand, clearHandRaise, handRaiseLoading } = useHandRaise({
+    room,
+    sendData,
+    toast,
+  });
+
+  // All remote participants in the room
+  const remoteParticipants = Array.from(room.remoteParticipants.values());
+
+  // Host participant
+  const host = room.getParticipantByIdentity(space.hostId.toString());
+
+  // Listeners are remote participants who are not currently speaking
+  const listeners = remoteParticipants.filter(
+    (p) => !room.activeSpeakers.includes(p),
+  );
+
+  // Helper to check if a participant has handRaised in metadata
+  const isHandRaised = (p: LiveKitParticipant) => {
+    try {
+      if (!p.metadata) return false;
+      const meta = JSON.parse(p.metadata);
+      return !!meta.handRaised;
+    } catch {
+      return false;
+    }
+  };
+
+  // Update hand-raise queue when participant metadata changes
+  useEffect(() => {
+    const updateQueue = () => {
+      const queue = Array.from(room.remoteParticipants.values()).filter(
+        isHandRaised,
+      );
+      setHandRaiseQueue(queue);
+    };
+    updateQueue();
+    room.on(RoomEvent.ParticipantMetadataChanged, updateQueue);
+    room.on(RoomEvent.ParticipantConnected, updateQueue);
+    room.on(RoomEvent.ParticipantDisconnected, updateQueue);
+    return () => {
+      room.off(RoomEvent.ParticipantMetadataChanged, updateQueue);
+      room.off(RoomEvent.ParticipantConnected, updateQueue);
+      room.off(RoomEvent.ParticipantDisconnected, updateQueue);
+    };
+  }, [room]);
+
+  // Host: accept hand-raise (invite to speak)
+  const handleAcceptHand = (sid: string) => {
+    sendData({ type: "inviteSpeak", sid });
+    // Host cannot update remote metadata; participant will update their own on invite
+    setQueueOpen(false);
+  };
+
+  // Host: reject hand-raise
+  const handleRejectHand = (sid: string) => {
+    sendData({ type: "rejectHand", sid });
+    // Host cannot update remote metadata; participant will update their own on reject
+    setQueueOpen(false);
+  };
+
+  // Listen for rejectHand data message (clear handRaised for local participant)
+  useEffect(() => {
+    const handleData = async (payload: Uint8Array) => {
+      try {
+        const msg = JSON.parse(new TextDecoder().decode(payload));
+        if (
+          msg.type === "rejectHand" &&
+          room.localParticipant &&
+          msg.sid === room.localParticipant.sid
+        ) {
+          await clearHandRaise();
+        }
+      } catch {}
+    };
+    room.on(RoomEvent.DataReceived, handleData);
+    return () => {
+      room.off(RoomEvent.DataReceived, handleData);
+    };
+  }, [room, clearHandRaise]);
+
+  // Listen for demoteSpeaker data message (clear handRaised for local participant)
+  useEffect(() => {
+    const handleData = async (payload: Uint8Array) => {
+      try {
+        const msg = JSON.parse(new TextDecoder().decode(payload));
+        if (
+          msg.type === "demoteSpeaker" &&
+          room.localParticipant &&
+          msg.sid === room.localParticipant.sid
+        ) {
+          await clearHandRaise();
+        }
+      } catch {}
+    };
+    room.on(RoomEvent.DataReceived, handleData);
+    return () => {
+      room.off(RoomEvent.DataReceived, handleData);
+    };
+  }, [room, clearHandRaise]);
+
+  /** ------------------------------------------------------------------
+   * Helper – send data messages
+   * ----------------------------------------------------------------- */
+  // sendData is already defined above
+
   /** ------------------------------------------------------------------
    * Local state helpers
    * ----------------------------------------------------------------- */
-  const isLocalMuted = room.localParticipant?.isMicrophoneEnabled === false;
 
   /* Rerender on active speaker change */
   const [, forceUpdate] = useState(0);
@@ -185,9 +350,6 @@ function SpaceLayout({
   }, [room]);
 
   // --- Track if the space has ended (host left) ---
-  const [spaceEnded, setSpaceEnded] = useState(false);
-  const endedRef = useRef(false);
-
   useEffect(() => {
     const handleParticipantConnected = (p: LKParticipant) => {
       console.log("participant connected", p);
@@ -243,42 +405,15 @@ function SpaceLayout({
 
   const toggleMic = useCallback(() => {
     if (room.localParticipant) {
-      room.localParticipant.setMicrophoneEnabled(!isLocalMuted);
+      room.localParticipant.setMicrophoneEnabled(
+        !room.localParticipant.isMicrophoneEnabled,
+      );
     }
-  }, [room, isLocalMuted]);
+  }, [room]);
 
   /** ------------------------------------------------------------------
    * Data message handler (invite, reactions, etc.)
    * ----------------------------------------------------------------- */
-  const [likes, setLikes] = useState(0);
-
-  const [reactions, setReactions] = useState<
-    Array<{ id: number; left: number; emoji: React.ReactNode }>
-  >([]);
-
-  // Memoise emojis so reference is stable across renders (satisfies eslint rules)
-  const reactionEmojis = useMemo<Record<ReactionType, React.ReactNode>>(
-    () => ({
-      heart: <Heart />,
-      clap: <HandCash />,
-      fire: <FireFlame />,
-      lol: <Laugh />,
-      hundred: <Percentage />,
-    }),
-    [],
-  );
-  /* Connection state banner */
-  const [networkState, setNetworkState] = useState<ConnectionState | null>(
-    null,
-  );
-
-  /* ------------------ Recording badge ------------------ */
-  const recordingBadge = room.isRecording ? (
-    <span className="bg-red-600 animate-pulse rounded px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-50">
-      REC
-    </span>
-  ) : null;
-
   useEffect(() => {
     const onStateChanged = () => {
       const state = room.state;
@@ -294,18 +429,6 @@ function SpaceLayout({
       room.off(RoomEvent.ConnectionStateChanged, onStateChanged);
     };
   }, [room]);
-
-  const addFloatingReaction = (emoji: React.ReactNode) => {
-    const id = Date.now();
-    setReactions((prev) => [
-      ...prev,
-      { id, left: Math.random() * 80 + 10, emoji },
-    ]);
-    setTimeout(
-      () => setReactions((prev) => prev.filter((r) => r.id !== id)),
-      3000,
-    );
-  };
 
   useEffect(() => {
     const handleData = (payload: Uint8Array) => {
@@ -369,34 +492,12 @@ function SpaceLayout({
   /** ----------------------------------------- */
   /* Reaction handling with tip                */
   /** ----------------------------------------- */
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // Remove previous handleSendReaction and reactionLoading state
 
-  const handleSendReaction = async (type: ReactionType) => {
-    // optimistic display
-    addFloatingReaction(reactionEmojis[type]);
-    setLikes((c) => c + 1);
-    sendData({ type: "reaction", reactionType: type });
-
-    try {
-      let addr = account.address;
-      if (!addr) {
-        const res = await connectAsync({ connector: connectors[0] });
-        addr = res.accounts[0] as Address;
-      }
-      if (!addr) return;
-      const spendPerm = getSpendPermTypedData(addr, chainId);
-
-      const signature = await signTypedDataAsync(spendPerm);
-
-      await approveSpendPermission(
-        spendPerm.message,
-        signature,
-        parseInt(user?.id ?? "0"),
-      );
-    } catch (err) {
-      console.error("[reaction tip] failed", err);
-    }
-  };
+  // Guard for user
+  if (!user) {
+    return <div>user not found</div>;
+  }
 
   // If the room does not exist, show a gentle error message
   if (!room) {
@@ -453,7 +554,11 @@ function SpaceLayout({
 
       <header className="flex justify-between px-4 py-2 bg-card/80 backdrop-blur z-40">
         <div className="flex items-center gap-3">
-          {recordingBadge}
+          {room.isRecording ? (
+            <span className="bg-red-600 animate-pulse rounded px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-50">
+              REC
+            </span>
+          ) : null}
           <span className="text-xs text-muted-foreground">
             {room.numParticipants} · listeners
           </span>
@@ -462,7 +567,7 @@ function SpaceLayout({
           className="text-red-500 font-semibold"
           onClick={() => setConfirmDialogOpen(true)}
         >
-          {isHost ? "End" : "Leave"}
+          {space.host.id === parseInt(user.id) ? "End" : "Leave"}
         </button>
       </header>
 
@@ -477,19 +582,19 @@ function SpaceLayout({
       {/* Avatars for host, speakers, and listeners */}
       <div className="flex px-6 py-4 gap-4 flex-1">
         {/* Host */}
-        <AvatarWithControls p={host} isHost roleLabel="Host" />
+        {host && <AvatarWithControls p={host} isHost roleLabel="Host" />}
         {/* Speakers */}
         {room.activeSpeakers.map((s) => (
           <AvatarWithControls
             key={s.identity}
             p={s}
             onToggleRemoteMute={
-              isHost
+              space.host.id === parseInt(user.id)
                 ? () => sendData({ type: "muteRequest", sid: s.sid })
                 : undefined
             }
             onDemote={
-              isHost
+              space.host.id === parseInt(user.id)
                 ? () => sendData({ type: "demoteSpeaker", sid: s.sid })
                 : undefined
             }
@@ -497,7 +602,7 @@ function SpaceLayout({
           />
         ))}
         {/* Listeners */}
-        {listeners.map((l) => (
+        {listeners.map((l: LiveKitParticipant) => (
           <AvatarWithControls
             key={l.identity}
             p={l}
@@ -514,46 +619,29 @@ function SpaceLayout({
         <ConfirmDialog
           title="Leave Room"
           subtitle="Are you sure you want to leave the room?"
-          confirmLabel={isHost ? "End Space" : "Leave"}
+          confirmLabel={
+            space.host.id === parseInt(user.id) ? "End Space" : "Leave"
+          }
           onCancel={() => setConfirmDialogOpen(false)}
-          onConfirm={() => {
-            try {
-              // Gracefully disconnect from the LiveKit room before navigating away.
-              if (isHost) {
-                try {
-                  fetch(`/api/spaces?spaceId=${room.name}`, {
-                    method: "DELETE",
-                  });
-                } catch (e) {
-                  console.error("end space api fail", e);
-                }
-              }
-              room?.disconnect();
-            } catch (err) {
-              // Log error for observability, but do not expose details to the user
-              // eslint-disable-next-line no-console
-              console.error("Error disconnecting from room", err);
-            } finally {
-              // Navigate the user back to the landing page.
-              router.push("/");
-            }
-          }}
+          onConfirm={onLeaveRoom}
+          loading={leaveLoading}
         />
       )}
 
       {/* Bottom bar */}
       <BottomBar
         className="fixed bottom-0 left-0 right-0"
-        isSpeaker={!isLocalMuted}
+        p={room.localParticipant}
         onToggleMic={toggleMic}
-        onRaiseHand={() => {}}
+        onRaiseHand={onRaiseHand}
         onOpenReactionPicker={() => setPickerOpen(true)}
-        onTipClick={() => setPickerOpen(true)}
+        onTipClick={() => setTipModalOpen(true)}
         likes={likes}
-        handRaiseCount={0}
-        isHost={isHost}
+        handRaiseCount={handRaiseQueue.length}
+        isHost={space.host.id === parseInt(user.id)}
         onQueueClick={() => setQueueOpen(true)}
         onInviteClick={onInviteClick}
+        handRaiseLoading={handRaiseLoading}
       />
 
       {pickerOpen && (
@@ -562,26 +650,33 @@ function SpaceLayout({
           onClose={() => {
             setPickerOpen(false);
           }}
+          loading={reactionLoading}
         />
       )}
 
-      {isHost && queueOpen && (
+      {space.host.id === parseInt(user.id) && queueOpen && (
         <HandRaiseQueue
-          list={[]}
+          list={handRaiseQueue}
           onClose={() => setQueueOpen(false)}
-          onAccept={(sid) => {
-            sendData({ type: "inviteSpeak", sid });
-            setQueueOpen(false);
-          }}
-          onReject={(sid) => {
-            sendData({ type: "rejectHand", sid });
-            setQueueOpen(false);
-          }}
+          onAccept={handleAcceptHand}
+          onReject={handleRejectHand}
         />
       )}
 
       {/* Floating reactions overlay */}
       <ReactionOverlay reactions={reactions} />
+      <TipModal
+        open={tipModalOpen}
+        onClose={() => setTipModalOpen(false)}
+        recipients={recipients}
+        defaultRecipientId={hostRecipient.id}
+        userId={user.id}
+        spaceId={space.id}
+        onTipSuccess={() => {
+          setTipModalOpen(false);
+          if (toast) toast.success("Tip sent!");
+        }}
+      />
     </div>
   );
 }

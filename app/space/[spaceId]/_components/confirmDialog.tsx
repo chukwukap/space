@@ -5,8 +5,9 @@ interface Props {
   title: string;
   subtitle?: string;
   confirmLabel?: string;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
+  loading?: boolean;
 }
 
 export default function ConfirmDialog({
@@ -15,6 +16,7 @@ export default function ConfirmDialog({
   confirmLabel = "Confirm",
   onConfirm,
   onCancel,
+  loading = false,
 }: Props) {
   return (
     <div className="z-50 flex items-center justify-center ">
@@ -26,11 +28,20 @@ export default function ConfirmDialog({
           </p>
         )}
         <div className="flex justify-end gap-3">
-          <Button variant="ghost" size="sm" onClick={onCancel}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            disabled={loading}
+          >
             Cancel
           </Button>
-          <Button size="sm" onClick={onConfirm}>
-            {confirmLabel}
+          <Button size="sm" onClick={onConfirm} disabled={loading}>
+            {loading ? (
+              <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+            ) : (
+              confirmLabel
+            )}
           </Button>
         </div>
       </div>
