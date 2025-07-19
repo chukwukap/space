@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { User } from "@/lib/types";
 import { Context } from "@farcaster/frame-sdk";
+import { useAccount } from "wagmi";
 
 interface Params {
   context: Context.FrameContext | null;
@@ -9,6 +10,7 @@ interface Params {
 }
 
 export function useFarcasterOnboard({ context, user, mutate }: Params) {
+  const { address } = useAccount();
   const postedRef = useRef(false);
 
   useEffect(() => {
@@ -32,7 +34,12 @@ export function useFarcasterOnboard({ context, user, mutate }: Params) {
         await fetch("/api/users", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fid, username, avatarUrl }),
+          body: JSON.stringify({
+            fid,
+            username,
+            avatarUrl,
+            address,
+          }),
         });
         postedRef.current = true;
         mutate?.();
@@ -40,5 +47,5 @@ export function useFarcasterOnboard({ context, user, mutate }: Params) {
         console.error("[useFarcasterOnboard] error", err);
       }
     })();
-  }, [context, user, mutate]);
+  }, [context, user, mutate, address]);
 }

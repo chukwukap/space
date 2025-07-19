@@ -107,11 +107,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const normAddress: string | undefined = address ? address : undefined;
-
     const ors2: Prisma.UserWhereInput[] = [];
     if (fid) ors2.push({ fid: Number(fid) });
-    if (normAddress) ors2.push({ address: normAddress });
+    if (address) ors2.push({ address });
     if (username)
       ors2.push({
         username: {
@@ -137,7 +135,7 @@ export async function POST(req: NextRequest) {
         data: {
           avatarUrl: sanitizeString(avatarUrl),
           displayName: sanitizeString(displayName),
-          address: normAddress ?? existing.address,
+          address: address ?? existing.address,
           username: username ?? existing.username,
         },
         include: { tipsSent: true, tipsReceived: true },
@@ -145,11 +143,18 @@ export async function POST(req: NextRequest) {
       // Log the update operation
       console.log("[POST /api/user] Updated user:", user);
     } else {
+      if (!address || !fid) {
+        console.log("[POST /api/user] Address and fid are required");
+        return NextResponse.json(
+          { error: "Address and fid are required" },
+          { status: 400 },
+        );
+      }
       user = await prisma.user.create({
         data: {
-          fid: fid ? Number(fid) : null,
-          address: normAddress ?? "",
-          username: username ?? "",
+          fid: Number(fid),
+          address: address,
+          username: username,
           displayName: sanitizeString(displayName),
           avatarUrl: sanitizeString(avatarUrl),
         },
