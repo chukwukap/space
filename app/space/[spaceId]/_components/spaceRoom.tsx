@@ -220,7 +220,7 @@ function SpaceLayout({
         // Defensive: p may be undefined/null
         if (!p) return;
         // Defensive: p.metadata may be undefined
-        console.log("metadata changed", p.metadata ?? null);
+        console.log("metadata changed", p?.metadata ?? null);
         // const meta = p.metadata ? JSON.parse(p.metadata) : {};
         // if (meta.handRaised) spaceStore.enqueueHand(p);
         // else spaceStore.dequeueHand(p.sid);
@@ -528,34 +528,8 @@ function SpaceLayout({
             key={l.identity}
             p={l as LKParticipant}
             size={56}
-            isHandRaised={(() => {
-              try {
-                // Defensive: l may be undefined/null
-                if (!l) return false;
-                // Defensive: l.metadata may be undefined
-                const meta = l.metadata ? JSON.parse(l.metadata) : {};
-                return !!meta.handRaised;
-              } catch {
-                return false;
-              }
-            })()}
-            onInvite={(() => {
-              // Show invite button only for host & if participant raised hand
-              const isHand = (() => {
-                try {
-                  if (!l) return false;
-                  const meta = l.metadata ? JSON.parse(l.metadata) : {};
-                  return !!meta.handRaised;
-                } catch {
-                  return false;
-                }
-              })();
-              if (!isHand || !isHost) return undefined;
-              return () => {
-                // Send invite to speak message to participant
-                sendData({ type: "inviteSpeak", sid: l.sid });
-              };
-            })()}
+            isHandRaised={false}
+            onInvite={() => {}}
             onToggleRemoteMute={undefined}
             onDemote={undefined}
             roleLabel="Listener"
