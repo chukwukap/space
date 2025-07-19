@@ -37,7 +37,7 @@ enum ReactionType {
 model User {
   id          Int      @id @default(autoincrement())
   fid         Int?     @unique // Farcaster FID, can be null
-  address     String   @unique // Primary wallet address
+  address     String?  @unique // Primary wallet address
   displayName String?
   username    String? // @handle
   avatarUrl   String?

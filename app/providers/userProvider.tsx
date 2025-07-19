@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, ReactNode } from "react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
 import { User } from "@/lib/types";
 import { useCurrentUser } from "@/app/hooks/useCurrentUser";
 import { useFarcasterOnboard } from "@/app/hooks/useFarcasterOnboard";
@@ -34,10 +34,6 @@ const UserContext = createContext<UserContextType>({
 export function UserProvider({ children }: { children: ReactNode }) {
   const { context } = useMiniKit();
   const { address: walletAddress } = useAccount();
-  const { connect, connectors } = useConnect();
-  if (!walletAddress && connectors && connectors.length > 0) {
-    connect({ connector: connectors[0] });
-  }
 
   const {
     user,

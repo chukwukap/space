@@ -143,13 +143,6 @@ export async function POST(req: NextRequest) {
       // Log the update operation
       console.log("[POST /api/user] Updated user:", user);
     } else {
-      if (!address || !fid) {
-        console.log("[POST /api/user] Address and fid are required");
-        return NextResponse.json(
-          { error: "Address and fid are required" },
-          { status: 400 },
-        );
-      }
       user = await prisma.user.create({
         data: {
           fid: Number(fid),
