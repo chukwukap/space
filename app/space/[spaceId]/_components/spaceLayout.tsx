@@ -22,6 +22,7 @@ import { TipRecipient } from "@/lib/types";
 import { toast } from "sonner";
 import { approveSpendPermission } from "@/actions/spendPermission";
 import { REACTION_EMOJIS } from "@/lib/constants";
+import "@livekit/components-styles";
 
 export default function SpaceLayout({
   onInviteClick,
