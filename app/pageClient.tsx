@@ -11,6 +11,7 @@ import { Microphone } from "iconoir-react";
 import { ThemeToggle } from "./_components/themeToggle";
 
 import { SpaceWithHostParticipant } from "@/lib/types";
+import { useUser } from "./providers/userProvider";
 
 /**
  * Space type extends Room with additional metadata fields.
@@ -29,7 +30,7 @@ export default function LandingPageClient() {
   const router = useRouter();
   const addFrame = useAddFrame();
   const [frameAdded, setFrameAdded] = useState(false);
-
+  const { user } = useUser();
   // Prepare frame on mount
   useEffect(() => {
     if (!isFrameReady) {
@@ -107,6 +108,8 @@ export default function LandingPageClient() {
           Scroll to discover what&apos;s buzzing right now
         </p>
       </section>
+
+      <>user address(testing): {user?.walletAddress}</>
 
       <section className="mt-6 flex flex-col gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
