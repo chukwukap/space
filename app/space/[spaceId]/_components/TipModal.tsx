@@ -54,6 +54,7 @@ export default function TipModal({
   const { signTypedDataAsync } = useSignTypedData();
 
   const recipient = recipients.find((r) => r.id === recipientId);
+
   const handleTip = async () => {
     setStatus("loading");
     setError(null);
@@ -106,7 +107,7 @@ export default function TipModal({
         setStatus("idle");
         setAmount("");
         onClose();
-      }, 1500);
+      }, 1500); // 1.5 seconds
     } catch (err: unknown) {
       setStatus("error");
       if (err instanceof Error) {

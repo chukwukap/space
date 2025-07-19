@@ -1,11 +1,13 @@
 "use client";
 import {
-  Mic2 as MicIcon,
-  HandMetal as HandIcon,
+  MicrophoneMute,
+  MicrophoneSpeaking,
+  Microphone,
+  DragHandGesture as HandIcon,
   Heart as HeartIcon,
-  Users as UsersIcon,
-  Share2 as ShareIcon,
-} from "lucide-react";
+  User as UsersIcon,
+  ShareAndroid as ShareIcon,
+} from "iconoir-react";
 import { cn } from "@/lib/utils";
 import { Participant } from "livekit-client";
 
@@ -48,11 +50,24 @@ export default function BottomBar({
       )}
     >
       {p?.isMicrophoneEnabled ? (
-        <BarButton label="Mic" icon={MicIcon} onClick={onToggleMic} />
+        p.isSpeaking ? (
+          <BarButton
+            label="Speaking"
+            icon={MicrophoneSpeaking}
+            onClick={onToggleMic}
+          />
+        ) : (
+          <BarButton
+            label={handRaiseLoading ? "..." : "Muted"}
+            icon={MicrophoneMute}
+            onClick={onToggleMic}
+            disabled={handRaiseLoading}
+          />
+        )
       ) : (
         <BarButton
-          label={handRaiseLoading ? "..." : "Request"}
-          icon={MicIcon}
+          label={handRaiseLoading ? "..." : "Muted"}
+          icon={Microphone}
           onClick={onRaiseHand}
           disabled={handRaiseLoading}
           loading={handRaiseLoading}
@@ -87,7 +102,7 @@ export default function BottomBar({
 
 interface BarButtonProps {
   label: string;
-  icon: typeof MicIcon;
+  icon: React.ElementType;
   onClick: () => void;
   disabled?: boolean;
   loading?: boolean;

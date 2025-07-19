@@ -155,6 +155,7 @@ function SpaceLayout({
     }),
     [],
   );
+  // Add floating reaction to the screen
   const addFloatingReaction = (emoji: string) => {
     const id = Date.now();
     setReactions((prev) => [
@@ -166,9 +167,13 @@ function SpaceLayout({
       3000,
     );
   };
+
+  // Network state
   const [networkState, setNetworkState] = useState<ConnectionState | null>(
     null,
   );
+
+  // Reaction picker open state
   const [pickerOpen, setPickerOpen] = useState(false);
   const [handRaiseQueue, setHandRaiseQueue] = useState<LiveKitParticipant[]>(
     [],
