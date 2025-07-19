@@ -29,8 +29,6 @@ type AvatarWithControlsProps = {
   p: Participant | undefined;
   isHost?: boolean;
   isLocal?: boolean;
-  isSpeaking?: boolean;
-  isHandRaised?: boolean;
   pfpUrl?: string;
   /** Callback for host to invite this participant to speak */
   onInvite?: () => void;
@@ -47,13 +45,10 @@ export function AvatarWithControls({
   p,
   isHost = false,
   isLocal = false,
-  isSpeaking = false,
-  isHandRaised = false,
   pfpUrl,
   onInvite,
   onToggleRemoteMute,
   onDemote,
-  remoteMuted,
   roleLabel,
 }: AvatarWithControlsProps) {
   // Memoize meta to avoid unnecessary recalculations and to ensure stable reference for useMemo dependencies
@@ -85,31 +80,8 @@ export function AvatarWithControls({
     }
   }, [pfpUrl, meta]);
 
-  // Determine mute state securely
-  const muted =
-    typeof remoteMuted === "boolean"
-      ? remoteMuted
-      : typeof (p as Participant).isMicrophoneEnabled === "boolean"
-        ? !(p as Participant).isMicrophoneEnabled
-        : false;
-
-  // Determine speaking state
-  const speaking = isSpeaking;
-
-  // Hand raise state
-  const handRaised = useMemo(() => {
-    return isHandRaised;
-  }, [isHandRaised]);
-
   // Accessibility: Compose label
-  const ariaLabel = [
-    p?.identity,
-    isHost ? "host" : "",
-    isLocal ? "you" : "",
-    muted ? "muted" : "unmuted",
-    speaking ? "speaking" : "",
-    handRaised ? "hand raised" : "",
-  ]
+  const ariaLabel = [p?.identity, isHost ? "host" : "", isLocal ? "you" : ""]
     .filter(Boolean)
     .join(", ");
 
@@ -117,7 +89,6 @@ export function AvatarWithControls({
     <div className="flex flex-col items-center gap-1" style={{ width: 64 }}>
       <div
         className={`relative flex items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold shadow-lg transition-shadow
-        ${speaking ? "ring-4 ring-primary/60 shadow-2xl" : ""}
         ${isHost ? "border-2 border-amber-400" : ""}
         ${isLocal ? "outline outline-2 outline-cyan-400" : ""}
       `}
@@ -126,9 +97,6 @@ export function AvatarWithControls({
           height: 64,
           minWidth: 64,
           minHeight: 64,
-          boxShadow: speaking
-            ? "0 0 0 4px rgba(var(--primary)/0.3), 0 4px 24px 0 rgba(80,0,120,0.18)"
-            : "0 2px 8px 0 rgba(80,0,120,0.10)",
           position: "relative",
         }}
         aria-label={ariaLabel}
@@ -151,7 +119,7 @@ export function AvatarWithControls({
         )}
 
         {/* Hand raise */}
-        {handRaised && (
+        {false && (
           <span
             className="absolute -top-2 -left-2 z-20 drop-shadow"
             title="Hand Raised"
@@ -163,25 +131,23 @@ export function AvatarWithControls({
         {/* Mic/mute indicator */}
         <span
           className="absolute -bottom-2 right-1 z-20"
-          title={muted ? "Muted" : "Mic On"}
+          title={p?.isMicrophoneEnabled ? "Mic On" : "Mic Off"}
         >
-          {muted ? (
+          {!p?.isMicrophoneEnabled ? (
             <MicOffIcon
               className="w-5 h-5 text-destructive bg-background rounded-full p-0.5 shadow"
               aria-label="Muted"
             />
           ) : (
             <MicIcon
-              className={`${
-                speaking ? "text-secondary" : "text-muted-foreground"
-              } w-5 h-5 bg-background rounded-full p-0.5 shadow`}
+              className={`${"text-muted-foreground"} w-5 h-5 bg-background rounded-full p-0.5 shadow`}
               aria-label="Mic On"
             />
           )}
         </span>
 
         {/* Speaking equalizer */}
-        {speaking && !muted && (
+        {p?.isSpeaking && p?.isMicrophoneEnabled && (
           <span className="absolute -right-2 bottom-1 flex flex-col items-center gap-[2px]">
             {[0, 1, 2].map((i) => (
               <span
@@ -209,9 +175,9 @@ export function AvatarWithControls({
           <button
             onClick={onToggleRemoteMute}
             className="absolute -top-2 -right-2 z-20 bg-white rounded-full p-0.5 shadow hover:scale-105 transition-transform"
-            title={muted ? "Unmute Speaker" : "Mute Speaker"}
+            title={p?.isMicrophoneEnabled ? "Unmute Speaker" : "Mute Speaker"}
           >
-            {muted ? (
+            {!p?.isMicrophoneEnabled ? (
               <UnmuteRemoteIcon className="w-5 h-5 text-destructive" />
             ) : (
               <MuteRemoteIcon className="w-5 h-5 text-red-600" />
@@ -246,7 +212,7 @@ export function AvatarWithControls({
           {/* Bullet */}
           <span
             className={`inline-block w-1 h-1 rounded-full ${
-              speaking ? "bg-secondary" : "bg-muted-foreground"
+              p?.isSpeaking ? "bg-secondary" : "bg-muted-foreground"
             }`}
           />
           {roleLabel}

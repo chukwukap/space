@@ -247,22 +247,6 @@ function SpaceLayout({
     }
   }, [room, isLocalMuted]);
 
-  const raiseHand = useCallback(() => {
-    try {
-      if (!room.localParticipant) return;
-      const meta = room.localParticipant.metadata
-        ? JSON.parse(room.localParticipant.metadata)
-        : {};
-      meta.handRaised = true;
-      room.localParticipant.setMetadata(JSON.stringify(meta));
-      // Notify host
-      sendData({ type: "handRaised", sid: room.localParticipant.sid });
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to raise hand", err);
-    }
-  }, [room, sendData]);
-
   /** ------------------------------------------------------------------
    * Data message handler (invite, reactions, etc.)
    * ----------------------------------------------------------------- */
@@ -462,7 +446,7 @@ function SpaceLayout({
           {networkState === ConnectionState.Reconnecting
             ? "Reconnecting…"
             : networkState === ConnectionState.Disconnected
-              ? "Disconnected. Rejoining…"
+              ? "Disconnected"
               : networkState.toString()}
         </div>
       )}
@@ -493,18 +477,12 @@ function SpaceLayout({
       {/* Avatars for host, speakers, and listeners */}
       <div className="flex px-6 py-4 gap-4 flex-1">
         {/* Host */}
-        <AvatarWithControls
-          p={host as LKParticipant}
-          isSpeaking={host?.isSpeaking}
-          isHost
-          remoteMuted={!host?.isMicrophoneEnabled}
-          roleLabel="Host"
-        />
+        <AvatarWithControls p={host} isHost roleLabel="Host" />
         {/* Speakers */}
         {room.activeSpeakers.map((s) => (
           <AvatarWithControls
             key={s.identity}
-            p={s as LKParticipant}
+            p={s}
             onToggleRemoteMute={
               isHost
                 ? () => sendData({ type: "muteRequest", sid: s.sid })
@@ -515,8 +493,6 @@ function SpaceLayout({
                 ? () => sendData({ type: "demoteSpeaker", sid: s.sid })
                 : undefined
             }
-            isSpeaking={s.isSpeaking}
-            remoteMuted={!s.isMicrophoneEnabled}
             roleLabel="Speaker"
           />
         ))}
@@ -524,11 +500,10 @@ function SpaceLayout({
         {listeners.map((l) => (
           <AvatarWithControls
             key={l.identity}
-            p={l as LKParticipant}
-            isHandRaised={false}
+            p={l}
             onInvite={() => {}}
-            onToggleRemoteMute={undefined}
-            onDemote={undefined}
+            onToggleRemoteMute={() => {}}
+            onDemote={() => {}}
             roleLabel="Listener"
           />
         ))}
@@ -571,7 +546,7 @@ function SpaceLayout({
         className="fixed bottom-0 left-0 right-0"
         isSpeaker={!isLocalMuted}
         onToggleMic={toggleMic}
-        onRaiseHand={raiseHand}
+        onRaiseHand={() => {}}
         onOpenReactionPicker={() => setPickerOpen(true)}
         onTipClick={() => setPickerOpen(true)}
         likes={likes}
