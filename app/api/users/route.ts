@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma";
+import { UserWithRelations } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                            */
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest) {
     // Log the constructed OR conditions
     console.log("[GET /api/user] Prisma OR conditions:", JSON.stringify(ors));
 
-    const user = await prisma.user.findFirst({
+    const user: UserWithRelations | null = await prisma.user.findFirst({
       where: { OR: ors },
       include: { tipsSent: true, tipsReceived: true },
     });
@@ -85,14 +86,21 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { fid, address, username, avatarUrl, displayName } = body;
+    const {
+      fid,
+      address,
+      username,
+      pfpUrl,
+      displayName,
+      farcasterClientIdOnboardedFrom,
+    } = body;
 
     // Log all incoming POST body values
     console.log("[POST /api/user] Body:", {
       fid,
       address,
       username,
-      avatarUrl,
+      pfpUrl,
       displayName,
     });
 
@@ -128,12 +136,12 @@ export async function POST(req: NextRequest) {
     // Log the existing user if found
     console.log("[POST /api/user] Existing user:", existing);
 
-    let user;
+    let user: UserWithRelations | null = null;
     if (existing) {
       user = await prisma.user.update({
         where: { id: existing.id },
         data: {
-          avatarUrl: sanitizeString(avatarUrl),
+          avatarUrl: sanitizeString(pfpUrl),
           displayName: sanitizeString(displayName),
           address: address ?? existing.address,
           username: username ?? existing.username,
@@ -148,8 +156,10 @@ export async function POST(req: NextRequest) {
           fid: Number(fid),
           address: address,
           username: username,
+          farcasterClientIdOnboardedFrom:
+            farcasterClientIdOnboardedFrom ?? null,
           displayName: sanitizeString(displayName),
-          avatarUrl: sanitizeString(avatarUrl),
+          avatarUrl: sanitizeString(pfpUrl),
         },
         include: { tipsSent: true, tipsReceived: true },
       });

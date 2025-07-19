@@ -1,6 +1,10 @@
 import { Address } from "viem";
 import { Prisma } from "@/lib/generated/prisma";
 
+export type UserWithRelations = Prisma.UserGetPayload<{
+  include: { tipsSent: true; tipsReceived: true };
+}>;
+
 export type SpaceWithHostParticipant = Prisma.SpaceGetPayload<{
   include: {
     participants: {
@@ -10,19 +14,6 @@ export type SpaceWithHostParticipant = Prisma.SpaceGetPayload<{
     host: true;
   };
 }>;
-
-export interface User {
-  id: string;
-  fid?: number;
-  username?: string;
-  walletAddress?: string;
-  pfpUrl?: string;
-  /**
-   * JSON stringified spend permission data (message, signature, txHash) if the
-   * user has already signed/approved a spend permission. Undefined otherwise.
-   */
-  spendPerm?: string;
-}
 
 export interface SpaceMetadata {
   title: string;

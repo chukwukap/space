@@ -55,10 +55,10 @@ export default function SpaceRoom({
   const userInfo = useMemo(
     () => ({
       identity: user?.id.toString(),
-      name: user?.username,
+      name: user?.username ?? undefined,
       metadata: JSON.stringify({
         isHost: user ? user.id.toString() === space.hostId.toString() : false,
-        pfpUrl: user?.pfpUrl ?? null,
+        pfpUrl: user?.avatarUrl ?? null,
         fid: user?.fid ?? null,
       } as ParticipantMetadata),
     }),

@@ -2,7 +2,7 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
-import { User } from "@/lib/types";
+import { UserWithRelations } from "@/lib/types";
 import { useCurrentUser } from "@/app/hooks/useCurrentUser";
 import { useFarcasterOnboard } from "@/app/hooks/useFarcasterOnboard";
 import { useWalletSync } from "@/app/hooks/useWalletSync";
@@ -11,7 +11,7 @@ import { useWalletSync } from "@/app/hooks/useWalletSync";
  * Context type for user state management.
  */
 interface UserContextType {
-  user: User | null;
+  user: UserWithRelations | null;
   userLoading: boolean;
   userError: string | null;
   refreshUser: () => Promise<void>;
@@ -49,7 +49,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     await swrRefresh();
   };
 
-  useFarcasterOnboard({ context, user, mutate: refreshUser });
+  useFarcasterOnboard({
+    context,
+    user,
+    address: walletAddress ?? null,
+    mutate: refreshUser,
+  });
   useWalletSync({ user, walletAddress, mutate: refreshUser });
 
   return (

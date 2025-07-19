@@ -1,9 +1,9 @@
+import { UserWithRelations } from "@/lib/types";
 import { useEffect, useRef } from "react";
-import { User } from "@/lib/types";
 import { Address } from "viem";
 
 interface Params {
-  user: User | null;
+  user: UserWithRelations | null;
   walletAddress: Address | undefined;
   mutate: () => Promise<void> | void;
 }
@@ -14,9 +14,9 @@ export function useWalletSync({ user, walletAddress, mutate }: Params) {
   useEffect(() => {
     if (patchedRef.current) return;
 
-    if (!user || !user.id) return;
-    if (!walletAddress) return;
-    if (user.walletAddress === walletAddress) return;
+    if (!user || !user.id) return; // user not found
+    if (!walletAddress) return; // wallet not connected
+    if (user.address === walletAddress) return;
 
     (async () => {
       try {

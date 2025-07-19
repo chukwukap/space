@@ -1,5 +1,5 @@
 import useSWR from "swr";
-import { User } from "@/lib/types";
+import { UserWithRelations } from "@/lib/types";
 
 import { Context } from "@farcaster/frame-sdk";
 import { Address } from "viem";
@@ -27,7 +27,7 @@ export function useCurrentUser({
   };
 
   const hasParams = Object.values(params).some(
-    (v) => v !== undefined && v !== "",
+    (v) => v !== undefined && v !== null && v !== "",
   );
 
   const search = hasParams
@@ -39,11 +39,16 @@ export function useCurrentUser({
         ),
       ).toString()
     : null;
+
   const key = hasParams ? `/api/users?${search}` : null;
 
-  const { data, error, isLoading, mutate } = useSWR<User | null>(key, fetcher, {
-    revalidateOnFocus: false,
-  });
+  const { data, error, isLoading, mutate } = useSWR<UserWithRelations | null>(
+    key,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+    },
+  );
 
   return {
     user: data ?? null,

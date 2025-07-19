@@ -1,28 +1,28 @@
 import { useEffect, useRef } from "react";
-import { User } from "@/lib/types";
+import { UserWithRelations } from "@/lib/types";
 import { Context } from "@farcaster/frame-sdk";
+import { Address } from "viem";
 
 interface Params {
   context: Context.FrameContext | null;
-  user: User | null;
+  user: UserWithRelations | null;
+  address: Address | null;
   mutate: () => Promise<void> | void;
 }
 
-export function useFarcasterOnboard({ context, user, mutate }: Params) {
+export function useFarcasterOnboard({
+  context,
+  user,
+  address,
+  mutate,
+}: Params) {
   const postedRef = useRef(false);
 
   useEffect(() => {
     if (postedRef.current) return;
-    if (!context) return;
+    if (!context) return; // user not logged in
 
-    const userObj = context.user;
-
-    const fid = userObj?.fid;
-
-    if (!fid) return;
-
-    if (user && user.walletAddress && user.fid && user.username && user.pfpUrl)
-      return; // already onboarded
+    if (user) return; // already onboarded
 
     (async () => {
       try {
@@ -30,10 +30,12 @@ export function useFarcasterOnboard({ context, user, mutate }: Params) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            fid,
-            username: user?.username ?? "",
-            avatarUrl: user?.pfpUrl ?? "",
-            address: user?.walletAddress ?? "",
+            fid: context.user.fid,
+            username: context.user.username ?? null,
+            pfpUrl: context.user.pfpUrl ?? null,
+            address: address ?? null,
+            displayName: context.user.displayName ?? null,
+            farcasterClientIdOnboardedFrom: context.client.clientFid,
           }),
         });
         postedRef.current = true;
@@ -42,5 +44,5 @@ export function useFarcasterOnboard({ context, user, mutate }: Params) {
         console.error("[useFarcasterOnboard] error", err);
       }
     })();
-  }, [context, user, mutate]);
+  }, [context, user, address, mutate]);
 }

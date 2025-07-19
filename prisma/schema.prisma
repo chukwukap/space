@@ -35,14 +35,15 @@ enum ReactionType {
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
-  fid         Int?     @unique // Farcaster FID, can be null
-  address     String?  @unique // Primary wallet address
-  displayName String?
-  username    String? // @handle
-  avatarUrl   String?
-  createdAt   DateTime @default(now())
-  spendPerm   Json?
+  id                             Int      @id @default(autoincrement())
+  farcasterClientIdOnboardedFrom String?
+  fid                            Int?     @unique
+  address                        String?
+  displayName                    String?
+  username                       String? // @handle
+  avatarUrl                      String?
+  createdAt                      DateTime @default(now())
+  spendPerm                      Json?
 
   // Relations
   hostedSpaces Space[]       @relation("HostedSpaces")
