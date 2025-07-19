@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { getSpendPermTypedData } from "@/lib/utils";
-import { User, SpendPermission } from "@/lib/types";
+import { SpendPermission, UserWithRelations } from "@/lib/types";
 import { useSignTypedData, useConnect, useAccount } from "wagmi";
 import { toast } from "sonner";
 
@@ -15,7 +15,7 @@ export function useTipReaction({
   addFloatingReaction,
   setLikes,
 }: {
-  user: User | null;
+  user: UserWithRelations | null;
   hostId: string;
   spaceId: string;
   chainId: number;

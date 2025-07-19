@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { Room } from "livekit-client";
 import { useRouter } from "next/navigation";
-import { SpaceWithHostParticipant, User } from "@/lib/types";
+import { SpaceWithHostParticipant } from "@/lib/types";
+import { UserWithRelations } from "@/lib/types";
 
 export function useLeaveRoom({
   room,
@@ -11,7 +12,7 @@ export function useLeaveRoom({
   toast,
 }: {
   room: Room;
-  user: User;
+  user: UserWithRelations;
   space: SpaceWithHostParticipant;
   router: ReturnType<typeof useRouter>;
   toast?: { success: (msg: string) => void; error: (msg: string) => void };
@@ -23,7 +24,7 @@ export function useLeaveRoom({
     setLeaveLoading(true);
     try {
       // If host, end the space
-      if (space.host.id === parseInt(user.id)) {
+      if (space.host.id === user.id) {
         try {
           await fetch(`/api/spaces?spaceId=${room.name}`, {
             method: "PATCH",

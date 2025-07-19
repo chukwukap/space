@@ -109,7 +109,7 @@ export default function LandingPageClient() {
         </p>
       </section>
 
-      <>user address(testing): {user?.walletAddress}</>
+      <>user address(testing): {user?.address}</>
 
       <section className="mt-6 flex flex-col gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>

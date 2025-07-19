@@ -83,7 +83,7 @@ export function Header() {
       ) : (
         <Link href="/profile" className="flex items-center gap-2">
           <Image
-            src={user?.pfpUrl || "/icon.png"}
+            src={user?.avatarUrl ?? "/icon.png"}
             alt="profile"
             width={28}
             height={28}
