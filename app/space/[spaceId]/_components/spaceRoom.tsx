@@ -59,7 +59,7 @@ export default function SpaceRoom({
     identity: user?.id.toString(),
     name: user?.username,
     metadata: JSON.stringify({
-      isHost: space.hostFid === user?.fid,
+      isHost: user ? user.id === space.hostId.toString() : false,
       pfpUrl: user?.pfpUrl ?? null,
       fid: user?.fid ?? null,
     } as ParticipantMetadata),
@@ -78,30 +78,27 @@ export default function SpaceRoom({
 
   return (
     <>
-      {/* for testing */}
-      <div className="text-xs text-muted-foreground">
-        {user?.id}
-        <br />
-        token: {localParticipantToken}
-      </div>
-      <div className="text-xs text-muted-foreground">
-        {user?.id}
-        <br />
-        token: {localParticipantToken}
-      </div>
-      <div className="text-xs text-muted-foreground">
-        {JSON.stringify(userInfo)}
-      </div>
-    </>
-  );
-
-  return (
-    <>
       <MobileHeader showBack />
       <LiveKitRoom
         token={localParticipantToken}
         serverUrl={NEXT_PUBLIC_LK_SERVER_URL}
       >
+        <>
+          {/* for testing */}
+          <div className="text-xs text-muted-foreground">
+            {user?.id}
+            <br />
+            token: {localParticipantToken}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {user?.id}
+            <br />
+            token: {localParticipantToken}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {JSON.stringify(userInfo)}
+          </div>
+        </>
         <SpaceLayout onInviteClick={() => setInviteOpen(true)} space={space} />
 
         {inviteOpen && (
@@ -142,7 +139,7 @@ function SpaceLayout({
   const connectors = useConnectors();
   const { signTypedDataAsync } = useSignTypedData();
 
-  const host = room.getParticipantByIdentity(space.id);
+  const host = room.getParticipantByIdentity(space.hostId.toString());
 
   // All remote participants in the room
   const remoteParticipants = Array.from(room.remoteParticipants.values());

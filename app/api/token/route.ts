@@ -10,7 +10,6 @@ export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
   const metadata = JSON.parse(req.nextUrl.searchParams.get("metadata") ?? "{}");
 
-  console.log("metadata", metadata);
   if (!roomName) {
     return NextResponse.json(
       { error: 'Missing "roomName" query parameter' },

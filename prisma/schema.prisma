@@ -56,9 +56,9 @@ model Space {
   id           String      @id @default(uuid())
   livekitName  String      @unique // LiveKit room name|id
   title        String
-  hostFid      Int
+  hostId       Int
   hostAddress  String
-  host         User        @relation("HostedSpaces", fields: [hostFid], references: [fid])
+  host         User        @relation("HostedSpaces", fields: [hostId], references: [id])
   status       SpaceStatus @default(LIVE)
   recording    Boolean     @default(false)
   recordingUrl String?
@@ -70,7 +70,7 @@ model Space {
   tips         Tip[]
   reactions    Reaction[]
 
-  @@index([hostFid])
+  @@index([hostId])
 }
 
 model Participant {
