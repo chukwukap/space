@@ -55,23 +55,19 @@ export default function SpaceRoom({
   const { user } = useUser();
   const roomName = space.livekitName;
 
-  const localParticipantToken = useToken(
-    "/api/token",
-    roomName,
-    user
-      ? {
-          userInfo: {
-            identity: user.id.toString(),
-            name: user.username,
-            metadata: JSON.stringify({
-              isHost: space.hostFid === user?.fid,
-              pfpUrl: user?.pfpUrl ?? null,
-              fid: user?.fid ?? null,
-            } as ParticipantMetadata),
-          },
-        }
-      : undefined,
-  );
+  const userInfo = {
+    identity: user?.id.toString(),
+    name: user?.username,
+    metadata: JSON.stringify({
+      isHost: space.hostFid === user?.fid,
+      pfpUrl: user?.pfpUrl ?? null,
+      fid: user?.fid ?? null,
+    } as ParticipantMetadata),
+  };
+
+  const localParticipantToken = useToken("/api/token", roomName, {
+    userInfo,
+  });
 
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -79,6 +75,25 @@ export default function SpaceRoom({
   if (!user) {
     return <div>user not found</div>;
   }
+
+  return (
+    <>
+      {/* for testing */}
+      <div className="text-xs text-muted-foreground">
+        {user?.id}
+        <br />
+        token: {localParticipantToken}
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {user?.id}
+        <br />
+        token: {localParticipantToken}
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {JSON.stringify(userInfo)}
+      </div>
+    </>
+  );
 
   return (
     <>
