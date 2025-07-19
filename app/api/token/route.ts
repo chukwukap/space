@@ -45,6 +45,8 @@ export async function GET(req: NextRequest) {
   }
 
   const at = new AccessToken(apiKey, apiSecret, { identity, name, metadata });
+  console.log("metadata", metadata);
+
   at.addGrant({
     room: roomName,
     roomJoin: true,

@@ -17,7 +17,6 @@ import {
 import dynamic from "next/dynamic";
 import { AvatarWithControls } from "./avatar";
 import { useRouter } from "next/navigation";
-import { useSpaceStore } from "./spaceStore";
 import ReactionOverlay from "./ReactionOverlay";
 import BottomBar from "./bottomBar";
 import HandRaiseQueue from "./HandRaiseQueue";
@@ -31,11 +30,7 @@ import {
   useConnectors,
   useSignTypedData,
 } from "wagmi";
-import {
-  ParticipantMetadata,
-  SpaceWithHostParticipant,
-  User,
-} from "@/lib/types";
+import { ParticipantMetadata, SpaceWithHostParticipant } from "@/lib/types";
 import { Laugh } from "lucide-react";
 import { useUser } from "@/app/providers/userProvider";
 import { getSpendPermTypedData } from "@/lib/utils";
@@ -92,11 +87,7 @@ export default function SpaceRoom({
         token={localParticipantToken}
         serverUrl={NEXT_PUBLIC_LK_SERVER_URL}
       >
-        <SpaceLayout
-          user={user}
-          onInviteClick={() => setInviteOpen(true)}
-          space={space}
-        />
+        <SpaceLayout onInviteClick={() => setInviteOpen(true)} space={space} />
 
         {inviteOpen && (
           <InviteDrawer
@@ -116,16 +107,14 @@ export default function SpaceRoom({
  * It also provides a leave button that disconnects the user securely and navigates home.
  */
 function SpaceLayout({
-  user,
   onInviteClick,
   space,
 }: {
-  user: User;
   onInviteClick: () => void;
   space: SpaceWithHostParticipant;
 }) {
+  const { user } = useUser();
   const room = useRoomContext();
-  const spaceStore = useSpaceStore();
 
   const router = useRouter();
 
@@ -140,26 +129,20 @@ function SpaceLayout({
 
   const host = room.getParticipantByIdentity(space.id);
 
-  // Active speakers are those currently speaking
-  const activeSpeakers = room.activeSpeakers;
   // All remote participants in the room
   const remoteParticipants = Array.from(room.remoteParticipants.values());
 
-  const speakers = [...spaceStore.speakers.values()];
   // Listeners are remote participants who are not currently speaking
   const listeners = remoteParticipants.filter(
-    (p) => !activeSpeakers.includes(p),
+    (p) => !room.activeSpeakers.includes(p),
   );
 
   // Determine if local participant is host (fallback to first participant)
   const isHost = host?.identity === room.localParticipant.identity;
 
-  const handRaiseList = [...spaceStore.handQueue.values()];
+  // const handRaiseList = [...room.handQueue.values()];
 
-  const handRaisedCount = handRaiseList.length;
-
-  /* Participant count */
-  const participantCount = room.remoteParticipants.size + 1; // + local
+  // const handRaisedCount = handRaiseList.length;
 
   /** ------------------------------------------------------------------
    * Helper – send data messages
@@ -198,22 +181,20 @@ function SpaceLayout({
   const endedRef = useRef(false);
 
   useEffect(() => {
-    spaceStore.setRecording(room.isRecording);
-    // set initial host
-    spaceStore.setHost(host?.sid ?? null);
-
     const handleParticipantConnected = (p: LKParticipant) => {
+      console.log("participant connected", p);
+
       // Speaker if has publish permission (mic enabled)
-      if (p.isSpeaking) spaceStore.addSpeaker(p);
+      // if (p.isSpeaking) spaceStore.addSpeaker(p);
     };
 
     // If the host leaves, end the space for everyone
     const handleParticipantDisconnected = (p: LKParticipant) => {
-      spaceStore.removeSpeaker(p.sid);
-      spaceStore.dequeueHand(p.sid);
+      // spaceStore.removeSpeaker(p.sid);
+      // spaceStore.dequeueHand(p.sid);
 
       // If the host left, end the space for everyone
-      if (spaceStore.hostSid === p.sid) {
+      if (host?.sid === p.sid) {
         // Only run once
         if (!endedRef.current) {
           endedRef.current = true;
@@ -235,9 +216,10 @@ function SpaceLayout({
       p: LKParticipant,
     ) => {
       try {
-        const meta = p.metadata ? JSON.parse(p.metadata) : {};
-        if (meta.handRaised) spaceStore.enqueueHand(p);
-        else spaceStore.dequeueHand(p.sid);
+        console.log("metadata changed", p.metadata);
+        // const meta = p.metadata ? JSON.parse(p.metadata) : {};
+        // if (meta.handRaised) spaceStore.enqueueHand(p);
+        // else spaceStore.dequeueHand(p.sid);
       } catch {}
     };
 
@@ -253,7 +235,7 @@ function SpaceLayout({
       );
       room.off(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
     };
-  }, [room, spaceStore, host]);
+  }, [room, host]);
 
   const toggleMic = useCallback(() => {
     room.localParticipant.setMicrophoneEnabled(!isLocalMuted);
@@ -409,7 +391,7 @@ function SpaceLayout({
       await approveSpendPermission(
         spendPerm.message,
         signature,
-        parseInt(user.id),
+        parseInt(user?.id ?? "0"),
       );
 
       // await fetch("/api/collect", {
@@ -517,7 +499,7 @@ function SpaceLayout({
         <div className="flex items-center gap-3">
           {recordingBadge}
           <span className="text-xs text-muted-foreground">
-            {participantCount} · listeners
+            {room.numParticipants} · listeners
           </span>
         </div>
         <button
@@ -548,7 +530,7 @@ function SpaceLayout({
           roleLabel="Host"
         />
         {/* Speakers */}
-        {speakers.map((s) => (
+        {room.activeSpeakers.map((s) => (
           <AvatarWithControls
             key={s.identity}
             p={s as LKParticipant}
@@ -646,7 +628,7 @@ function SpaceLayout({
         onOpenReactionPicker={() => setPickerOpen(true)}
         onTipClick={() => setPickerOpen(true)}
         likes={likes}
-        handRaiseCount={handRaisedCount}
+        handRaiseCount={0}
         isHost={isHost}
         onQueueClick={() => setQueueOpen(true)}
         onInviteClick={onInviteClick}
@@ -663,7 +645,7 @@ function SpaceLayout({
 
       {isHost && queueOpen && (
         <HandRaiseQueue
-          list={handRaiseList}
+          list={[]}
           onClose={() => setQueueOpen(false)}
           onAccept={(sid) => {
             sendData({ type: "inviteSpeak", sid });

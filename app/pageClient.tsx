@@ -131,7 +131,7 @@ export default function LandingPageClient() {
               className="text-lg font-semibold mb-1"
               style={{ fontFamily: "Sora, sans-serif" }}
             >
-              No Sonic Spaces are live right now
+              No Spaces are live right now
             </h4>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">
               Check back soon or start your own to get the conversation going!
