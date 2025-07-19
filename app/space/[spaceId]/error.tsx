@@ -92,6 +92,3 @@ export default function SpaceErrorPage({ error, reset }: ErrorPageProps) {
     </div>
   );
 }
-
-// Professional commit message:
-// feat: add mobile-friendly error page for Sonic Space with full error and stack trace display

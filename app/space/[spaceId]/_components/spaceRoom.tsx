@@ -138,11 +138,7 @@ function SpaceLayout({
   );
 
   // Determine if local participant is host (fallback to first participant)
-  const isHost = host?.identity === room.localParticipant.identity;
-
-  // const handRaiseList = [...room.handQueue.values()];
-
-  // const handRaisedCount = handRaiseList.length;
+  const isHost = host?.identity === room.localParticipant?.identity;
 
   /** ------------------------------------------------------------------
    * Helper – send data messages
@@ -150,7 +146,7 @@ function SpaceLayout({
   const sendData = useCallback(
     (message: Record<string, unknown>) => {
       try {
-        room.localParticipant.publishData(
+        room.localParticipant?.publishData(
           new TextEncoder().encode(JSON.stringify(message)),
           { reliable: true },
         );
@@ -164,7 +160,7 @@ function SpaceLayout({
   /** ------------------------------------------------------------------
    * Local state helpers
    * ----------------------------------------------------------------- */
-  const isLocalMuted = room.localParticipant.isMicrophoneEnabled === false;
+  const isLocalMuted = room.localParticipant?.isMicrophoneEnabled === false;
 
   /* Rerender on active speaker change */
   const [, forceUpdate] = useState(0);
@@ -183,17 +179,10 @@ function SpaceLayout({
   useEffect(() => {
     const handleParticipantConnected = (p: LKParticipant) => {
       console.log("participant connected", p);
-
-      // Speaker if has publish permission (mic enabled)
-      // if (p.isSpeaking) spaceStore.addSpeaker(p);
     };
 
     // If the host leaves, end the space for everyone
     const handleParticipantDisconnected = (p: LKParticipant) => {
-      // spaceStore.removeSpeaker(p.sid);
-      // spaceStore.dequeueHand(p.sid);
-
-      // If the host left, end the space for everyone
       if (host?.sid === p.sid) {
         // Only run once
         if (!endedRef.current) {
@@ -216,7 +205,10 @@ function SpaceLayout({
       p: LKParticipant,
     ) => {
       try {
-        console.log("metadata changed", p.metadata);
+        // Defensive: p may be undefined/null
+        if (!p) return;
+        // Defensive: p.metadata may be undefined
+        console.log("metadata changed", p.metadata ?? null);
         // const meta = p.metadata ? JSON.parse(p.metadata) : {};
         // if (meta.handRaised) spaceStore.enqueueHand(p);
         // else spaceStore.dequeueHand(p.sid);
@@ -238,11 +230,14 @@ function SpaceLayout({
   }, [room, host]);
 
   const toggleMic = useCallback(() => {
-    room.localParticipant.setMicrophoneEnabled(!isLocalMuted);
+    if (room.localParticipant) {
+      room.localParticipant.setMicrophoneEnabled(!isLocalMuted);
+    }
   }, [room, isLocalMuted]);
 
   const raiseHand = useCallback(() => {
     try {
+      if (!room.localParticipant) return;
       const meta = room.localParticipant.metadata
         ? JSON.parse(room.localParticipant.metadata)
         : {};
@@ -323,7 +318,10 @@ function SpaceLayout({
         switch (msg.type) {
           case "inviteSpeak":
             // Listener granted permission to speak -> unmute if the message is for us
-            if (msg.sid === room.localParticipant.sid) {
+            if (
+              room.localParticipant &&
+              msg.sid === room.localParticipant.sid
+            ) {
               room.localParticipant.setMicrophoneEnabled(true);
             }
             break;
@@ -335,12 +333,18 @@ function SpaceLayout({
             setLikes((c) => c + 1);
             break;
           case "muteRequest":
-            if (msg.sid === room.localParticipant.sid) {
+            if (
+              room.localParticipant &&
+              msg.sid === room.localParticipant.sid
+            ) {
               room.localParticipant.setMicrophoneEnabled(false);
             }
             break;
           case "demoteSpeaker":
-            if (msg.sid === room.localParticipant.sid) {
+            if (
+              room.localParticipant &&
+              msg.sid === room.localParticipant.sid
+            ) {
               room.localParticipant.setMicrophoneEnabled(false);
               // Clear handRaised and other speaker metadata to move back to listener view
               try {
@@ -393,50 +397,6 @@ function SpaceLayout({
         signature,
         parseInt(user?.id ?? "0"),
       );
-
-      // await fetch("/api/collect", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     spendPermissionMessage: spendPerm.message,
-      //     signature,
-      //     spaceId: room.name,
-      //     tipperFid: context?.user?.fid?.toString(), // TODO: switch this back to user db id;
-      //     tippeeFid: tippeeId,
-      //   }),
-      // });
-
-      /* Persist reaction and tip for analytics */
-      // if (fromId && toId) {
-      //   try {
-      //     const reactionRes = await fetch("/api/reactions", {
-      //       method: "POST",
-      //       headers: { "Content-Type": "application/json" },
-      //       body: JSON.stringify({
-      //         spaceId,
-      //         userId: fromId,
-      //         type,
-      //       }),
-      //     });
-      //     const reaction = await reactionRes.json();
-
-      //     await fetch("/api/tips", {
-      //       method: "POST",
-      //       headers: { "Content-Type": "application/json" },
-      //       body: JSON.stringify({
-      //         spaceId,
-      //         fromId,
-      //         toId,
-      //         amount: allowanceUnits,
-      //         tokenSymbol: "USDC",
-      //         txHash: "pending", // will be updated server-side
-      //         reactionId: reaction.id,
-      //       }),
-      //     });
-      //   } catch (err) {
-      //     console.error("[tip persist] failed", err);
-      //   }
-      // }
     } catch (err) {
       console.error("[reaction tip] failed", err);
     }
@@ -558,6 +518,9 @@ function SpaceLayout({
             size={56}
             isHandRaised={(() => {
               try {
+                // Defensive: l may be undefined/null
+                if (!l) return false;
+                // Defensive: l.metadata may be undefined
                 const meta = l.metadata ? JSON.parse(l.metadata) : {};
                 return !!meta.handRaised;
               } catch {
@@ -568,6 +531,7 @@ function SpaceLayout({
               // Show invite button only for host & if participant raised hand
               const isHand = (() => {
                 try {
+                  if (!l) return false;
                   const meta = l.metadata ? JSON.parse(l.metadata) : {};
                   return !!meta.handRaised;
                 } catch {
