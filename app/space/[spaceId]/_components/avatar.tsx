@@ -26,8 +26,7 @@ import {
 } from "iconoir-react";
 
 type AvatarWithControlsProps = {
-  p: Participant;
-  size?: number;
+  p: Participant | undefined;
   isHost?: boolean;
   isLocal?: boolean;
   isSpeaking?: boolean;
@@ -46,11 +45,10 @@ type AvatarWithControlsProps = {
 
 export function AvatarWithControls({
   p,
-  size = 64,
   isHost = false,
   isLocal = false,
-  isSpeaking,
-  isHandRaised,
+  isSpeaking = false,
+  isHandRaised = false,
   pfpUrl,
   onInvite,
   onToggleRemoteMute,
@@ -96,26 +94,16 @@ export function AvatarWithControls({
         : false;
 
   // Determine speaking state
-  const speaking =
-    typeof isSpeaking === "boolean"
-      ? isSpeaking
-      : typeof (p as Participant).isSpeaking === "boolean"
-        ? (p as Participant).isSpeaking
-        : false;
+  const speaking = isSpeaking;
 
   // Hand raise state
   const handRaised = useMemo(() => {
-    if (typeof isHandRaised === "boolean") return isHandRaised;
-    try {
-      return !!meta.handRaised;
-    } catch {
-      return false;
-    }
-  }, [isHandRaised, meta]);
+    return isHandRaised;
+  }, [isHandRaised]);
 
   // Accessibility: Compose label
   const ariaLabel = [
-    p.identity,
+    p?.identity,
     isHost ? "host" : "",
     isLocal ? "you" : "",
     muted ? "muted" : "unmuted",
@@ -126,7 +114,7 @@ export function AvatarWithControls({
     .join(", ");
 
   return (
-    <div className="flex flex-col items-center gap-1" style={{ width: size }}>
+    <div className="flex flex-col items-center gap-1" style={{ width: 64 }}>
       <div
         className={`relative flex items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold shadow-lg transition-shadow
         ${speaking ? "ring-4 ring-primary/60 shadow-2xl" : ""}
@@ -134,10 +122,10 @@ export function AvatarWithControls({
         ${isLocal ? "outline outline-2 outline-cyan-400" : ""}
       `}
         style={{
-          width: size,
-          height: size,
-          minWidth: size,
-          minHeight: size,
+          width: 64,
+          height: 64,
+          minWidth: 64,
+          minHeight: 64,
           boxShadow: speaking
             ? "0 0 0 4px rgba(var(--primary)/0.3), 0 4px 24px 0 rgba(80,0,120,0.18)"
             : "0 2px 8px 0 rgba(80,0,120,0.10)",
@@ -151,7 +139,7 @@ export function AvatarWithControls({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={avatarUrl}
-            alt={p.identity}
+            alt={p?.identity}
             className="object-cover w-full h-full rounded-full"
             draggable={false}
             loading="lazy"

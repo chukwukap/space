@@ -495,7 +495,6 @@ function SpaceLayout({
         {/* Host */}
         <AvatarWithControls
           p={host as LKParticipant}
-          size={56}
           isSpeaking={host?.isSpeaking}
           isHost
           remoteMuted={!host?.isMicrophoneEnabled}
@@ -506,7 +505,6 @@ function SpaceLayout({
           <AvatarWithControls
             key={s.identity}
             p={s as LKParticipant}
-            size={56}
             onToggleRemoteMute={
               isHost
                 ? () => sendData({ type: "muteRequest", sid: s.sid })
@@ -527,7 +525,6 @@ function SpaceLayout({
           <AvatarWithControls
             key={l.identity}
             p={l as LKParticipant}
-            size={56}
             isHandRaised={false}
             onInvite={() => {}}
             onToggleRemoteMute={undefined}
