@@ -61,24 +61,25 @@ export function AvatarWithControls({
   // Memoize meta to avoid unnecessary recalculations and to ensure stable reference for useMemo dependencies
   const meta = useMemo(() => {
     try {
-      return p.metadata ? JSON.parse(p.metadata) : {};
+      return p?.metadata ? JSON.parse(p?.metadata) : {};
     } catch {
       // Defensive: If metadata is malformed, return empty object
       return {};
     }
-  }, [p.metadata]);
+  }, [p?.metadata]);
 
   // Derive initials if no photo
   const initials = useMemo(() => {
-    if (!p.name) return "";
-    const parts = p.name.split(" ");
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }, [p.name]);
+    if (!p?.name) return "";
+    const parts = p?.name?.split(" ");
+    if (parts?.length === 1) return parts[0]?.slice(0, 2)?.toUpperCase();
+    return (parts[0]?.[0] + parts[1]?.[0])?.toUpperCase();
+  }, [p?.name]);
 
   // Fallback: use participant metadata for photo if available
   const avatarUrl = useMemo(() => {
     if (pfpUrl) return pfpUrl;
+    if (!meta?.pfpUrl) return undefined;
     try {
       return meta.pfpUrl;
     } catch {
