@@ -22,6 +22,8 @@ export default async function SpacePage({
         host: true,
       },
     });
+
+    console.log("spaceWithHost", JSON.stringify(spaceWithHost, null, 2));
   } catch {
     // Optionally log error here
     return (

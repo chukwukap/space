@@ -15,7 +15,9 @@ export const revalidate = 0;
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  console.log("[GET] searchParams:", Array.from(searchParams.entries()));
   const namesParam = searchParams.get("names");
+  console.log("[GET] namesParam:", namesParam);
   let names: string[] | undefined = undefined;
 
   if (namesParam) {
@@ -24,11 +26,13 @@ export async function GET(request: Request) {
       .map((n) => n.trim())
       .filter((n) => n.length > 0);
     if (names.length === 0) names = undefined;
+    console.log("[GET] parsed names:", names);
   }
 
   // Query active spaces from the database, including the host participant and their user info
   let spaces;
   if (names && names.length > 0) {
+    console.log("[GET] Querying spaces with names:", names);
     spaces = await prisma.space.findMany({
       where: {
         livekitName: { in: names },
@@ -47,6 +51,7 @@ export async function GET(request: Request) {
       },
     });
   } else {
+    console.log("[GET] Querying all LIVE spaces");
     spaces = await prisma.space.findMany({
       where: { status: "LIVE" },
       orderBy: { createdAt: "desc" },
@@ -63,6 +68,7 @@ export async function GET(request: Request) {
     });
   }
 
+  console.log("[GET] spaces result:", JSON.stringify(spaces, null, 2));
   return Response.json(spaces);
 }
 
@@ -73,26 +79,29 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
+    const body = await request.json();
+    console.log("[POST] request body:", JSON.stringify(body, null, 2));
     const {
       title,
       hostFid,
       hostId,
       hostAddress,
       recording = false,
-    } = (await request.json()) as {
+    } = body as {
       title?: string;
       hostFid?: string;
       hostId?: string;
       hostAddress?: string;
       recording?: boolean;
     };
-    console.log("title", title);
-    console.log("hostFid", hostFid);
-    console.log("hostId", hostId);
-    console.log("hostAddress", hostAddress);
-    console.log("recording", recording);
+    console.log("[POST] title:", title);
+    console.log("[POST] hostFid:", hostFid);
+    console.log("[POST] hostId:", hostId);
+    console.log("[POST] hostAddress:", hostAddress);
+    console.log("[POST] recording:", recording);
 
     if (!title || !hostFid || !hostAddress || !hostId) {
+      console.log("[POST] Missing required fields");
       return new Response(
         JSON.stringify({
           error: "title, hostFid, hostId, and hostAddress required",
@@ -112,6 +121,7 @@ export async function POST(request: Request) {
       recording,
       ended: false,
     };
+    console.log("[POST] metadata:", JSON.stringify(metadata, null, 2));
 
     const hostUser = await prisma.user.findUnique({
       where: {
@@ -119,20 +129,24 @@ export async function POST(request: Request) {
         fid: parseInt(hostFid),
       },
     });
+    console.log("[POST] hostUser:", JSON.stringify(hostUser, null, 2));
 
     if (!hostUser) {
+      console.log("[POST] Host user not found");
       return new Response(JSON.stringify({ error: "Host user not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
     const livekitRoomId = crypto.randomUUID().slice(0, 6);
+    console.log("[POST] livekitRoomId:", livekitRoomId);
 
     // Ensure LiveKit room exists first for reliability and security
     const livekitRoom = await roomService.createRoom({
       name: livekitRoomId,
       metadata: JSON.stringify(metadata),
     });
+    console.log("[POST] livekitRoom:", JSON.stringify(livekitRoom, null, 2));
 
     const space = await prisma.space.create({
       data: {
@@ -147,6 +161,7 @@ export async function POST(request: Request) {
         host: true,
       },
     });
+    console.log("[POST] created space:", JSON.stringify(space, null, 2));
 
     // Fire-and-forget notifications (no await to keep response fast)
     // sendLiveSpaceNotifications(
@@ -162,7 +177,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     // Log unexpected errors and return a generic error message
-    console.error("[POST /api/spaces]", error);
+    console.error("[POST /api/spaces] error:", error);
     return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
@@ -172,8 +187,11 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   const { searchParams } = new URL(request.url);
+  console.log("[PATCH] searchParams:", Array.from(searchParams.entries()));
   const livekitName = searchParams.get("livekitName");
+  console.log("[PATCH] livekitName:", livekitName);
   if (!livekitName) {
+    console.log("[PATCH] livekitName missing");
     return new Response(JSON.stringify({ error: "livekitName required" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
@@ -183,7 +201,9 @@ export async function PATCH(request: Request) {
   try {
     // get room
     const room = await getRoom(livekitName);
+    console.log("[PATCH] room:", JSON.stringify(room, null, 2));
     if (!room) {
+      console.log("[PATCH] Room not found");
       return new Response(JSON.stringify({ error: "Room not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
@@ -200,20 +220,26 @@ export async function PATCH(request: Request) {
           recording: false,
           ended: false,
         };
+    console.log("[PATCH] meta before update:", JSON.stringify(meta, null, 2));
 
     meta.ended = true;
     await roomService.updateRoomMetadata(livekitName, JSON.stringify(meta));
+    console.log("[PATCH] meta after update:", JSON.stringify(meta, null, 2));
 
-    await prisma.space.update({
+    const updatedSpace = await prisma.space.update({
       where: { livekitName },
       data: { status: "ENDED" },
     });
+    console.log(
+      "[PATCH] updated space:",
+      JSON.stringify(updatedSpace, null, 2),
+    );
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("[PATCH /api/spaces]", err);
+    console.error("[PATCH /api/spaces] error:", err);
 
     return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,

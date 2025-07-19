@@ -24,7 +24,7 @@ export default function CreateSpaceButton() {
   const router = useRouter();
   const { user, refreshUser } = useUser();
   const { address: walletAddress } = useAccount();
-  const { connect, connectors, status: connectStatus } = useConnect();
+  const { connect, connectors, status: walletConnectStatus } = useConnect();
 
   const [title, setTitle] = useState("");
   const [record, setRecord] = useState(false);
@@ -53,7 +53,11 @@ export default function CreateSpaceButton() {
     // If wallet not connected, prompt connect and refresh user
     if (!walletAddress) {
       setCreateError("Please connect your wallet to host a Space.");
-      if (connectors && connectors.length > 0 && connectStatus !== "pending") {
+      if (
+        connectors &&
+        connectors.length > 0 &&
+        walletConnectStatus !== "pending"
+      ) {
         try {
           connect({ connector: connectors[0] });
           await refreshUser();
