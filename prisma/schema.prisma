@@ -36,7 +36,7 @@ enum ReactionType {
 
 model User {
   id                             Int      @id @default(autoincrement())
-  farcasterClientIdOnboardedFrom String?
+  farcasterClientIdOnboardedFrom Int?
   fid                            Int?     @unique
   address                        String?
   displayName                    String?
