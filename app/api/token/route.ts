@@ -49,9 +49,9 @@ export async function GET(req: NextRequest) {
   at.addGrant({
     room: roomName,
     roomJoin: true,
-    canPublish: metadata.isHost,
-    canSubscribe: true, //
-    canPublishSources: [TrackSource.MICROPHONE], // only allow microphone
+    canPublish: true,
+    canSubscribe: true,
+    canPublishSources: [TrackSource.MICROPHONE],
     roomRecord: false,
   });
 

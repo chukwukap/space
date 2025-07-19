@@ -24,7 +24,16 @@ export async function GET(req: NextRequest) {
     const address = sanitizeString(params.get("address"));
     const username = sanitizeString(params.get("username"));
 
+    // Log all query param values
+    console.log("[GET /api/user] Query Params:", {
+      id,
+      fid,
+      address,
+      username,
+    });
+
     if (!id && !fid && !address && !username) {
+      console.log("[GET /api/user] No identifier provided");
       return NextResponse.json(
         { error: "Provide one of id, fid, address or username" },
         { status: 400 },
@@ -43,17 +52,25 @@ export async function GET(req: NextRequest) {
         },
       });
 
+    // Log the constructed OR conditions
+    console.log("[GET /api/user] Prisma OR conditions:", JSON.stringify(ors));
+
     const user = await prisma.user.findFirst({
       where: { OR: ors },
       include: { tipsSent: true, tipsReceived: true },
     });
 
-    if (!user)
+    // Log the user result
+    console.log("[GET /api/user] User found:", user);
+
+    if (!user) {
+      console.log("[GET /api/user] User not found");
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     return NextResponse.json(user);
   } catch (error) {
-    console.error("[GET /api/user]", error);
+    console.error("[GET /api/user] Error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },
@@ -67,9 +84,20 @@ export async function GET(req: NextRequest) {
 // Upsert user. Accepts: fid, address, username, avatarUrl, displayName
 export async function POST(req: NextRequest) {
   try {
-    const { fid, address, username, avatarUrl, displayName } = await req.json();
+    const body = await req.json();
+    const { fid, address, username, avatarUrl, displayName } = body;
+
+    // Log all incoming POST body values
+    console.log("[POST /api/user] Body:", {
+      fid,
+      address,
+      username,
+      avatarUrl,
+      displayName,
+    });
 
     if (!fid && !address && !username) {
+      console.log("[POST /api/user] No unique identifier provided");
       return NextResponse.json(
         {
           error:
@@ -92,9 +120,15 @@ export async function POST(req: NextRequest) {
         },
       });
 
+    // Log the constructed OR conditions for upsert
+    console.log("[POST /api/user] Prisma OR conditions:", JSON.stringify(ors2));
+
     const existing = await prisma.user.findFirst({
       where: { OR: ors2 },
     });
+
+    // Log the existing user if found
+    console.log("[POST /api/user] Existing user:", existing);
 
     let user;
     if (existing) {
@@ -108,6 +142,8 @@ export async function POST(req: NextRequest) {
         },
         include: { tipsSent: true, tipsReceived: true },
       });
+      // Log the update operation
+      console.log("[POST /api/user] Updated user:", user);
     } else {
       user = await prisma.user.create({
         data: {
@@ -119,11 +155,13 @@ export async function POST(req: NextRequest) {
         },
         include: { tipsSent: true, tipsReceived: true },
       });
+      // Log the create operation
+      console.log("[POST /api/user] Created user:", user);
     }
 
     return NextResponse.json(user);
   } catch (error) {
-    console.error("[POST /api/user]", error);
+    console.error("[POST /api/user] Error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },
@@ -137,14 +175,25 @@ export async function POST(req: NextRequest) {
 // Accepts userId and fields to update (address, avatarUrl, displayName, username)
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId, address, avatarUrl, displayName, username } =
-      await req.json();
+    const body = await req.json();
+    const { userId, address, avatarUrl, displayName, username } = body;
 
-    if (!userId)
+    // Log all incoming PATCH body values
+    console.log("[PATCH /api/user] Body:", {
+      userId,
+      address,
+      avatarUrl,
+      displayName,
+      username,
+    });
+
+    if (!userId) {
+      console.log("[PATCH /api/user] userId missing");
       return NextResponse.json(
         { error: "userId is required" },
         { status: 400 },
       );
+    }
 
     const data: Record<string, unknown> = {};
     if (address) data.address = address;
@@ -152,7 +201,11 @@ export async function PATCH(req: NextRequest) {
     if (displayName) data.displayName = sanitizeString(displayName);
     if (username) data.username = username;
 
+    // Log the update data object
+    console.log("[PATCH /api/user] Update data:", data);
+
     if (Object.keys(data).length === 0) {
+      console.log("[PATCH /api/user] No valid fields to update");
       return NextResponse.json(
         { error: "No valid fields to update" },
         { status: 400 },
@@ -164,9 +217,12 @@ export async function PATCH(req: NextRequest) {
       data,
     });
 
+    // Log the updated user
+    console.log("[PATCH /api/user] Updated user:", updated);
+
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("[PATCH /api/user]", error);
+    console.error("[PATCH /api/user] Error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },
