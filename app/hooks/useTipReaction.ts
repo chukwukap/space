@@ -3,6 +3,8 @@ import { getSpendPermTypedData } from "@/lib/utils";
 import { SpendPermission, UserWithRelations } from "@/lib/types";
 import { useSignTypedData, useConnect, useAccount } from "wagmi";
 import { toast } from "sonner";
+import { REACTION_EMOJIS } from "@/lib/constants";
+import { ReactionType } from "@/lib/generated/prisma";
 
 export function useTipReaction({
   user,
@@ -11,7 +13,6 @@ export function useTipReaction({
   chainId,
   approveSpendPermission,
   sendData,
-  reactionEmojis,
   addFloatingReaction,
   setLikes,
 }: {
@@ -25,7 +26,6 @@ export function useTipReaction({
     userId: number,
   ) => Promise<string>;
   sendData: (msg: Record<string, unknown>) => void;
-  reactionEmojis: Record<string, string>;
   addFloatingReaction: (emoji: string) => void;
   setLikes: (fn: (c: number) => number) => void;
 }) {
@@ -35,12 +35,12 @@ export function useTipReaction({
   const [reactionLoading, setReactionLoading] = useState(false);
 
   const handleSendReaction = useCallback(
-    async (type: string) => {
+    async (type: ReactionType) => {
       if (!user) {
         return;
       }
 
-      const emoji = reactionEmojis[type];
+      const emoji = REACTION_EMOJIS[type];
       if (!emoji) {
         return;
       }
@@ -104,7 +104,6 @@ export function useTipReaction({
       sendData,
       address,
       connectors,
-      reactionEmojis,
       addFloatingReaction,
       setLikes,
     ],

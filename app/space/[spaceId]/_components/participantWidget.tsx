@@ -23,7 +23,7 @@ import {
   RulerMinus as DemoteIcon,
 } from "iconoir-react";
 
-type AvatarWithControlsProps = {
+type ParticipantWidgetProps = {
   /** LiveKit participant instance */
   p: Participant | undefined;
   /** Display a golden ring and "Host" label */
@@ -44,7 +44,7 @@ type AvatarWithControlsProps = {
   size?: number;
 };
 
-export function AvatarWithControls({
+export function ParticipantWidget({
   p,
   isHost = false,
   isLocal = false,
@@ -54,7 +54,7 @@ export function AvatarWithControls({
   onDemote,
   roleLabel,
   size = 64,
-}: AvatarWithControlsProps) {
+}: ParticipantWidgetProps) {
   // Memoize meta to avoid unnecessary recalculations and to ensure stable reference for useMemo dependencies
   const meta = useMemo(() => {
     try {

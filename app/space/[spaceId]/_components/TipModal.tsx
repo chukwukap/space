@@ -20,14 +20,15 @@ import { approveSpendPermission } from "@/actions/spendPermission";
 import { spend } from "@/actions/utils";
 import { toast } from "sonner";
 import { Address } from "viem";
+import { TipRecipient } from "@/lib/types";
 
 interface TipModalProps {
   open: boolean;
   onClose: () => void;
-  recipients: Array<{ id: string; name: string; walletAddress: string }>;
-  defaultRecipientId: string;
+  recipients: TipRecipient[];
+  defaultRecipientId: number;
   onTipSuccess?: () => void;
-  userId: string;
+  userId: number;
   spaceId: string;
 }
 
@@ -71,11 +72,7 @@ export default function TipModal({
       const spendPerm = getSpendPermTypedData(addr, chainId);
       const signature = await signTypedDataAsync(spendPerm);
       // Approve spend permission
-      await approveSpendPermission(
-        spendPerm.message,
-        signature,
-        parseInt(userId),
-      );
+      await approveSpendPermission(spendPerm.message, signature, userId);
       // Send tip on-chain
       const amountBigInt = BigInt(Math.floor(parseFloat(amount) * 1e6)); // USDC 6 decimals
       const spendTxHash = await spend(
@@ -150,7 +147,7 @@ export default function TipModal({
             <select
               className="w-full border rounded px-3 py-2"
               value={recipientId}
-              onChange={(e) => setRecipientId(e.target.value)}
+              onChange={(e) => setRecipientId(Number(e.target.value))}
               disabled={status === "loading"}
             >
               {recipients.map((r) => (

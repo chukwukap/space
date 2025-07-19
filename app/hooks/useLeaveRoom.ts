@@ -12,7 +12,7 @@ export function useLeaveRoom({
   toast,
 }: {
   room: Room;
-  user: UserWithRelations;
+  user: UserWithRelations | null;
   space: SpaceWithHostParticipant;
   router: ReturnType<typeof useRouter>;
   toast?: { success: (msg: string) => void; error: (msg: string) => void };
@@ -24,7 +24,7 @@ export function useLeaveRoom({
     setLeaveLoading(true);
     try {
       // If host, end the space
-      if (space.host.id === user.id) {
+      if (space.host.id === user?.id) {
         try {
           await fetch(`/api/spaces?spaceId=${room.name}`, {
             method: "PATCH",
@@ -43,7 +43,7 @@ export function useLeaveRoom({
     } finally {
       setLeaveLoading(false);
     }
-  }, [leaveLoading, room, user, space, router, toast]);
+  }, [leaveLoading, room, user?.id, space, router, toast]);
 
   return { onLeaveRoom, leaveLoading };
 }

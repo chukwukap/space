@@ -1,3 +1,5 @@
+import { ReactionType } from "./generated/prisma";
+
 export const USDC_DECIMALS = 6;
 export const SPEND_PERMISSION_ALLOWANCE =
   process.env.NEXT_PUBLIC_PERMISSION_ALLOWANCE || "20";
@@ -12,3 +14,11 @@ export const USDC_ADDRESS = (process.env.NEXT_PUBLIC_USDC_ADDRESS ||
 
 export const NEXT_PUBLIC_LK_SERVER_URL: string =
   process.env.NEXT_PUBLIC_LK_SERVER_URL ?? "";
+
+export const REACTION_EMOJIS = {
+  [ReactionType.HEART]: "❤️",
+  [ReactionType.CLAP]: "👏",
+  [ReactionType.FIRE]: "🔥",
+  [ReactionType.LAUGH]: "😂",
+  [ReactionType.LIKE]: "💯",
+};

@@ -25,9 +25,10 @@ export interface SpaceMetadata {
 }
 
 export interface ParticipantMetadata {
-  isHost: boolean;
+  userDbId: number | null;
   pfpUrl: string | null;
   fid: number | null;
+  walletAddress: string | null;
 }
 
 export interface SpendPermission {
@@ -59,3 +60,9 @@ export interface SpendPermissionTypedData {
   primaryType: "SpendPermission";
   message: SpendPermission;
 }
+
+export type TipRecipient = {
+  id: number;
+  name: string;
+  walletAddress: string;
+};

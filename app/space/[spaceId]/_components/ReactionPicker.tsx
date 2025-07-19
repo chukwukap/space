@@ -1,16 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-
-const reactions: { type: string; emoji: string; label: string }[] = [
-  { type: "heart", emoji: "❤️", label: "Like" },
-  { type: "clap", emoji: "👏", label: "Clap" },
-  { type: "fire", emoji: "🔥", label: "Fire" },
-  { type: "lol", emoji: "😂", label: "Laugh" },
-  { type: "hundred", emoji: "💯", label: "100" },
-];
-
-export type ReactionType = (typeof reactions)[number]["type"];
+import { ReactionType } from "@/lib/generated/prisma";
+import { REACTION_EMOJIS } from "@/lib/constants";
 
 // const LS_KEY = "tipAmounts";
 
@@ -62,19 +54,19 @@ export default function ReactionPicker({
       className="fixed bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 bg-card/70 px-4 py-3 rounded-2xl backdrop-blur z-50"
     >
       <div className="flex gap-3 mb-1">
-        {reactions.map((r) => (
+        {Object.entries(REACTION_EMOJIS).map(([type, emoji]) => (
           <button
-            key={r.type}
-            aria-label={r.label}
+            key={type}
+            aria-label={type}
             className="text-2xl hover:scale-110 transition-transform relative"
             onClick={() => {
               if (loading) return;
-              onPick(r.type as ReactionType);
+              onPick(type as ReactionType);
               onClose();
             }}
             disabled={loading}
           >
-            {r.emoji}
+            {emoji}
             {/* {!edit && (
               <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px]">
                 {amounts[r.type]}
