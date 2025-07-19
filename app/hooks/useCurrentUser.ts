@@ -1,6 +1,9 @@
 import useSWR from "swr";
 import { User } from "@/lib/types";
 
+import { Context } from "@farcaster/frame-sdk";
+import { Address } from "viem";
+
 const fetcher = (url: string) =>
   fetch(url).then(async (res) => {
     if (!res.ok) {
@@ -10,16 +13,23 @@ const fetcher = (url: string) =>
     return res.json();
   });
 
-export function useCurrentUser(params: {
-  id?: number;
-  fid?: number;
-  address?: string;
-  username?: string;
+export function useCurrentUser({
+  context,
+  address,
+}: {
+  context: Context.FrameContext | null;
+  address: Address | null;
 }) {
+  const params = {
+    fid: context?.user?.fid,
+    address: address,
+    username: context?.user?.username,
+  };
+
   const hasParams = Object.values(params).some(
     (v) => v !== undefined && v !== "",
   );
-  console.log("params", params);
+
   const search = hasParams
     ? new URLSearchParams(
         Object.fromEntries(

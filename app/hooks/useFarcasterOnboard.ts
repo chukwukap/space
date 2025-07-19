@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { User } from "@/lib/types";
 import { Context } from "@farcaster/frame-sdk";
-import { useAccount } from "wagmi";
 
 interface Params {
   context: Context.FrameContext | null;
@@ -10,7 +9,6 @@ interface Params {
 }
 
 export function useFarcasterOnboard({ context, user, mutate }: Params) {
-  const { address } = useAccount();
   const postedRef = useRef(false);
 
   useEffect(() => {
@@ -23,11 +21,8 @@ export function useFarcasterOnboard({ context, user, mutate }: Params) {
 
     if (!fid) return;
 
-    if (user) return; // already onboarded
-
-    // Extract username & pfp
-    const username = userObj?.username ?? userObj?.displayName ?? "";
-    const avatarUrl = userObj?.pfpUrl ?? "";
+    if (user && user.walletAddress && user.fid && user.username && user.pfpUrl)
+      return; // already onboarded
 
     (async () => {
       try {
@@ -36,9 +31,9 @@ export function useFarcasterOnboard({ context, user, mutate }: Params) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fid,
-            username,
-            avatarUrl,
-            address,
+            username: user?.username ?? "",
+            avatarUrl: user?.pfpUrl ?? "",
+            address: user?.walletAddress ?? "",
           }),
         });
         postedRef.current = true;
@@ -47,5 +42,5 @@ export function useFarcasterOnboard({ context, user, mutate }: Params) {
         console.error("[useFarcasterOnboard] error", err);
       }
     })();
-  }, [context, user, mutate, address]);
+  }, [context, user, mutate]);
 }

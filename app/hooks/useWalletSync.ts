@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
 import { User } from "@/lib/types";
+import { Address } from "viem";
 
 interface Params {
   user: User | null;
-  walletAddress?: string | null;
+  walletAddress: Address | undefined;
   mutate: () => Promise<void> | void;
 }
 
