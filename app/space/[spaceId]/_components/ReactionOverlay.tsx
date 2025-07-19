@@ -9,7 +9,7 @@ export default function ReactionOverlay({ reactions }: Props) {
         <span
           key={h.id}
           style={{ left: `${h.left}%` }}
-          className="absolute bottom-10 text-pink-500 animate-heart-burst"
+          className="absolute bottom-10 animate-heart-burst"
         >
           {h.emoji}
         </span>

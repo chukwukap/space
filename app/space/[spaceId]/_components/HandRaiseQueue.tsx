@@ -1,4 +1,5 @@
 import { Participant } from "livekit-client";
+import { Xmark } from "iconoir-react";
 
 interface Props {
   list: Participant[];
@@ -19,7 +20,7 @@ export default function HandRaiseQueue({
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-semibold">Hand Raise Queue</h3>
           <button onClick={onClose} aria-label="Close">
-            ✕
+            <Xmark className="w-2 h-2" />
           </button>
         </div>
         {list.length === 0 ? (

@@ -6,8 +6,6 @@
  * @param p - LiveKit Participant
  * @param size - Avatar size in px
  * @param isHost - Is this participant the host?
- * @param isLocal - Is this the local user?
- * @param isMuted - Is the participant muted?
  * @param isSpeaking - Is the participant currently speaking?
  * @param isHandRaised - Has the participant raised their hand?
  * @param pfpUrl - Optional profile photo URL
@@ -26,19 +24,24 @@ import {
 } from "iconoir-react";
 
 type AvatarWithControlsProps = {
+  /** LiveKit participant instance */
   p: Participant | undefined;
+  /** Display a golden ring and "Host" label */
   isHost?: boolean;
+  /** Highlight avatar as the local user */
   isLocal?: boolean;
+  /** Custom profile-photo URL (overrides metadata) */
   pfpUrl?: string;
   /** Callback for host to invite this participant to speak */
   onInvite?: () => void;
-  /** Host control: mute/unmute remote speaker */
+  /** Host control: mute / unmute a remote speaker */
   onToggleRemoteMute?: () => void;
-  remoteMuted?: boolean;
   /** Host control: demote speaker to listener */
   onDemote?: () => void;
-  /** Optional role label e.g. "Host", "Speaker" */
+  /** Label to show underneath the avatar e.g. "Host" */
   roleLabel?: string;
+  /** Avatar diameter in pixels. Defaults to 64 px. */
+  size?: number;
 };
 
 export function AvatarWithControls({
@@ -50,6 +53,7 @@ export function AvatarWithControls({
   onToggleRemoteMute,
   onDemote,
   roleLabel,
+  size = 64,
 }: AvatarWithControlsProps) {
   // Memoize meta to avoid unnecessary recalculations and to ensure stable reference for useMemo dependencies
   const meta = useMemo(() => {
@@ -86,17 +90,17 @@ export function AvatarWithControls({
     .join(", ");
 
   return (
-    <div className="flex flex-col items-center gap-1" style={{ width: 64 }}>
+    <div className="flex flex-col items-center gap-1" style={{ width: size }}>
       <div
         className={`relative flex items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold shadow-lg transition-shadow
         ${isHost ? "border-2 border-amber-400" : ""}
-        ${isLocal ? "outline outline-2 outline-cyan-400" : ""}
+        ${p?.isLocal ? "outline outline-2 outline-cyan-400" : ""}
       `}
         style={{
-          width: 64,
-          height: 64,
-          minWidth: 64,
-          minHeight: 64,
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
           position: "relative",
         }}
         aria-label={ariaLabel}
@@ -119,7 +123,7 @@ export function AvatarWithControls({
         )}
 
         {/* Hand raise */}
-        {false && (
+        {meta.handRaised && (
           <span
             className="absolute -top-2 -left-2 z-20 drop-shadow"
             title="Hand Raised"
@@ -198,16 +202,11 @@ export function AvatarWithControls({
         {/* Tip button removed */}
 
         {/* Local user highlight ring */}
-        {isLocal && (
+        {p?.isLocal && (
           <span className="absolute inset-0 rounded-full ring-2 ring-cyan-400 pointer-events-none animate-pulse" />
         )}
       </div>
-      {/* Host label below avatar, Twitter Spaces style */}
-      {isHost ? (
-        <span className="flex items-center gap-1 mt-1 text-[11px] font-semibold text-yellow-500">
-          Host
-        </span>
-      ) : roleLabel ? (
+      {roleLabel && (
         <span className="text-[10px] text-muted-foreground flex items-center gap-1 leading-none">
           {/* Bullet */}
           <span
@@ -217,7 +216,7 @@ export function AvatarWithControls({
           />
           {roleLabel}
         </span>
-      ) : null}
+      )}
     </div>
   );
 }

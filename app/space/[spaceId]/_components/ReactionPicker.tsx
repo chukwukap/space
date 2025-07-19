@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
 const reactions: { type: string; emoji: string; label: string }[] = [
   { type: "heart", emoji: "❤️", label: "Like" },
@@ -12,7 +12,7 @@ const reactions: { type: string; emoji: string; label: string }[] = [
 
 export type ReactionType = (typeof reactions)[number]["type"];
 
-const LS_KEY = "tipAmounts";
+// const LS_KEY = "tipAmounts";
 
 export default function ReactionPicker({
   onPick,
@@ -23,20 +23,20 @@ export default function ReactionPicker({
   onClose: () => void;
   loading?: boolean;
 }) {
-  const [edit, setEdit] = useState(false);
-  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  // const [edit, setEdit] = useState(false);
+  // const [amounts, setAmounts] = useState<Record<string, string>>({});
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
-    setAmounts({
-      heart: "1",
-      clap: "2",
-      fire: "5",
-      lol: "3",
-      hundred: "10",
-      ...stored,
-    });
+    // const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+    // setAmounts({
+    //   heart: "1",
+    //   clap: "2",
+    //   fire: "5",
+    //   lol: "3",
+    //   hundred: "10",
+    //   ...stored,
+    // });
   }, []);
 
   useEffect(() => {
@@ -51,10 +51,10 @@ export default function ReactionPicker({
     };
   }, [onClose]);
 
-  const save = (next: Record<string, string>) => {
-    setAmounts(next);
-    localStorage.setItem(LS_KEY, JSON.stringify(next));
-  };
+  // const save = (next: Record<string, string>) => {
+  //   setAmounts(next);
+  //   localStorage.setItem(LS_KEY, JSON.stringify(next));
+  // };
 
   return (
     <div
@@ -68,18 +68,18 @@ export default function ReactionPicker({
             aria-label={r.label}
             className="text-2xl hover:scale-110 transition-transform relative"
             onClick={() => {
-              if (edit || loading) return;
+              if (loading) return;
               onPick(r.type as ReactionType);
               onClose();
             }}
             disabled={loading}
           >
             {r.emoji}
-            {!edit && (
+            {/* {!edit && (
               <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px]">
                 {amounts[r.type]}
               </span>
-            )}
+            )} */}
           </button>
         ))}
       </div>
@@ -89,7 +89,7 @@ export default function ReactionPicker({
           Sending...
         </div>
       )}
-      {edit && (
+      {/* {edit && (
         <div className="flex gap-2">
           {reactions.map((r) => (
             <input
@@ -100,13 +100,13 @@ export default function ReactionPicker({
             />
           ))}
         </div>
-      )}
-      <button
+      )} */}
+      {/* <button
         className="text-[10px] text-primary underline mt-1"
         onClick={() => setEdit((v) => !v)}
       >
         {edit ? "Done" : "Edit amounts"}
-      </button>
+      </button> */}
     </div>
   );
 }

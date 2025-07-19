@@ -6,9 +6,9 @@ export const revalidate = 0;
 export default async function SpacePage({
   params,
 }: {
-  params: { spaceId: string };
+  params: Promise<{ spaceId: string }>;
 }) {
-  const { spaceId } = params;
+  const { spaceId } = await params;
 
   let spaceWithHost;
   try {
