@@ -82,6 +82,28 @@ export default function SpaceRoom({
       <LiveKitRoom
         token={localParticipantToken}
         serverUrl={NEXT_PUBLIC_LK_SERVER_URL}
+        video={false}
+        screen={false}
+        audio={true}
+        connect={true}
+        connectOptions={{
+          autoSubscribe: true,
+        }}
+        onConnected={() => {
+          console.log("connected");
+        }}
+        onDisconnected={(r) => {
+          console.log("disconnected", r);
+        }}
+        onError={(e) => {
+          console.log("error", e);
+        }}
+        options={
+          {
+            // disconnectOnPageLeave: true,
+          }
+        }
+        simulateParticipants={5}
       >
         {/* <SpaceLayout onInviteClick={() => setInviteOpen(true)} space={space} /> */}
 
