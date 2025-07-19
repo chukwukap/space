@@ -31,13 +31,7 @@ import { toast } from "sonner";
 import { useHandRaise } from "@/app/hooks/useHandRaise";
 import { useLeaveRoom } from "@/app/hooks/useLeaveRoom";
 import { useTipReaction } from "@/app/hooks/useTipReaction";
-import {
-  useAccount,
-  useChainId,
-  useConnect,
-  useConnectors,
-  useSignTypedData,
-} from "wagmi";
+import { useChainId } from "wagmi";
 import { User } from "@/lib/types";
 
 // Use the new reusable drawer component instead of the previous custom sheet.
@@ -56,19 +50,21 @@ export default function SpaceRoom({
   space: SpaceWithHostParticipant;
 }) {
   const { user } = useUser();
-  const roomName = space.livekitName;
 
-  const userInfo = {
-    identity: user?.id.toString(),
-    name: user?.username,
-    metadata: JSON.stringify({
-      isHost: user ? user.id === space.hostId.toString() : false,
-      pfpUrl: user?.pfpUrl ?? null,
-      fid: user?.fid ?? null,
-    } as ParticipantMetadata),
-  };
+  const userInfo = useMemo(
+    () => ({
+      identity: user?.id.toString(),
+      name: user?.username,
+      metadata: JSON.stringify({
+        isHost: user ? user.id.toString() === space.hostId.toString() : false,
+        pfpUrl: user?.pfpUrl ?? null,
+        fid: user?.fid ?? null,
+      } as ParticipantMetadata),
+    }),
+    [user, space],
+  );
 
-  const localParticipantToken = useToken("/api/token", roomName, {
+  const localParticipantToken = useToken("/api/token", space.livekitName, {
     userInfo,
   });
 
@@ -134,11 +130,8 @@ function SpaceLayout({
   const router = useRouter();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
-  const account = useAccount();
+
   const chainId = useChainId();
-  const { connectAsync } = useConnect();
-  const connectors = useConnectors();
-  const { signTypedDataAsync } = useSignTypedData();
   const [spaceEnded, setSpaceEnded] = useState(false);
   const endedRef = useRef(false);
   const [likes, setLikes] = useState(0);
@@ -221,15 +214,12 @@ function SpaceLayout({
     toast,
   });
   const { handleSendReaction, reactionLoading } = useTipReaction({
-    user: user as User, // safe after guard
-    space,
-    address: account.address,
+    user: user,
+    hostId: space.hostId.toString(),
+    spaceId: space.id,
     chainId,
-    connect: () => connectAsync({ connector: connectors[0] }),
-    signTypedDataAsync,
     approveSpendPermission,
     sendData,
-    toast,
     reactionEmojis,
     addFloatingReaction,
     setLikes,
