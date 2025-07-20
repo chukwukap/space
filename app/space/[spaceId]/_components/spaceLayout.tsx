@@ -1,31 +1,23 @@
 "use client";
 
-import { useHandRaise } from "@/app/hooks/useHandRaise";
 import { useLeaveRoom } from "@/app/hooks/useLeaveRoom";
 import { useTipReaction } from "@/app/hooks/useTipReaction";
 import { useUser } from "@/app/providers/userProvider";
-import { ReactionType } from "@/lib/generated/prisma";
+import { ReactionType, Role } from "@/lib/generated/prisma";
 import { ParticipantMetadata, SpaceWithHostParticipant } from "@/lib/types";
 import {
-  AudioTrack,
   GridLayout,
   ParticipantAudioTile,
-  ParticipantTile,
   useLocalParticipant,
-  useParticipantInfo,
   useRemoteParticipants,
   useRoomContext,
-  useConnectionState,
-  useIsMuted,
-  useLocalParticipantPermissions,
   useTracks,
   ConnectionStateToast,
 } from "@livekit/components-react";
-import { ConnectionState, Participant, RoomEvent, Track } from "livekit-client";
+import { Participant, RoomEvent, Track } from "livekit-client";
 import { useRouter } from "next/navigation";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useChainId } from "wagmi";
-import HandRaiseQueue from "./HandRaiseQueue";
 import ReactionPicker from "./ReactionPicker";
 import ReactionOverlay from "./ReactionOverlay";
 import TipModal from "./TipModal";
@@ -50,30 +42,38 @@ export default function SpaceLayout({
   const room = useRoomContext();
   const router = useRouter();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [queueOpen, setQueueOpen] = useState(false);
-  const {
-    localParticipant,
-    isMicrophoneEnabled,
-    lastMicrophoneError,
-    microphoneTrack,
-  } = useLocalParticipant();
-  const localParticipantPermissions = useLocalParticipantPermissions();
-  const remoteParticipants = useRemoteParticipants({
-    // updateOnlyOn: []
-  });
+  const { localParticipant } = useLocalParticipant();
+
+  const remoteParticipants = useRemoteParticipants({});
   const host = room.getParticipantByIdentity(space.hostId.toString());
   const tracks = useTracks(
     [{ source: Track.Source.Microphone, withPlaceholder: true }],
     { onlySubscribed: false },
   );
-  console.log("tracks", tracks);
   const chainId = useChainId();
-  const [spaceEnded, setSpaceEnded] = useState(false);
-  const endedRef = useRef(false);
-  const [likes, setLikes] = useState(0);
+
   const [reactions, setReactions] = useState<
     Array<{ id: number; left: number; emoji: string }>
   >([]);
+
+  // Reaction picker open state
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const [tipModalOpen, setTipModalOpen] = useState(false);
+  // Helper – send data messages (move above hooks)
+  const sendData = useCallback(
+    (message: Record<string, unknown>) => {
+      try {
+        localParticipant?.publishData(
+          new TextEncoder().encode(JSON.stringify(message)),
+          { reliable: true },
+        );
+      } catch (err) {
+        console.error("[LiveKit] Failed to publish data", err);
+      }
+    },
+    [localParticipant],
+  );
 
   // Add floating reaction to the screen
   const addFloatingReaction = (emoji: string) => {
@@ -87,26 +87,6 @@ export default function SpaceLayout({
       3000,
     );
   };
-
-  // Reaction picker open state
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [handRaiseQueue, setHandRaiseQueue] = useState<Participant[]>([]);
-
-  const [tipModalOpen, setTipModalOpen] = useState(false);
-  // Helper – send data messages (move above hooks)
-  const sendData = useCallback(
-    (message: Record<string, unknown>) => {
-      try {
-        localParticipant?.publishData(
-          new TextEncoder().encode(JSON.stringify(message)),
-          //   { reliable: true },
-        );
-      } catch (err) {
-        console.error("[LiveKit] Failed to publish data", err);
-      }
-    },
-    [localParticipant],
-  );
 
   // Recipients: host + speakers
   // Build host recipient and speaker recipients, then filter out any without a wallet address
@@ -151,6 +131,7 @@ export default function SpaceLayout({
     router,
     toast,
   });
+
   const { handleSendReaction, reactionLoading } = useTipReaction({
     user: user,
     hostId: space.hostId.toString(),
@@ -159,12 +140,6 @@ export default function SpaceLayout({
     approveSpendPermission,
     sendData,
     addFloatingReaction,
-    setLikes,
-  });
-  const { onRaiseHand, clearHandRaise, handRaiseLoading } = useHandRaise({
-    room,
-    sendData,
-    toast,
   });
 
   // Host participant
@@ -174,152 +149,7 @@ export default function SpaceLayout({
     (p) => !room.activeSpeakers.includes(p),
   );
 
-  // Helper to check if a participant has handRaised in metadata
-  const isHandRaised = (p: Participant) => {
-    try {
-      if (!p.metadata) return false;
-      const meta = JSON.parse(p.metadata);
-      return !!meta.handRaised;
-    } catch {
-      return false;
-    }
-  };
-
-  // Update hand-raise queue when participant metadata changes
-  useEffect(() => {
-    const updateQueue = () => {
-      const queue = Array.from(room.remoteParticipants.values()).filter(
-        isHandRaised,
-      );
-      setHandRaiseQueue(queue);
-    };
-    updateQueue();
-    room.on(RoomEvent.ParticipantMetadataChanged, updateQueue);
-    room.on(RoomEvent.ParticipantConnected, updateQueue);
-    room.on(RoomEvent.ParticipantDisconnected, updateQueue);
-    return () => {
-      room.off(RoomEvent.ParticipantMetadataChanged, updateQueue);
-      room.off(RoomEvent.ParticipantConnected, updateQueue);
-      room.off(RoomEvent.ParticipantDisconnected, updateQueue);
-    };
-  }, [room]);
-
   // Host: accept hand-raise (invite to speak)
-  const handleAcceptHand = (sid: string) => {
-    sendData({ type: "inviteSpeak", sid });
-    // Host cannot update remote metadata; participant will update their own on invite
-    setQueueOpen(false);
-  };
-
-  // Host: reject hand-raise
-  const handleRejectHand = (sid: string) => {
-    sendData({ type: "rejectHand", sid });
-    // Host cannot update remote metadata; participant will update their own on reject
-    setQueueOpen(false);
-  };
-
-  // Listen for rejectHand data message (clear handRaised for local participant)
-  useEffect(() => {
-    const handleData = async (payload: Uint8Array) => {
-      try {
-        const msg = JSON.parse(new TextDecoder().decode(payload));
-        if (
-          msg.type === "rejectHand" &&
-          room.localParticipant &&
-          msg.sid === room.localParticipant.sid
-        ) {
-          await clearHandRaise();
-        }
-      } catch {}
-    };
-    room.on(RoomEvent.DataReceived, handleData);
-    return () => {
-      room.off(RoomEvent.DataReceived, handleData);
-    };
-  }, [room, clearHandRaise]);
-
-  // Listen for demoteSpeaker data message (clear handRaised for local participant)
-  useEffect(() => {
-    const handleData = async (payload: Uint8Array) => {
-      try {
-        const msg = JSON.parse(new TextDecoder().decode(payload));
-        if (
-          msg.type === "demoteSpeaker" &&
-          room.localParticipant &&
-          msg.sid === room.localParticipant.sid
-        ) {
-          await clearHandRaise();
-        }
-      } catch {}
-    };
-    room.on(RoomEvent.DataReceived, handleData);
-    return () => {
-      room.off(RoomEvent.DataReceived, handleData);
-    };
-  }, [room, clearHandRaise]);
-  /* Rerender on active speaker change */
-  const [, forceUpdate] = useState(0);
-  useEffect(() => {
-    const cb = () => forceUpdate((c) => c + 1);
-    room.on(RoomEvent.ActiveSpeakersChanged, cb);
-    return () => {
-      room.off(RoomEvent.ActiveSpeakersChanged, cb);
-    };
-  }, [room]);
-
-  // --- Track if the space has ended (host left) ---
-  useEffect(() => {
-    const handleParticipantConnected = (p: Participant) => {
-      console.log("participant connected", p);
-    };
-
-    // If the host leaves, end the space for everyone
-    const handleParticipantDisconnected = (p: Participant) => {
-      if (host?.sid === p.sid) {
-        // Only run once
-        if (!endedRef.current) {
-          endedRef.current = true;
-          setSpaceEnded(true);
-          // Optionally, disconnect from the room after a short delay to allow UI to show the ended message
-          setTimeout(() => {
-            try {
-              room?.disconnect();
-            } catch (e) {
-              console.error("Error disconnecting from room", e);
-            }
-          }, 1000);
-        }
-      }
-    };
-
-    const handleMetadataChanged = (
-      _meta: string | undefined,
-      p: Participant,
-    ) => {
-      try {
-        // Defensive: p may be undefined/null
-        if (!p) return;
-        // Defensive: p.metadata may be undefined
-        console.log("metadata changed", p?.metadata ?? null);
-        // const meta = p.metadata ? JSON.parse(p.metadata) : {};
-        // if (meta.handRaised) spaceStore.enqueueHand(p);
-        // else spaceStore.dequeueHand(p.sid);
-      } catch {}
-    };
-
-    room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
-    room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected);
-    room.on(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
-
-    return () => {
-      room.off(RoomEvent.ParticipantConnected, handleParticipantConnected);
-      room.off(
-        RoomEvent.ParticipantDisconnected,
-        handleParticipantDisconnected,
-      );
-      room.off(RoomEvent.ParticipantMetadataChanged, handleMetadataChanged);
-    };
-  }, [room, host]);
 
   const toggleMic = useCallback(() => {
     if (room.localParticipant) {
@@ -328,25 +158,6 @@ export default function SpaceLayout({
       );
     }
   }, [room]);
-
-  /** ------------------------------------------------------------------
-   * Data message handler (invite, reactions, etc.)
-   * ----------------------------------------------------------------- */
-  //   useEffect(() => {
-  //     const onStateChanged = () => {
-  //       const state = room.state;
-  //       if (state !== ConnectionState.Connected) {
-  //         setNetworkState(state);
-  //       } else {
-  //         setNetworkState(null);
-  //       }
-  //     };
-  //     onStateChanged();
-  //     room.on(RoomEvent.ConnectionStateChanged, onStateChanged);
-  //     return () => {
-  //       room.off(RoomEvent.ConnectionStateChanged, onStateChanged);
-  //     };
-  //   }, [room]);
 
   useEffect(() => {
     const handleData = (payload: Uint8Array) => {
@@ -367,7 +178,6 @@ export default function SpaceLayout({
               const emoji = REACTION_EMOJIS[msg.reactionType as ReactionType];
               if (emoji) addFloatingReaction(emoji);
             }
-            setLikes((c) => c + 1);
             break;
           case "muteRequest":
             if (
@@ -433,7 +243,7 @@ export default function SpaceLayout({
   }
 
   // If the space has ended (host left), show a message and block further interaction
-  if (spaceEnded) {
+  if (space.status === "ENDED") {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center px-6">
         <h2 className="text-2xl font-bold mb-2">Space Ended</h2>
@@ -492,35 +302,14 @@ export default function SpaceLayout({
       {/* Avatars for host, speakers, and listeners */}
       <div className="flex px-6 py-4 gap-4 flex-1">
         {/* Host */}
-        {host && <ParticipantWidget p={host} isHost roleLabel="Host" />}
+        {host && <ParticipantWidget p={host} roleLabel={Role.HOST} />}
         {/* Speakers */}
         {room.activeSpeakers.map((s) => (
-          <ParticipantWidget
-            key={s.identity}
-            p={s}
-            onToggleRemoteMute={
-              space.host.id === user.id
-                ? () => sendData({ type: "muteRequest", sid: s.sid })
-                : undefined
-            }
-            onDemote={
-              space.host.id === user.id
-                ? () => sendData({ type: "demoteSpeaker", sid: s.sid })
-                : undefined
-            }
-            roleLabel="Speaker"
-          />
+          <ParticipantWidget key={s.identity} p={s} roleLabel={Role.SPEAKER} />
         ))}
         {/* Listeners */}
         {listeners.map((l: Participant) => (
-          <ParticipantWidget
-            key={l.identity}
-            p={l}
-            onInvite={() => {}}
-            onToggleRemoteMute={() => {}}
-            onDemote={() => {}}
-            roleLabel="Listener"
-          />
+          <ParticipantWidget key={l.identity} p={l} roleLabel={Role.LISTENER} />
         ))}
       </div>
 
@@ -539,15 +328,8 @@ export default function SpaceLayout({
       {/* Bottom bar */}
       <BottomBar
         className="fixed bottom-0 left-0 right-0"
-        onRaiseHand={onRaiseHand}
         onOpenReactionPicker={() => setPickerOpen(true)}
-        onTipClick={() => setTipModalOpen(true)}
-        likes={likes}
-        handRaiseCount={handRaiseQueue.length}
-        isHost={space.host.id === user.id}
-        onQueueClick={() => setQueueOpen(true)}
         onInviteClick={onInviteClick}
-        handRaiseLoading={handRaiseLoading}
       />
 
       {pickerOpen && (
@@ -557,15 +339,6 @@ export default function SpaceLayout({
             setPickerOpen(false);
           }}
           loading={reactionLoading}
-        />
-      )}
-
-      {space.host.id === user.id && queueOpen && (
-        <HandRaiseQueue
-          list={handRaiseQueue}
-          onClose={() => setQueueOpen(false)}
-          onAccept={handleAcceptHand}
-          onReject={handleRejectHand}
         />
       )}
 

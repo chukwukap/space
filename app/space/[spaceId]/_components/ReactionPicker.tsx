@@ -4,8 +4,6 @@ import React, { useEffect, useRef } from "react";
 import { ReactionType } from "@/lib/generated/prisma";
 import { REACTION_EMOJIS } from "@/lib/constants";
 
-// const LS_KEY = "tipAmounts";
-
 export default function ReactionPicker({
   onPick,
   onClose,
@@ -15,21 +13,7 @@ export default function ReactionPicker({
   onClose: () => void;
   loading?: boolean;
 }) {
-  // const [edit, setEdit] = useState(false);
-  // const [amounts, setAmounts] = useState<Record<string, string>>({});
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
-    // setAmounts({
-    //   heart: "1",
-    //   clap: "2",
-    //   fire: "5",
-    //   lol: "3",
-    //   hundred: "10",
-    //   ...stored,
-    // });
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -42,11 +26,6 @@ export default function ReactionPicker({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [onClose]);
-
-  // const save = (next: Record<string, string>) => {
-  //   setAmounts(next);
-  //   localStorage.setItem(LS_KEY, JSON.stringify(next));
-  // };
 
   return (
     <div
@@ -67,11 +46,6 @@ export default function ReactionPicker({
             disabled={loading}
           >
             {emoji}
-            {/* {!edit && (
-              <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px]">
-                {amounts[r.type]}
-              </span>
-            )} */}
           </button>
         ))}
       </div>
@@ -81,24 +55,6 @@ export default function ReactionPicker({
           Sending...
         </div>
       )}
-      {/* {edit && (
-        <div className="flex gap-2">
-          {reactions.map((r) => (
-            <input
-              key={r.type}
-              value={amounts[r.type]}
-              onChange={(e) => save({ ...amounts, [r.type]: e.target.value })}
-              className="w-12 px-1 py-0.5 text-center text-xs rounded-md bg-background border border-border"
-            />
-          ))}
-        </div>
-      )} */}
-      {/* <button
-        className="text-[10px] text-primary underline mt-1"
-        onClick={() => setEdit((v) => !v)}
-      >
-        {edit ? "Done" : "Edit amounts"}
-      </button> */}
     </div>
   );
 }

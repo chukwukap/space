@@ -14,7 +14,6 @@ export function useTipReaction({
   approveSpendPermission,
   sendData,
   addFloatingReaction,
-  setLikes,
 }: {
   user: UserWithRelations | null;
   hostId: string;
@@ -27,7 +26,6 @@ export function useTipReaction({
   ) => Promise<string>;
   sendData: (msg: Record<string, unknown>) => void;
   addFloatingReaction: (emoji: string) => void;
-  setLikes: (fn: (c: number) => number) => void;
 }) {
   const { connect, connectors } = useConnect();
   const { address } = useAccount();
@@ -47,7 +45,6 @@ export function useTipReaction({
       setReactionLoading(true);
       // Optimistic UI
       addFloatingReaction(emoji);
-      setLikes((c) => c + 1);
       sendData({ type: "reaction", reactionType: type });
 
       try {
@@ -105,7 +102,6 @@ export function useTipReaction({
       address,
       connectors,
       addFloatingReaction,
-      setLikes,
     ],
   );
 

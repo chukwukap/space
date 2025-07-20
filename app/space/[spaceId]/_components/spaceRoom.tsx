@@ -36,7 +36,6 @@ export default function SpaceRoom({
         pfpUrl: user?.avatarUrl ?? null,
         fid: user?.fid ?? null,
         walletAddress: user?.address ?? null,
-        handRaised: false,
       } as ParticipantMetadata),
     }),
     [user],
@@ -70,11 +69,9 @@ export default function SpaceRoom({
         onError={(e) => {
           console.log("error", e);
         }}
-        options={
-          {
-            // disconnectOnPageLeave: true,
-          }
-        }
+        options={{
+          disconnectOnPageLeave: true,
+        }}
       >
         <SpaceLayout onInviteClick={() => setInviteOpen(true)} space={space} />
 

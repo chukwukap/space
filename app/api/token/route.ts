@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AccessToken, TrackSource } from "livekit-server-sdk";
-import { ParticipantMetadata } from "@/lib/types";
 
 // Do not cache endpoint result
 export const revalidate = 0;
@@ -9,35 +8,28 @@ export async function GET(req: NextRequest) {
   const roomName = req.nextUrl.searchParams.get("roomName");
   const identity = req.nextUrl.searchParams.get("identity");
   const name = req.nextUrl.searchParams.get("name");
-  const meta = req.nextUrl.searchParams.get("metadata");
+  const metadata = JSON.parse(req.nextUrl.searchParams.get("metadata") ?? "{}");
 
-  if (!roomName || !identity || !name || !meta) {
+  if (!roomName) {
     return NextResponse.json(
-      {
-        error:
-          "Missing required query parameters: roomName, identity, name, metadata",
-      },
+      { error: 'Missing "roomName" query parameter' },
       { status: 400 },
     );
-  }
-
-  const defaultMetadata: ParticipantMetadata = {
-    pfpUrl: null,
-    fid: null,
-    userDbId: null,
-    walletAddress: null,
-    handRaised: false,
-  };
-
-  const participantMetadata: ParticipantMetadata = JSON.parse(meta);
-
-  if (
-    !participantMetadata ||
-    !participantMetadata.fid ||
-    !participantMetadata.userDbId ||
-    !participantMetadata.walletAddress
-  ) {
-    return NextResponse.json({ error: "Invalid metadata" }, { status: 400 });
+  } else if (!identity) {
+    return NextResponse.json(
+      { error: 'Missing "identity" query parameter' },
+      { status: 400 },
+    );
+  } else if (!name) {
+    return NextResponse.json(
+      { error: 'Missing "name" query parameter' },
+      { status: 400 },
+    );
+  } else if (metadata === undefined) {
+    return NextResponse.json(
+      { error: 'Missing "metadata" query parameter' },
+      { status: 400 },
+    );
   }
 
   const apiKey = process.env.LIVEKIT_API_KEY;
@@ -51,19 +43,15 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const at = new AccessToken(apiKey, apiSecret, {
-    identity,
-    name,
-    metadata: JSON.stringify({ ...defaultMetadata, ...participantMetadata }),
-  });
-  console.log("participantMetadata", participantMetadata);
+  const at = new AccessToken(apiKey, apiSecret, { identity, name, metadata });
+  console.log("metadata", metadata);
 
   at.addGrant({
     room: roomName,
     roomJoin: true,
     canPublish: true,
-    canSubscribe: true,
-    canPublishSources: [TrackSource.MICROPHONE],
+    canSubscribe: true, //
+    canPublishSources: [TrackSource.MICROPHONE], // only allow microphone
     roomRecord: false,
   });
 

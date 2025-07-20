@@ -2,47 +2,26 @@
 import {
   MicrophoneMute,
   MicrophoneSpeaking,
-  DragHandGesture as RaiseHandIcon,
   Heart as HeartIcon,
   User as UsersIcon,
   ShareAndroid as ShareIcon,
-  List,
 } from "iconoir-react";
 import { cn } from "@/lib/utils";
-import {
-  useLocalParticipant,
-  useLocalParticipantPermissions,
-} from "@livekit/components-react";
+import { useLocalParticipant } from "@livekit/components-react";
 
 interface Props {
-  onRaiseHand: () => void;
   onOpenReactionPicker: () => void;
-  likes: number;
-  handRaiseCount: number;
-  isHost: boolean;
-  onQueueClick: () => void;
-  /** Opens tipping (reaction picker) */
-  onTipClick: () => void;
-  /** Callback fired when the user taps the “Invite” button. */
+
   onInviteClick: () => void;
   className?: string;
-  handRaiseLoading?: boolean;
 }
 
 export default function BottomBar({
-  onRaiseHand,
   onOpenReactionPicker,
-  likes,
-  handRaiseCount,
-  isHost,
-  onQueueClick,
-  onTipClick,
   onInviteClick,
   className,
-  handRaiseLoading = false,
 }: Props) {
   const { localParticipant } = useLocalParticipant();
-  const localParticipantPermissions = useLocalParticipantPermissions();
 
   return (
     <footer
@@ -51,46 +30,24 @@ export default function BottomBar({
         className,
       )}
     >
-      {localParticipantPermissions?.canPublish ? (
-        localParticipant.isSpeaking ? (
-          <BarButton
-            label="Speaking"
-            icon={MicrophoneSpeaking}
-            onClick={() => {
-              localParticipant.setMicrophoneEnabled(false);
-            }}
-          />
-        ) : (
-          <BarButton
-            label="Muted"
-            icon={MicrophoneMute}
-            onClick={() => {
-              localParticipant.setMicrophoneEnabled(true);
-            }}
-          />
-        )
+      {localParticipant.isMicrophoneEnabled ? (
+        <BarButton
+          label="Speaking"
+          icon={MicrophoneSpeaking}
+          onClick={() => {
+            localParticipant.setMicrophoneEnabled(false);
+          }}
+        />
       ) : (
         <BarButton
-          label={handRaiseLoading ? "..." : "Muted"}
-          icon={RaiseHandIcon}
-          onClick={onRaiseHand}
-          disabled={handRaiseLoading}
-          loading={handRaiseLoading}
+          label="Muted"
+          icon={MicrophoneMute}
+          onClick={() => {
+            localParticipant.setMicrophoneEnabled(true);
+          }}
         />
       )}
-      <BarButton
-        label={String(likes)}
-        icon={HeartIcon}
-        onClick={onOpenReactionPicker}
-      />
-      <BarButton label="Tip" icon={HeartIcon} onClick={onTipClick} />
-      {isHost && handRaiseCount > 0 && (
-        <BarButton
-          label={`Queue(${handRaiseCount})`}
-          icon={List}
-          onClick={onQueueClick}
-        />
-      )}
+      <BarButton label="Like" icon={HeartIcon} onClick={onOpenReactionPicker} />
       <BarButton
         label="Share"
         icon={ShareIcon}

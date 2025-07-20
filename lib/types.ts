@@ -29,7 +29,6 @@ export interface ParticipantMetadata {
   pfpUrl: string | null;
   fid: number | null;
   walletAddress: string | null;
-  handRaised: boolean;
 }
 
 export interface SpendPermission {
