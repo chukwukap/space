@@ -1,46 +1,49 @@
-import { prisma } from "@/lib/prisma";
 import SpaceRoom from "./_components/spaceRoom";
+import { roomService } from "@/lib/livekit";
+import { Room } from "livekit-server-sdk";
+import { SpaceMetadata } from "@/lib/types";
 
 export const revalidate = 0;
 
 export default async function SpacePage({
   params,
 }: {
-  params: Promise<{ spaceId: string }>;
+  params: Promise<{ spaceId: string; title: string }>;
 }) {
-  const { spaceId } = await params;
-
-  let spaceWithHost;
+  const { spaceId, title } = await params;
+  let serverRoom: Room | undefined;
+  let metadata: SpaceMetadata | undefined;
   try {
-    spaceWithHost = await prisma.space.findUnique({
-      where: { livekitName: spaceId },
-      include: {
-        participants: {
-          where: { role: "HOST" },
-          include: { user: true },
-        },
-        host: true,
-      },
-    });
-
-    console.log("spaceWithHost", JSON.stringify(spaceWithHost, null, 2));
-  } catch {
-    // Optionally log error here
+    const spaces = await roomService.listRooms([spaceId]);
+    console.log("spaceWithHost", JSON.stringify(spaces, null, 2));
+    serverRoom = spaces[0];
+    metadata = JSON.parse(serverRoom.metadata) as SpaceMetadata;
+  } catch (error) {
+    console.error("[GET] error:", error);
     return (
       <div>
-        <h2>Database Error</h2>
         <p>Could not load this space. Please try again later.</p>
       </div>
     );
   }
 
-  if (!spaceWithHost) {
+  if (!serverRoom) {
     return <div>Space not found</div>;
   }
 
-  if (spaceWithHost.status !== "LIVE") {
+  if (!metadata) {
+    return <div>Could not load this space. Please try again later.</div>;
+  }
+
+  if (metadata.ended) {
     return <div>This space has already ended</div>;
   }
 
-  return <SpaceRoom space={spaceWithHost} />;
+  return (
+    <SpaceRoom
+      serverRoom={serverRoom}
+      title={decodeURIComponent(title)}
+      roomMetadata={metadata}
+    />
+  );
 }

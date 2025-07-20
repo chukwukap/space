@@ -2,7 +2,7 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
-import { UserWithRelations } from "@/lib/types";
+import { ParticipantMetadata, UserWithRelations } from "@/lib/types";
 import { useCurrentUser } from "@/app/hooks/useCurrentUser";
 import { useFarcasterOnboard } from "@/app/hooks/useFarcasterOnboard";
 import { useWalletSync } from "@/app/hooks/useWalletSync";
@@ -14,6 +14,7 @@ interface UserContextType {
   user: UserWithRelations | null;
   userLoading: boolean;
   userError: string | null;
+  userMetadata: ParticipantMetadata | null;
   refreshUser: () => Promise<void>;
 }
 
@@ -24,6 +25,7 @@ const UserContext = createContext<UserContextType>({
   user: null,
   userLoading: false,
   userError: null,
+  userMetadata: null,
   refreshUser: async () => {},
 });
 
@@ -33,16 +35,17 @@ const UserContext = createContext<UserContextType>({
  */
 export function UserProvider({ children }: { children: ReactNode }) {
   const { context } = useMiniKit();
-  const { address: walletAddress } = useAccount();
+  const { address } = useAccount();
 
   const {
     user,
     userLoading,
+    userMetadata,
     userError,
     refreshUser: swrRefresh,
   } = useCurrentUser({
     context: context ?? null,
-    address: walletAddress ?? null,
+    address: address ?? null,
   });
 
   const refreshUser = async () => {
@@ -52,10 +55,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useFarcasterOnboard({
     context,
     user,
-    address: walletAddress ?? null,
+    userMetadata,
     mutate: refreshUser,
   });
-  useWalletSync({ user, walletAddress, mutate: refreshUser });
+  useWalletSync({ user, walletAddress: address ?? null, mutate: refreshUser });
 
   return (
     <UserContext.Provider
@@ -63,6 +66,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         user,
         userLoading,
         userError,
+        userMetadata,
         refreshUser,
       }}
     >

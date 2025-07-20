@@ -1,6 +1,7 @@
 import { getRoom, roomService } from "@/lib/livekit";
 import { prisma } from "@/lib/prisma";
 import { SpaceMetadata } from "@/lib/types";
+import { Room } from "livekit-server-sdk";
 
 export const revalidate = 0;
 
@@ -30,42 +31,14 @@ export async function GET(request: Request) {
   }
 
   // Query active spaces from the database, including the host participant and their user info
-  let spaces;
+  let spaces: Room[] = [];
   if (names && names.length > 0) {
     console.log("[GET] Querying spaces with names:", names);
-    spaces = await prisma.space.findMany({
-      where: {
-        livekitName: { in: names },
-        status: "LIVE",
-      },
-      orderBy: { createdAt: "desc" },
-      include: {
-        participants: {
-          where: { role: "HOST" },
-          include: { user: true },
-        },
-        host: true,
-        _count: {
-          select: { participants: true },
-        },
-      },
-    });
+    spaces = await roomService.listRooms(names);
+    console.log("[GET] spaces:", JSON.stringify(spaces, null, 2));
   } else {
     console.log("[GET] Querying all LIVE spaces");
-    spaces = await prisma.space.findMany({
-      where: { status: "LIVE" },
-      orderBy: { createdAt: "desc" },
-      include: {
-        participants: {
-          where: { role: "HOST" },
-          include: { user: true },
-        },
-        host: true,
-        _count: {
-          select: { participants: true },
-        },
-      },
-    });
+    spaces = await roomService.listRooms();
   }
 
   console.log("[GET] spaces result:", JSON.stringify(spaces, null, 2));
@@ -79,32 +52,14 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    console.log("[POST] request body:", JSON.stringify(body, null, 2));
-    const {
-      title,
-      hostFid,
-      hostId,
-      hostAddress,
-      recording = false,
-    } = body as {
-      title?: string;
-      hostFid?: string;
-      hostId?: string;
-      hostAddress?: string;
-      recording?: boolean;
-    };
-    console.log("[POST] title:", title);
-    console.log("[POST] hostFid:", hostFid);
-    console.log("[POST] hostId:", hostId);
-    console.log("[POST] hostAddress:", hostAddress);
-    console.log("[POST] recording:", recording);
+    const { metadata } = (await request.json()) as { metadata: SpaceMetadata };
+    console.log("[POST] request body:", JSON.stringify(metadata, null, 2));
 
-    if (!title || !hostFid || !hostAddress || !hostId) {
+    if (!metadata.title || !metadata.host) {
       console.log("[POST] Missing required fields");
       return new Response(
         JSON.stringify({
-          error: "title, hostFid, hostId, and hostAddress required",
+          error: "title, host, and recording required",
         }),
         {
           status: 400,
@@ -113,31 +68,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const metadata: SpaceMetadata = {
-      title,
-      hostFid,
-      hostId,
-      hostAddress,
-      recording,
-      ended: false,
-    };
-    console.log("[POST] metadata:", JSON.stringify(metadata, null, 2));
-
-    const hostUser = await prisma.user.findUnique({
-      where: {
-        id: parseInt(hostId),
-        fid: parseInt(hostFid),
-      },
-    });
-    console.log("[POST] hostUser:", JSON.stringify(hostUser, null, 2));
-
-    if (!hostUser) {
-      console.log("[POST] Host user not found");
-      return new Response(JSON.stringify({ error: "Host user not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
     const livekitRoomId = crypto.randomUUID().slice(0, 6);
     console.log("[POST] livekitRoomId:", livekitRoomId);
 
@@ -145,23 +75,36 @@ export async function POST(request: Request) {
     const livekitRoom = await roomService.createRoom({
       name: livekitRoomId,
       metadata: JSON.stringify(metadata),
+      departureTimeout: 3, // no timeout
+      // emptyTimeout: 5
     });
     console.log("[POST] livekitRoom:", JSON.stringify(livekitRoom, null, 2));
 
-    const space = await prisma.space.create({
-      data: {
-        title: metadata.title,
-        livekitName: livekitRoom.name,
-        hostId: hostUser.id,
-        hostAddress: metadata.hostAddress,
-        recording: metadata.recording,
-        status: "LIVE",
-      },
-      include: {
-        host: true,
-      },
-    });
-    console.log("[POST] created space:", JSON.stringify(space, null, 2));
+    try {
+      prisma.space.upsert({
+        where: {
+          livekitName: livekitRoom.name,
+        },
+        update: {
+          title: metadata.title,
+          hostId: metadata.host.fid,
+          hostAddress: metadata.host.address,
+          recording: metadata.recording,
+          status: "LIVE",
+        },
+        create: {
+          livekitName: livekitRoom.name,
+          title: metadata.title,
+          hostId: metadata.host.fid,
+          hostAddress: metadata.host.address,
+          recording: metadata.recording,
+          status: "LIVE",
+        },
+      });
+      // console.log("[POST] created space:", JSON.stringify(space, null, 2));
+    } catch (error) {
+      console.error("[POST /api/spaces] error:", error);
+    }
 
     // Fire-and-forget notifications (no await to keep response fast)
     // sendLiveSpaceNotifications(
@@ -172,7 +115,7 @@ export async function POST(request: Request) {
     // DB hostId already int; no change needed
 
     // Always respond with LiveKit room info
-    return new Response(JSON.stringify(space), {
+    return new Response(JSON.stringify(livekitRoom), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {

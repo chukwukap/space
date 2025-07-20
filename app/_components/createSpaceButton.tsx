@@ -14,7 +14,8 @@ import { Mic } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount, useConnect } from "wagmi";
 import { useUser } from "../providers/userProvider";
-import { Space } from "@/lib/generated/prisma";
+import { ParticipantMetadata, SpaceMetadata } from "@/lib/types";
+import { Room } from "livekit-server-sdk";
 
 /**
  * CreateSpaceButton is hidden on space details (live room) pages.
@@ -51,46 +52,52 @@ export default function CreateSpaceButton() {
     if (!user) return;
 
     // If wallet not connected, prompt connect and refresh user
-    if (!walletAddress) {
-      setCreateError("Please connect your wallet to host a Space.");
-      if (
-        connectors &&
-        connectors.length > 0 &&
-        walletConnectStatus !== "pending"
-      ) {
-        try {
-          connect({ connector: connectors[0] });
-          await refreshUser();
-          toast.success("Wallet connected! Please try again.");
-        } catch {
-          toast.error("Failed to connect wallet.");
-        }
-      }
-      return;
-    }
+    // if (!walletAddress) {
+    //   if (
+    //     connectors &&
+    //     connectors.length > 0 &&
+    //     walletConnectStatus !== "pending"
+    //   ) {
+    //     try {
+    //       connect({ connector: connectors[0] });
+    //       await refreshUser();
+    //     } catch {}
+    //   }
+    //   return;
+    // }
 
     // If user is missing fid, refresh user and prompt
     if (!user?.fid) {
-      setCreateError("Please complete your Farcaster profile to host a Space.");
-      toast.error("Please complete your Farcaster profile to host a Space.");
+      return;
     }
 
     setCreating(true);
     setCreateError(null);
 
-    const hostFid = user?.fid;
-    const hostAddress = walletAddress;
+    const host: ParticipantMetadata = {
+      fid: user.fid,
+      address: user.address ?? "",
+      displayName: user.displayName || "Unknown",
+      username: user.username || "Unknown",
+      pfpUrl: user.avatarUrl || "/icon.png",
+      identity: user.fid,
+      clientFid: user.farcasterClientIdOnboardedFrom ?? null,
+    };
+
+    const metadata: SpaceMetadata = {
+      clientFid: user.farcasterClientIdOnboardedFrom ?? null,
+      title: title.trim(),
+      host,
+      recording: record,
+      ended: false,
+    };
 
     try {
       const res = await fetch("/api/spaces", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: title.trim(),
-          hostFid,
-          hostId: user.id,
-          hostAddress,
-          recording: record,
+          metadata,
         }),
       });
       if (!res.ok) {
@@ -98,13 +105,14 @@ export default function CreateSpaceButton() {
         throw new Error(err.error || "Failed to create space");
       }
 
-      const space: Space = await res.json();
-      const path = `/space/${space.livekitName}`;
+      const livekitRoom: Room = await res.json();
+      const path = `/space/${livekitRoom.name}?title=${encodeURIComponent(
+        title,
+      )}`;
 
       setOpen(true);
       toast.success("Space created! Redirecting you...");
       setTitle("");
-
       // Navigate to the new space page
       router.push(path);
     } catch (e: unknown) {
@@ -150,7 +158,7 @@ export default function CreateSpaceButton() {
             </div>
 
             <div className="flex items-center justify-between">
-              <span>Record Space</span>
+              <span>Record Space (coming soon)</span>
               <input
                 type="checkbox"
                 checked={record}

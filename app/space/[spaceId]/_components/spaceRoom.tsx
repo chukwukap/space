@@ -5,46 +5,40 @@ import {
   useToken,
   RoomAudioRenderer,
 } from "@livekit/components-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import "@livekit/components-styles";
 import dynamic from "next/dynamic";
 
 import MobileHeader from "@/app/_components/mobileHeader";
-import { ParticipantMetadata, SpaceWithHostParticipant } from "@/lib/types";
+import { SpaceMetadata } from "@/lib/types";
 import { useUser } from "@/app/providers/userProvider";
 
 import { NEXT_PUBLIC_LK_SERVER_URL } from "@/lib/constants";
 import SpaceLayout from "./spaceLayout";
+import { Room } from "livekit-server-sdk";
 
 const InviteDrawer = dynamic(() => import("@/app/_components/inviteDrawer"), {
   ssr: false,
 });
 
 export default function SpaceRoom({
-  space,
+  serverRoom,
+  title,
+  roomMetadata,
 }: {
-  space: SpaceWithHostParticipant;
+  serverRoom: Room;
+  title: string;
+  roomMetadata: SpaceMetadata;
 }) {
-  const { user } = useUser();
+  const { userMetadata } = useUser();
 
-  const userInfo = useMemo(
-    () => ({
-      identity: user?.id.toString(),
-      name: user?.username ?? undefined,
-      metadata: JSON.stringify({
-        userDbId: user?.id ?? null,
-        pfpUrl: user?.avatarUrl ?? null,
-        fid: user?.fid ?? null,
-        walletAddress: user?.address ?? null,
-      } as ParticipantMetadata),
-    }),
-    [user],
-  );
-
-  const localParticipantToken = useToken("/api/token", space.livekitName, {
-    userInfo,
+  const localParticipantToken = useToken("/api/token", serverRoom.name, {
+    userInfo: {
+      identity: userMetadata?.fid?.toString() ?? "",
+      name: userMetadata?.displayName ?? userMetadata?.username ?? "Guest",
+      metadata: JSON.stringify(userMetadata),
+    },
   });
-
   const [inviteOpen, setInviteOpen] = useState(false);
 
   return (
@@ -73,7 +67,10 @@ export default function SpaceRoom({
           disconnectOnPageLeave: true,
         }}
       >
-        <SpaceLayout onInviteClick={() => setInviteOpen(true)} space={space} />
+        <SpaceLayout
+          onInviteClick={() => setInviteOpen(true)}
+          roomMetadata={roomMetadata}
+        />
 
         {inviteOpen && (
           <InviteDrawer

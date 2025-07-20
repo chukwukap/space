@@ -6,6 +6,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+  images: {
+    remotePatterns: [
+      {
+        hostname: "imagedelivery.net",
+      },
+    ],
+  },
   // Silence warnings from WalletConnect deps
   webpack: (config) => {
     config.externals.push("pino-pretty", "lokijs", "encoding");

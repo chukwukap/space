@@ -1,19 +1,19 @@
 import { useEffect, useRef } from "react";
-import { UserWithRelations } from "@/lib/types";
+import { ParticipantMetadata, UserWithRelations } from "@/lib/types";
 import { Context } from "@farcaster/frame-sdk";
 import { Address } from "viem";
 
 interface Params {
   context: Context.FrameContext | null;
   user: UserWithRelations | null;
-  address: Address | null;
+  userMetadata: ParticipantMetadata | null;
   mutate: () => Promise<void> | void;
 }
 
 export function useFarcasterOnboard({
   context,
   user,
-  address,
+  userMetadata,
   mutate,
 }: Params) {
   const postedRef = useRef(false);
@@ -33,7 +33,7 @@ export function useFarcasterOnboard({
             fid: context.user.fid,
             username: context.user.username ?? null,
             pfpUrl: context.user.pfpUrl ?? null,
-            address: address ?? null,
+            address: userMetadata?.address ?? null,
             displayName: context.user.displayName ?? null,
             farcasterClientIdOnboardedFrom: context.client.clientFid,
           }),
@@ -44,5 +44,5 @@ export function useFarcasterOnboard({
         console.error("[useFarcasterOnboard] error", err);
       }
     })();
-  }, [context, user, address, mutate]);
+  }, [context, user, userMetadata, mutate]);
 }

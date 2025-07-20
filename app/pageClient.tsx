@@ -10,18 +10,19 @@ import MobileHeader from "./_components/mobileHeader";
 import { Microphone } from "iconoir-react";
 import { ThemeToggle } from "./_components/themeToggle";
 
-import { SpaceWithHostParticipant } from "@/lib/types";
 import { useUser } from "./providers/userProvider";
+import { Room } from "livekit-server-sdk";
+import { SpaceMetadata } from "@/lib/types";
 
 /**
  * Space type extends Room with additional metadata fields.
  */
 
 // SWR fetcher for spaces, parsing metadata for each space
-const fetcher = async (url: string): Promise<SpaceWithHostParticipant[]> => {
+const fetcher = async (url: string): Promise<Room[]> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch");
-  const data: SpaceWithHostParticipant[] = await res.json();
+  const data: Room[] = await res.json();
   return data;
 };
 
@@ -57,8 +58,8 @@ export default function LandingPageClient() {
     data: spaces,
     error,
     isLoading,
-  } = useSWR<SpaceWithHostParticipant[]>("/api/spaces", fetcher, {
-    refreshInterval: 5000,
+  } = useSWR<Room[]>("/api/spaces", fetcher, {
+    refreshInterval: 1000 * 60 * 10, //  10min
   });
 
   if (isLoading) {
@@ -116,9 +117,9 @@ export default function LandingPageClient() {
         {spaces && spaces.length > 0 ? (
           spaces.map((s) => (
             <SpaceCard
-              key={s.id}
+              key={s.name}
               space={s}
-              onClick={() => router.push(`/space/${s.livekitName}`)}
+              onClick={() => router.push(`/space/${s.name}`)}
             />
           ))
         ) : (
@@ -147,13 +148,13 @@ export default function LandingPageClient() {
 }
 
 // Card for each space in the list
-function SpaceCard({
-  space,
-  onClick,
-}: {
-  space: SpaceWithHostParticipant;
-  onClick: () => void;
-}) {
+function SpaceCard({ space, onClick }: { space: Room; onClick: () => void }) {
+  const metadata: SpaceMetadata = space.metadata
+    ? JSON.parse(space.metadata)
+    : null;
+  if (!metadata) {
+    return null;
+  }
   return (
     <motion.div
       whileTap={{ scale: 0.97 }}
@@ -163,7 +164,7 @@ function SpaceCard({
       {/* Host avatar placeholder */}
       <div className="w-12 h-12 rounded-full overflow-hidden bg-muted shrink-0">
         <Image
-          src="/icon.png"
+          src={metadata?.host?.pfpUrl || "/icon.png"}
           alt="host"
           width={48}
           height={48}
@@ -174,12 +175,12 @@ function SpaceCard({
       {/* Title & meta */}
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold leading-snug line-clamp-2">
-          {space.title}
+          {metadata.title}
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
           <Microphone className="w-3 h-3 text-destructive" />
-          <span>{space.participants.length} listening</span>
-          {space.recording && (
+          <span>{space.numParticipants} listening</span>
+          {space.activeRecording && (
             <span className="ml-2 px-1.5 py-0.5 bg-primary/20 text-primary rounded">
               REC
             </span>

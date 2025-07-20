@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       { error: 'Missing "name" query parameter' },
       { status: 400 },
     );
-  } else if (metadata === undefined) {
+  } else if (!metadata) {
     return NextResponse.json(
       { error: 'Missing "metadata" query parameter' },
       { status: 400 },

@@ -4,7 +4,7 @@ import { Address } from "viem";
 
 interface Params {
   user: UserWithRelations | null;
-  walletAddress: Address | undefined;
+  walletAddress: Address | null;
   mutate: () => Promise<void> | void;
 }
 

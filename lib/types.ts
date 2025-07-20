@@ -15,20 +15,22 @@ export type SpaceWithHostParticipant = Prisma.SpaceGetPayload<{
   };
 }>;
 
+export type ParticipantMetadata = {
+  fid: number;
+  address: string;
+  displayName: string;
+  username: string;
+  pfpUrl: string;
+  identity: number;
+  clientFid: number | null;
+};
+
 export interface SpaceMetadata {
+  clientFid: number | null;
   title: string;
-  hostFid: string;
-  hostId: string;
-  hostAddress: string;
+  host: ParticipantMetadata;
   recording: boolean;
   ended: boolean;
-}
-
-export interface ParticipantMetadata {
-  userDbId: number | null;
-  pfpUrl: string | null;
-  fid: number | null;
-  walletAddress: string | null;
 }
 
 export interface SpendPermission {

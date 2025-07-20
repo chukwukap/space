@@ -4,7 +4,11 @@ import { useLeaveRoom } from "@/app/hooks/useLeaveRoom";
 import { useTipReaction } from "@/app/hooks/useTipReaction";
 import { useUser } from "@/app/providers/userProvider";
 import { ReactionType, Role } from "@/lib/generated/prisma";
-import { ParticipantMetadata, SpaceWithHostParticipant } from "@/lib/types";
+import {
+  ParticipantMetadata,
+  SpaceMetadata,
+  SpaceWithHostParticipant,
+} from "@/lib/types";
 import {
   GridLayout,
   ParticipantAudioTile,
@@ -19,6 +23,7 @@ import { Participant, RoomEvent, Track } from "livekit-client";
 import { useRouter } from "next/navigation";
 import { useState, useCallback, useEffect } from "react";
 import { useChainId } from "wagmi";
+import { useLowCPUOptimizer } from "@/lib/usePerfomanceOptimiser";
 import ReactionPicker from "./ReactionPicker";
 import ReactionOverlay from "./ReactionOverlay";
 import TipModal from "./TipModal";
@@ -30,29 +35,40 @@ import { toast } from "sonner";
 import { approveSpendPermission } from "@/actions/spendPermission";
 import { REACTION_EMOJIS } from "@/lib/constants";
 import "@livekit/components-styles";
+import { Room } from "livekit-server-sdk";
 
 export default function SpaceLayout({
   onInviteClick,
-  space,
+  roomMetadata,
 }: {
   onInviteClick: () => void;
-  space: SpaceWithHostParticipant;
+  roomMetadata: SpaceMetadata;
 }) {
   // All hooks at the top
-  const { user } = useUser();
+  const { user, userMetadata: localParticipantMetadata } = useUser();
   const room = useRoomContext();
   const router = useRouter();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const { localParticipant } = useLocalParticipant();
 
-  const remoteParticipants = useRemoteParticipants({});
-  const host = room.getParticipantByIdentity(space.hostId.toString());
+  const { localParticipant } = useLocalParticipant();
+  const remoteParticipants = useRemoteParticipants({ room });
+  const remoteParticipantsWithMetadata = remoteParticipants.map((p) => {
+    const metadata = p.identity ? JSON.parse(p.identity) : null;
+    return {
+      ...p,
+      metadata,
+    };
+  });
+  const host = room.getParticipantByIdentity(roomMetadata.host.fid.toString());
+  const hostMetadata = host?.identity
+    ? JSON.parse(host.metadata ?? "{}")
+    : null;
   const tracks = useTracks(
     [{ source: Track.Source.Microphone, withPlaceholder: true }],
     { onlySubscribed: false },
   );
-  const chainId = useChainId();
 
+  const chainId = useChainId();
   const [reactions, setReactions] = useState<
     Array<{ id: number; left: number; emoji: string }>
   >([]);
@@ -92,28 +108,21 @@ export default function SpaceLayout({
   // Recipients: host + speakers
   // Build host recipient and speaker recipients, then filter out any without a wallet address
   const hostRecipient = {
-    id: space.host.id,
-    name: space.host.displayName || space.host.username || "Host",
-    walletAddress: space.host.address,
+    id: roomMetadata.host.fid,
+    name: roomMetadata.host.displayName || roomMetadata.host.username || "Host",
+    walletAddress: roomMetadata.host.address,
   };
 
   const speakerRecipients = room.activeSpeakers.map((s) => {
-    const participantMeta: ParticipantMetadata = s.metadata
+    const speakerMetadata: ParticipantMetadata = s.metadata
       ? JSON.parse(s.metadata)
-      : { userDbId: null, fid: null, pfpUrl: null, walletAddress: null };
+      : null;
 
-    const name = s.name || `Speaker ${s.identity}`;
-    // Try to find the corresponding participant in space.participants (if available)
-    const participant = space.participants.find(
-      (p) => p.user && p.user.id.toString() === s.identity,
-    );
-    const walletAddress =
-      participantMeta?.walletAddress ||
-      participant?.user?.address ||
-      hostRecipient.walletAddress;
+    const name = speakerMetadata?.displayName || `Speaker ${s.name}`;
+    const walletAddress = speakerMetadata?.address;
 
     return {
-      id: participantMeta?.userDbId ?? Number(s.identity),
+      identity: s.identity,
       name,
       walletAddress,
     };
@@ -125,18 +134,18 @@ export default function SpaceLayout({
     ...speakerRecipients,
   ].filter((r): r is TipRecipient => !!r.walletAddress);
 
-  const { onLeaveRoom, leaveLoading } = useLeaveRoom({
-    room,
-    user: user,
-    space,
-    router,
-    toast,
-  });
+  //   const { onLeaveRoom, leaveLoading } = useLeaveRoom({
+  //     room,
+  //     user: user,
+  //     space: roomMetadata,
+  //     router,
+  //     toast,
+  //   });
 
   const { handleSendReaction, reactionLoading } = useTipReaction({
     user: user,
-    hostId: space.hostId.toString(),
-    spaceId: space.id,
+    hostId: roomMetadata.host.fid.toString(),
+    spaceId: room.name,
     chainId,
     approveSpendPermission,
     sendData,
@@ -159,6 +168,21 @@ export default function SpaceLayout({
       );
     }
   }, [room]);
+
+  // Optimise performance on low-power devices by reducing video quality when the
+  // browser signals that the client is CPU-constrained. Borrowed from the LiveKit
+  // Meet reference implementation.
+  const lowPowerMode = useLowCPUOptimizer(room);
+
+  // Surface a console warning when optimisation is active – can be removed once we
+  // introduce a user-facing banner/snackbar.
+  useEffect(() => {
+    if (lowPowerMode) {
+      console.warn(
+        "[SpaceLayout] Low power mode enabled – video quality downgraded.",
+      );
+    }
+  }, [lowPowerMode]);
 
   useEffect(() => {
     const handleData = (payload: Uint8Array) => {
@@ -244,7 +268,7 @@ export default function SpaceLayout({
   }
 
   // If the space has ended (host left), show a message and block further interaction
-  if (space.status === "ENDED") {
+  if (roomMetadata.ended) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center px-6">
         <h2 className="text-2xl font-bold mb-2">Space Ended</h2>
@@ -271,7 +295,7 @@ export default function SpaceLayout({
           className="text-red-500 font-semibold"
           onClick={() => setConfirmDialogOpen(true)}
         >
-          {space.host.id === user.id ? "End" : "Leave"}
+          {roomMetadata.host.fid === user.id ? "End" : "Leave"}
         </button>
       </header>
       {/* Room Title */}
@@ -279,7 +303,7 @@ export default function SpaceLayout({
         className="px-6 text-lg font-bold leading-snug mt-4"
         data-testid="space-title"
       >
-        {space.title || "Untitled Space"}
+        {roomMetadata.title || "Untitled Space"}
       </h1>
 
       {/* Avatars for host, speakers, and listeners */}
@@ -305,16 +329,18 @@ export default function SpaceLayout({
       </div>
 
       {/* Confirm leave dialog */}
-      {confirmDialogOpen && (
+      {/* {confirmDialogOpen && (
         <ConfirmDialog
           title="Leave Room"
           subtitle="Are you sure you want to leave the room?"
-          confirmLabel={space.host.id === user.id ? "End Space" : "Leave"}
+          confirmLabel={
+            roomMetadata.host.fid === user.id ? "End Space" : "Leave"
+          }
           onCancel={() => setConfirmDialogOpen(false)}
-          onConfirm={onLeaveRoom}
-          loading={leaveLoading}
+          onConfirm={() => {}}
+          loading={false}
         />
-      )}
+      )} */}
 
       {/* Bottom bar */}
       <BottomBar
@@ -342,7 +368,7 @@ export default function SpaceLayout({
         recipients={recipients}
         defaultRecipientId={hostRecipient.id}
         userId={user.id}
-        spaceId={space.id}
+        spaceId={room.name}
         onTipSuccess={() => {
           setTipModalOpen(false);
           if (toast) toast.success("Tip sent!");
