@@ -2,8 +2,8 @@
 
 import {
   LiveKitRoom,
-  AudioConference,
   useToken,
+  RoomAudioRenderer,
 } from "@livekit/components-react";
 import { useMemo, useState } from "react";
 import "@livekit/components-styles";
@@ -84,8 +84,7 @@ export default function SpaceRoom({
             onSend={() => setInviteOpen(false)}
           />
         )}
-
-        <AudioConference />
+        <RoomAudioRenderer />
       </LiveKitRoom>
     </>
   );

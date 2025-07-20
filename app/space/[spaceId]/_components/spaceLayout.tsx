@@ -6,8 +6,22 @@ import { useTipReaction } from "@/app/hooks/useTipReaction";
 import { useUser } from "@/app/providers/userProvider";
 import { ReactionType } from "@/lib/generated/prisma";
 import { ParticipantMetadata, SpaceWithHostParticipant } from "@/lib/types";
-import { useRoomContext } from "@livekit/components-react";
-import { ConnectionState, Participant, RoomEvent } from "livekit-client";
+import {
+  AudioTrack,
+  GridLayout,
+  ParticipantAudioTile,
+  ParticipantTile,
+  useLocalParticipant,
+  useParticipantInfo,
+  useRemoteParticipants,
+  useRoomContext,
+  useConnectionState,
+  useIsMuted,
+  useLocalParticipantPermissions,
+  useTracks,
+  ConnectionStateToast,
+} from "@livekit/components-react";
+import { ConnectionState, Participant, RoomEvent, Track } from "livekit-client";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useChainId } from "wagmi";
@@ -37,7 +51,22 @@ export default function SpaceLayout({
   const router = useRouter();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
-
+  const {
+    localParticipant,
+    isMicrophoneEnabled,
+    lastMicrophoneError,
+    microphoneTrack,
+  } = useLocalParticipant();
+  const localParticipantPermissions = useLocalParticipantPermissions();
+  const remoteParticipants = useRemoteParticipants({
+    // updateOnlyOn: []
+  });
+  const host = room.getParticipantByIdentity(space.hostId.toString());
+  const tracks = useTracks(
+    [{ source: Track.Source.Microphone, withPlaceholder: true }],
+    { onlySubscribed: false },
+  );
+  console.log("tracks", tracks);
   const chainId = useChainId();
   const [spaceEnded, setSpaceEnded] = useState(false);
   const endedRef = useRef(false);
@@ -59,11 +88,6 @@ export default function SpaceLayout({
     );
   };
 
-  // Network state
-  const [networkState, setNetworkState] = useState<ConnectionState | null>(
-    null,
-  );
-
   // Reaction picker open state
   const [pickerOpen, setPickerOpen] = useState(false);
   const [handRaiseQueue, setHandRaiseQueue] = useState<Participant[]>([]);
@@ -73,7 +97,7 @@ export default function SpaceLayout({
   const sendData = useCallback(
     (message: Record<string, unknown>) => {
       try {
-        room.localParticipant?.publishData(
+        localParticipant?.publishData(
           new TextEncoder().encode(JSON.stringify(message)),
           //   { reliable: true },
         );
@@ -81,7 +105,7 @@ export default function SpaceLayout({
         console.error("[LiveKit] Failed to publish data", err);
       }
     },
-    [room],
+    [localParticipant],
   );
 
   // Recipients: host + speakers
@@ -143,11 +167,7 @@ export default function SpaceLayout({
     toast,
   });
 
-  // All remote participants in the room
-  const remoteParticipants = Array.from(room.remoteParticipants.values());
-
   // Host participant
-  const host = room.getParticipantByIdentity(space.hostId.toString());
 
   // Listeners are remote participants who are not currently speaking
   const listeners = remoteParticipants.filter(
@@ -312,21 +332,21 @@ export default function SpaceLayout({
   /** ------------------------------------------------------------------
    * Data message handler (invite, reactions, etc.)
    * ----------------------------------------------------------------- */
-  useEffect(() => {
-    const onStateChanged = () => {
-      const state = room.state;
-      if (state !== ConnectionState.Connected) {
-        setNetworkState(state);
-      } else {
-        setNetworkState(null);
-      }
-    };
-    onStateChanged();
-    room.on(RoomEvent.ConnectionStateChanged, onStateChanged);
-    return () => {
-      room.off(RoomEvent.ConnectionStateChanged, onStateChanged);
-    };
-  }, [room]);
+  //   useEffect(() => {
+  //     const onStateChanged = () => {
+  //       const state = room.state;
+  //       if (state !== ConnectionState.Connected) {
+  //         setNetworkState(state);
+  //       } else {
+  //         setNetworkState(null);
+  //       }
+  //     };
+  //     onStateChanged();
+  //     room.on(RoomEvent.ConnectionStateChanged, onStateChanged);
+  //     return () => {
+  //       room.off(RoomEvent.ConnectionStateChanged, onStateChanged);
+  //     };
+  //   }, [room]);
 
   useEffect(() => {
     const handleData = (payload: Uint8Array) => {
@@ -433,15 +453,7 @@ export default function SpaceLayout({
   return (
     <div className="gap-4 min-h-screen bg-background text-foreground">
       {/* Network banner */}
-      {networkState && (
-        <div className="w-full bg-yellow-600 text-center text-sm py-1 z-50">
-          {networkState === ConnectionState.Reconnecting
-            ? "Reconnecting…"
-            : networkState === ConnectionState.Disconnected
-              ? "Disconnected"
-              : networkState.toString()}
-        </div>
-      )}
+      <ConnectionStateToast room={room} />
 
       <header className="flex justify-between px-4 py-2 bg-card/80 backdrop-blur z-40">
         <div className="flex items-center gap-3">
@@ -466,8 +478,16 @@ export default function SpaceLayout({
         className="px-6 text-lg font-bold leading-snug mt-4"
         data-testid="space-title"
       >
-        {/* {title || "Untitled Space"} */}
+        {space.title || "Untitled Space"}
       </h1>
+
+      {/* Avatars for host, speakers, and listeners */}
+      <GridLayout
+        tracks={tracks}
+        style={{ height: "calc(100vh - var(--lk-control-bar-height))" }}
+      >
+        <ParticipantAudioTile />
+      </GridLayout>
 
       {/* Avatars for host, speakers, and listeners */}
       <div className="flex px-6 py-4 gap-4 flex-1">
@@ -519,8 +539,6 @@ export default function SpaceLayout({
       {/* Bottom bar */}
       <BottomBar
         className="fixed bottom-0 left-0 right-0"
-        p={room.localParticipant}
-        onToggleMic={toggleMic}
         onRaiseHand={onRaiseHand}
         onOpenReactionPicker={() => setPickerOpen(true)}
         onTipClick={() => setTipModalOpen(true)}

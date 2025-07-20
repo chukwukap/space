@@ -2,18 +2,19 @@
 import {
   MicrophoneMute,
   MicrophoneSpeaking,
-  Microphone,
-  DragHandGesture as HandIcon,
+  DragHandGesture as RaiseHandIcon,
   Heart as HeartIcon,
   User as UsersIcon,
   ShareAndroid as ShareIcon,
+  List,
 } from "iconoir-react";
 import { cn } from "@/lib/utils";
-import { Participant } from "livekit-client";
+import {
+  useLocalParticipant,
+  useLocalParticipantPermissions,
+} from "@livekit/components-react";
 
 interface Props {
-  p: Participant | null;
-  onToggleMic: () => void;
   onRaiseHand: () => void;
   onOpenReactionPicker: () => void;
   likes: number;
@@ -29,8 +30,6 @@ interface Props {
 }
 
 export default function BottomBar({
-  p,
-  onToggleMic,
   onRaiseHand,
   onOpenReactionPicker,
   likes,
@@ -42,6 +41,9 @@ export default function BottomBar({
   className,
   handRaiseLoading = false,
 }: Props) {
+  const { localParticipant } = useLocalParticipant();
+  const localParticipantPermissions = useLocalParticipantPermissions();
+
   return (
     <footer
       className={cn(
@@ -49,25 +51,28 @@ export default function BottomBar({
         className,
       )}
     >
-      {p?.isMicrophoneEnabled ? (
-        p.isSpeaking ? (
+      {localParticipantPermissions?.canPublish ? (
+        localParticipant.isSpeaking ? (
           <BarButton
             label="Speaking"
             icon={MicrophoneSpeaking}
-            onClick={onToggleMic}
+            onClick={() => {
+              localParticipant.setMicrophoneEnabled(false);
+            }}
           />
         ) : (
           <BarButton
-            label={handRaiseLoading ? "..." : "Muted"}
+            label="Muted"
             icon={MicrophoneMute}
-            onClick={onToggleMic}
-            disabled={handRaiseLoading}
+            onClick={() => {
+              localParticipant.setMicrophoneEnabled(true);
+            }}
           />
         )
       ) : (
         <BarButton
           label={handRaiseLoading ? "..." : "Muted"}
-          icon={Microphone}
+          icon={RaiseHandIcon}
           onClick={onRaiseHand}
           disabled={handRaiseLoading}
           loading={handRaiseLoading}
@@ -82,7 +87,7 @@ export default function BottomBar({
       {isHost && handRaiseCount > 0 && (
         <BarButton
           label={`Queue(${handRaiseCount})`}
-          icon={HandIcon}
+          icon={List}
           onClick={onQueueClick}
         />
       )}
