@@ -12,6 +12,7 @@ import {
   useRemoteParticipants,
   useRoomContext,
   useTracks,
+  ControlBar,
   ConnectionStateToast,
 } from "@livekit/components-react";
 import { Participant, RoomEvent, Track } from "livekit-client";
@@ -266,16 +267,6 @@ export default function SpaceLayout({
       <ConnectionStateToast room={room} />
 
       <header className="flex justify-between px-4 py-2 bg-card/80 backdrop-blur z-40">
-        <div className="flex items-center gap-3">
-          {room.isRecording ? (
-            <span className="bg-red-600 animate-pulse rounded px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-50">
-              REC
-            </span>
-          ) : null}
-          <span className="text-xs text-muted-foreground">
-            {room.numParticipants} · listeners
-          </span>
-        </div>
         <button
           className="text-red-500 font-semibold"
           onClick={() => setConfirmDialogOpen(true)}
@@ -327,8 +318,8 @@ export default function SpaceLayout({
 
       {/* Bottom bar */}
       <BottomBar
-        className="fixed bottom-0 left-0 right-0"
         onOpenReactionPicker={() => setPickerOpen(true)}
+        onTipClick={() => setTipModalOpen(true)}
         onInviteClick={onInviteClick}
       />
 
@@ -342,6 +333,7 @@ export default function SpaceLayout({
         />
       )}
 
+      <ControlBar />
       {/* Floating reactions overlay */}
       <ReactionOverlay reactions={reactions} />
       <TipModal

@@ -11,15 +11,16 @@ import { useLocalParticipant } from "@livekit/components-react";
 
 interface Props {
   onOpenReactionPicker: () => void;
-
+  /** Opens tipping (reaction picker) */
+  onTipClick: () => void;
+  /** Callback fired when the user taps the “Invite” button. */
   onInviteClick: () => void;
-  className?: string;
 }
 
 export default function BottomBar({
   onOpenReactionPicker,
+  onTipClick,
   onInviteClick,
-  className,
 }: Props) {
   const { localParticipant } = useLocalParticipant();
 
@@ -27,7 +28,6 @@ export default function BottomBar({
     <footer
       className={cn(
         "w-full bg-card/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50",
-        className,
       )}
     >
       {localParticipant.isMicrophoneEnabled ? (
@@ -47,7 +47,15 @@ export default function BottomBar({
           }}
         />
       )}
-      <BarButton label="Like" icon={HeartIcon} onClick={onOpenReactionPicker} />
+
+      <BarButton label="Tip" icon={HeartIcon} onClick={onTipClick} />
+
+      <BarButton
+        label="Reactions"
+        icon={HeartIcon}
+        onClick={onOpenReactionPicker}
+      />
+
       <BarButton
         label="Share"
         icon={ShareIcon}
