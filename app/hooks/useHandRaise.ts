@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Room } from "livekit-client";
+import { ParticipantMetadata } from "@/lib/types";
 
 export function useHandRaise({
   room,
@@ -18,7 +19,7 @@ export function useHandRaise({
     if (room.localParticipant) {
       setHandRaiseLoading(true);
       try {
-        const meta = room.localParticipant.metadata
+        const meta: ParticipantMetadata = room.localParticipant.metadata
           ? JSON.parse(room.localParticipant.metadata)
           : {};
         if (!meta.handRaised) {

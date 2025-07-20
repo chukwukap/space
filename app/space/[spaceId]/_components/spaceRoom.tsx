@@ -36,6 +36,7 @@ export default function SpaceRoom({
         pfpUrl: user?.avatarUrl ?? null,
         fid: user?.fid ?? null,
         walletAddress: user?.address ?? null,
+        handRaised: false,
       } as ParticipantMetadata),
     }),
     [user],
