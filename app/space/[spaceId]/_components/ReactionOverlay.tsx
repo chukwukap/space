@@ -21,7 +21,7 @@ export default function ReactionOverlay({ reactions }: Props) {
             opacity: 0.9;
           }
           100% {
-            transform: translateY(-200px) scale(1.4);
+            transform: translateY(-80%) scale(1.4);
             opacity: 0;
           }
         }

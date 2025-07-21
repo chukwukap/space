@@ -23,6 +23,7 @@ export type ParticipantMetadata = {
   pfpUrl: string;
   identity: number;
   clientFid: number | null;
+  isHost: boolean;
 };
 
 export interface SpaceMetadata {
@@ -64,9 +65,9 @@ export interface SpendPermissionTypedData {
 }
 
 export type TipRecipient = {
-  id: number;
+  fid: number | null;
   name: string;
-  walletAddress: string;
+  walletAddress: string | null;
 };
 
 export type ConnectionDetails = {

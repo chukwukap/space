@@ -28,6 +28,7 @@ export function useCurrentUser({
     identity: context?.user?.fid ?? 0,
     pfpUrl: context?.user?.pfpUrl ?? "",
     clientFid: context?.user?.fid ?? 0,
+    isHost: false,
   };
 
   const mockParticipantMetadata: ParticipantMetadata = {
@@ -39,6 +40,7 @@ export function useCurrentUser({
       "https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/4d0248d8-f666-4a19-65fd-3cb9acbb8100/original",
     identity: 755074,
     clientFid: 9152,
+    isHost: false,
   };
 
   const hasParams = Object.values(mockParticipantMetadata).some(

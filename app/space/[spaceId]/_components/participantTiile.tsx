@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, forwardRef, useContext } from "react";
 import { Participant } from "livekit-client";
 import {
   Microphone as MicIcon,
@@ -7,21 +7,34 @@ import {
 } from "iconoir-react";
 import { ParticipantMetadata } from "@/lib/types";
 import { Role } from "@/lib/generated/prisma";
+import {
+  TrackRefContext,
+  TrackReferenceOrPlaceholder,
+  useEnsureTrackRef,
+} from "@livekit/components-react";
 
-type ParticipantWidgetProps = {
-  p: Participant | undefined;
+type ParticipantTileProps = {
+  trackRef?: TrackReferenceOrPlaceholder;
   pfpUrl?: string;
   roleLabel?: string;
 };
 
-export function ParticipantWidget({
-  p,
-  pfpUrl,
-  roleLabel,
-}: ParticipantWidgetProps) {
+/**
+ * LiveKit-compatible custom participant tile for use inside <TrackLoop>
+ */
+export const CustomParticipantTile = forwardRef<
+  HTMLDivElement,
+  ParticipantTileProps
+>(function CustomParticipantTile({ trackRef, pfpUrl, roleLabel }, ref) {
+  const trackReference = useEnsureTrackRef(
+    trackRef ?? useContext(TrackRefContext),
+  );
+
+  const p: Participant | undefined = trackReference?.participant;
+
   const meta: ParticipantMetadata = useMemo(() => {
     try {
-      return p?.metadata ? JSON.parse(p?.metadata) : {};
+      return p?.metadata ? JSON.parse(p.metadata) : {};
     } catch {
       return {};
     }
@@ -38,12 +51,16 @@ export function ParticipantWidget({
   }, [pfpUrl, meta]);
 
   return (
-    <div className="flex flex-col items-center gap-1" style={{ width: 64 }}>
+    <div
+      ref={ref}
+      className="flex flex-col items-center gap-1"
+      style={{ width: 64 }}
+    >
       <div
         className={`relative flex items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold shadow-lg transition-shadow
-        ${roleLabel === Role.HOST ? "border-2 border-amber-400" : ""}
-        ${p?.isLocal ? "outline outline-2 outline-cyan-400" : ""}
-      `}
+          ${roleLabel === Role.HOST ? "border-2 border-amber-400" : ""}
+          ${p?.isLocal ? "outline outline-2 outline-cyan-400" : ""}
+        `}
         style={{
           width: 64,
           height: 64,
@@ -54,10 +71,9 @@ export function ParticipantWidget({
         aria-label={`${p?.identity}, ${roleLabel}`}
         tabIndex={0}
       >
-        {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+        {true ? (
           <img
-            src={avatarUrl}
+            src={"/me.jpg"}
             alt={p?.identity}
             className="object-cover w-full h-full rounded-full"
             draggable={false}
@@ -65,9 +81,7 @@ export function ParticipantWidget({
           />
         ) : (
           <span className="relative z-10 select-none text-lg flex items-center justify-center w-full h-full">
-            {p?.identity || (
-              <UserIcon className="w-7 h-7 text-muted-foreground" />
-            )}
+            <UserIcon className="w-7 h-7 text-muted-foreground" />
           </span>
         )}
 
@@ -82,7 +96,7 @@ export function ParticipantWidget({
             />
           ) : (
             <MicIcon
-              className={`${"text-muted-foreground"} w-5 h-5 bg-background rounded-full p-0.5 shadow`}
+              className="text-muted-foreground w-5 h-5 bg-background rounded-full p-0.5 shadow"
               aria-label="Mic On"
             />
           )}
@@ -116,4 +130,4 @@ export function ParticipantWidget({
       )}
     </div>
   );
-}
+});
