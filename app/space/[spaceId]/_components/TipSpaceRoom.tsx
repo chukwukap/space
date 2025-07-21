@@ -99,16 +99,14 @@ export default function TipSpaceRoom(props: {
       .catch((error) => {
         handleError(error);
       });
-    if (props.userChoices.videoEnabled) {
-      room.localParticipant.setCameraEnabled(true).catch((error) => {
-        handleError(error);
-      });
-    }
-    if (props.userChoices.audioEnabled) {
-      room.localParticipant.setMicrophoneEnabled(true).catch((error) => {
-        handleError(error);
-      });
-    }
+
+    room.localParticipant.setCameraEnabled(true).catch((error) => {
+      handleError(error);
+    });
+
+    room.localParticipant.setMicrophoneEnabled(true).catch((error) => {
+      handleError(error);
+    });
 
     return () => {
       room.off(RoomEvent.Disconnected, handleOnLeave);

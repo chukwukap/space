@@ -9,6 +9,7 @@ import Image from "next/image";
 import MobileHeader from "./_components/mobileHeader";
 import { Microphone } from "iconoir-react";
 import { ThemeToggle } from "./_components/themeToggle";
+import PrefabDrawer from "./_components/prefabDrawer";
 
 import { useUser } from "./providers/userProvider";
 import { Room } from "livekit-server-sdk";
@@ -52,6 +53,10 @@ export default function LandingPageClient() {
       })();
     }
   }, [context, addFrame, frameAdded]);
+
+  // Drawer state for space preview
+  const [selectedSpace, setSelectedSpace] = useState<Room | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // SWR for live spaces, refresh every 5s
   const {
@@ -119,7 +124,10 @@ export default function LandingPageClient() {
             <SpaceCard
               key={s.name}
               space={s}
-              onClick={() => router.push(`/space/${s.name}`)}
+              onClick={() => {
+                setSelectedSpace(s);
+                setDrawerOpen(true);
+              }}
             />
           ))
         ) : (
@@ -143,6 +151,19 @@ export default function LandingPageClient() {
           </div>
         )}
       </section>
+
+      {/* Space preview drawer */}
+      <PrefabDrawer
+        space={selectedSpace}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        onJoin={() => {
+          if (selectedSpace) {
+            router.push(`/space/${selectedSpace.name}`);
+            setDrawerOpen(false);
+          }
+        }}
+      />
     </div>
   );
 }

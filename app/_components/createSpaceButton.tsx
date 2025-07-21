@@ -12,9 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Mic } from "lucide-react";
 import { toast } from "sonner";
-import { useAccount, useConnect } from "wagmi";
 import { useUser } from "../providers/userProvider";
-import { ParticipantMetadata, SpaceMetadata } from "@/lib/types";
+import { SpaceMetadata } from "@/lib/types";
 import { Room } from "livekit-server-sdk";
 
 /**
@@ -23,9 +22,7 @@ import { Room } from "livekit-server-sdk";
 export default function CreateSpaceButton() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, refreshUser } = useUser();
-  const { address: walletAddress } = useAccount();
-  const { connect, connectors, status: walletConnectStatus } = useConnect();
+  const { user, userMetadata } = useUser();
 
   const [title, setTitle] = useState("");
   const [record, setRecord] = useState(false);
@@ -49,7 +46,7 @@ export default function CreateSpaceButton() {
    */
   async function handleCreateSpace() {
     if (!title.trim()) return;
-    if (!user) return;
+    if (!userMetadata) return;
 
     // If wallet not connected, prompt connect and refresh user
     // if (!walletAddress) {
@@ -74,20 +71,10 @@ export default function CreateSpaceButton() {
     setCreating(true);
     setCreateError(null);
 
-    const host: ParticipantMetadata = {
-      fid: user.fid,
-      address: user.address ?? "",
-      displayName: user.displayName || "Unknown",
-      username: user.username || "Unknown",
-      pfpUrl: user.avatarUrl || "/icon.png",
-      identity: user.fid,
-      clientFid: user.farcasterClientIdOnboardedFrom ?? null,
-    };
-
     const metadata: SpaceMetadata = {
-      clientFid: user.farcasterClientIdOnboardedFrom ?? null,
+      clientFid: userMetadata.clientFid,
       title: title.trim(),
-      host,
+      host: userMetadata,
       recording: record,
       ended: false,
     };

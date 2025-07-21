@@ -8,11 +8,7 @@ import {
 import React from "react";
 import "@livekit/components-styles";
 
-import {
-  ConnectionDetails,
-  ParticipantMetadata,
-  SpaceMetadata,
-} from "@/lib/types";
+import { ConnectionDetails } from "@/lib/types";
 import { useUser } from "@/app/providers/userProvider";
 
 import TipSpaceRoom from "./_components/TipSpaceRoom";
@@ -24,26 +20,11 @@ export default function PageClientImpl(props: {
   roomName: string;
   region?: string;
   hq: boolean;
-  isHost: boolean;
-  title: string;
 }) {
   const { userMetadata } = useUser();
   const [preJoinChoices, setPreJoinChoices] = React.useState<
     LocalUserChoices | undefined
   >(undefined);
-
-  // Compose the SpaceMetadata for the current space, ensuring host status is set correctly.
-  const newParticipantMetadata = React.useMemo(() => {
-    if (!userMetadata) return undefined;
-
-    // Ensure the isHost property reflects the actual host status from props
-    const part: ParticipantMetadata = {
-      ...userMetadata,
-      isHost: props.isHost,
-    };
-
-    return part;
-  }, [userMetadata, props.isHost]);
 
   const preJoinDefaults = React.useMemo(() => {
     return {
@@ -75,10 +56,7 @@ export default function PageClientImpl(props: {
       const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
       url.searchParams.append("roomName", props.roomName);
       url.searchParams.append("participantName", values.username);
-      url.searchParams.append(
-        "metadata",
-        JSON.stringify(newParticipantMetadata),
-      ); // required
+      url.searchParams.append("metadata", JSON.stringify(userMetadata)); // required
       if (props.region) {
         url.searchParams.append("region", props.region);
       }
