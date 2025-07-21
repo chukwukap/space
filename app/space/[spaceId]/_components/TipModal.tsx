@@ -54,7 +54,7 @@ export default function TipModal({
   const connectors = useConnectors();
   const { signTypedDataAsync } = useSignTypedData();
 
-  const recipient = recipients.find((r) => r.id === recipientId);
+  const recipient = recipients.find((r) => r.fid === recipientId);
 
   const handleTip = async () => {
     setStatus("loading");
@@ -151,7 +151,7 @@ export default function TipModal({
               disabled={status === "loading"}
             >
               {recipients.map((r) => (
-                <option key={r.id} value={r.id}>
+                <option key={r.fid} value={r.fid}>
                   {r.name}
                 </option>
               ))}

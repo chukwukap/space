@@ -66,7 +66,7 @@ export interface SpendPermissionTypedData {
 }
 
 export type TipRecipient = {
-  fid: number | null;
+  fid: number;
   name: string;
   walletAddress: string | null;
 };

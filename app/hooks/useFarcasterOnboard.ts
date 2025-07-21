@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ParticipantMetadata, UserWithRelations } from "@/lib/types";
 import { Context } from "@farcaster/frame-sdk";
-import { Address } from "viem";
 
 interface Params {
   context: Context.FrameContext | null;
