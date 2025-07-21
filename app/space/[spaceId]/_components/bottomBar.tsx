@@ -3,6 +3,7 @@ import {
   Heart as HeartIcon,
   User as UsersIcon,
   ShareAndroid as ShareIcon,
+  DragHandGesture,
 } from "iconoir-react";
 import { cn } from "@/lib/utils";
 import {
@@ -27,12 +28,15 @@ interface Props {
   onTipClick: () => void;
   /** Callback fired when the user taps the “Invite” button. */
   onInviteClick: () => void;
+  /** Listener requests to speak (hand raise) */
+  onRaiseHand: () => void;
 }
 
 export default function BottomBar({
   onOpenReactionPicker,
   onTipClick,
   onInviteClick,
+  onRaiseHand,
 }: Props) {
   const [isChatOpen, setIsChatOpen] = React.useState(false);
   const layoutContext = useMaybeLayoutContext();
@@ -69,7 +73,7 @@ export default function BottomBar({
         "w-full bg-card/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50 fixed bottom-0 left-0 right-0",
       )}
     >
-      {canPublishMic && (
+      {canPublishMic ? (
         <TrackToggle
           source={Track.Source.Microphone}
           showIcon={true}
@@ -78,6 +82,12 @@ export default function BottomBar({
             console.error(error);
           }}
         ></TrackToggle>
+      ) : (
+        <BarButton
+          label="Request to speak"
+          icon={DragHandGesture}
+          onClick={onRaiseHand}
+        />
       )}
 
       <BarButton label="Tip" icon={HeartIcon} onClick={onTipClick} />

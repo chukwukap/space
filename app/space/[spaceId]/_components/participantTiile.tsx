@@ -4,19 +4,20 @@ import {
   Microphone as MicIcon,
   MicrophoneMute as MicOffIcon,
   User as UserIcon,
+  DragHandGesture,
 } from "iconoir-react";
-import { ParticipantMetadata } from "@/lib/types";
+import { ParticipantMetadata, SpaceMetadata } from "@/lib/types";
 import { Role } from "@/lib/generated/prisma";
 import {
   TrackRefContext,
   TrackReferenceOrPlaceholder,
   useEnsureTrackRef,
+  useRoomInfo,
 } from "@livekit/components-react";
 
 type ParticipantTileProps = {
   trackRef?: TrackReferenceOrPlaceholder;
   pfpUrl?: string;
-  roleLabel?: string;
 };
 
 /**
@@ -25,12 +26,30 @@ type ParticipantTileProps = {
 export const CustomParticipantTile = forwardRef<
   HTMLDivElement,
   ParticipantTileProps
->(function CustomParticipantTile({ trackRef, pfpUrl, roleLabel }, ref) {
+>(function CustomParticipantTile({ trackRef, pfpUrl }, ref) {
   const trackReference = useEnsureTrackRef(
     trackRef ?? useContext(TrackRefContext),
   );
 
+  const roomInfo = useRoomInfo();
+
+  const roomMeta: SpaceMetadata = useMemo(() => {
+    try {
+      return JSON.parse(roomInfo?.metadata ?? "{}");
+    } catch {
+      return {};
+    }
+  }, [roomInfo]);
+
   const p: Participant | undefined = trackReference?.participant;
+
+  const isHost = useMemo(() => {
+    return (
+      roomMeta.host?.identity &&
+      p?.identity &&
+      roomMeta.host?.identity === parseInt(p?.identity)
+    );
+  }, [roomMeta, p]);
 
   const meta: ParticipantMetadata = useMemo(() => {
     try {
@@ -58,7 +77,7 @@ export const CustomParticipantTile = forwardRef<
     >
       <div
         className={`relative flex items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold shadow-lg transition-shadow
-          ${roleLabel === Role.HOST ? "border-2 border-amber-400" : ""}
+          ${isHost ? "border-2 border-amber-400" : ""}
           ${p?.isLocal ? "outline outline-2 outline-cyan-400" : ""}
         `}
         style={{
@@ -68,12 +87,12 @@ export const CustomParticipantTile = forwardRef<
           minHeight: 64,
           position: "relative",
         }}
-        aria-label={`${p?.identity}, ${roleLabel}`}
+        aria-label={`${p?.identity}, ${roomMeta.host?.identity && p?.identity && roomMeta.host?.identity === parseInt(p?.identity) ? "Host" : "Listener"}`}
         tabIndex={0}
       >
-        {true ? (
+        {avatarUrl ? (
           <img
-            src={"/me.jpg"}
+            src={avatarUrl}
             alt={p?.identity}
             className="object-cover w-full h-full rounded-full"
             draggable={false}
@@ -117,17 +136,25 @@ export const CustomParticipantTile = forwardRef<
         {p?.isLocal && (
           <span className="absolute inset-0 rounded-full ring-2 ring-cyan-400 pointer-events-none animate-pulse" />
         )}
-      </div>
-      {roleLabel && (
-        <span className="text-[10px] text-muted-foreground flex items-center gap-1 leading-none">
+
+        {/* Hand raise indicator */}
+        {meta?.handRaised && (
           <span
-            className={`inline-block w-1 h-1 rounded-full ${
-              p?.isSpeaking ? "bg-secondary" : "bg-muted-foreground"
-            }`}
-          />
-          {roleLabel}
-        </span>
-      )}
+            className="absolute -top-2 -left-2 bg-background rounded-full shadow p-0.5"
+            title="Hand raised"
+          >
+            <DragHandGesture className="w-4 h-4 text-amber-500" />
+          </span>
+        )}
+      </div>
+      <span className="text-[10px] text-muted-foreground flex items-center gap-1 leading-none">
+        <span
+          className={`inline-block w-1 h-1 rounded-full ${
+            p?.isSpeaking ? "bg-secondary" : "bg-muted-foreground"
+          }`}
+        />
+        {isHost ? "Host" : p?.isMicrophoneEnabled ? "Speaker" : "Listener"}
+      </span>
     </div>
   );
 });

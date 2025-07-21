@@ -9,9 +9,7 @@ import Image from "next/image";
 import MobileHeader from "./_components/mobileHeader";
 import { Microphone } from "iconoir-react";
 import { ThemeToggle } from "./_components/themeToggle";
-import PrefabDrawer from "./_components/prefabDrawer";
 
-import { useUser } from "./providers/userProvider";
 import { Room } from "livekit-server-sdk";
 import { SpaceMetadata } from "@/lib/types";
 
@@ -32,7 +30,6 @@ export default function LandingPageClient() {
   const router = useRouter();
   const addFrame = useAddFrame();
   const [frameAdded, setFrameAdded] = useState(false);
-  const { user } = useUser();
   // Prepare frame on mount
   useEffect(() => {
     if (!isFrameReady) {
@@ -53,10 +50,6 @@ export default function LandingPageClient() {
       })();
     }
   }, [context, addFrame, frameAdded]);
-
-  // Drawer state for space preview
-  const [selectedSpace, setSelectedSpace] = useState<Room | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // SWR for live spaces, refresh every 5s
   const {
@@ -115,8 +108,6 @@ export default function LandingPageClient() {
         </p>
       </section>
 
-      <>user address(testing): {user?.address}</>
-
       <section className="mt-6 flex flex-col gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
         {spaces && spaces.length > 0 ? (
@@ -125,8 +116,7 @@ export default function LandingPageClient() {
               key={s.name}
               space={s}
               onClick={() => {
-                setSelectedSpace(s);
-                setDrawerOpen(true);
+                router.push(`/space/${s.name}`);
               }}
             />
           ))
@@ -151,19 +141,6 @@ export default function LandingPageClient() {
           </div>
         )}
       </section>
-
-      {/* Space preview drawer */}
-      <PrefabDrawer
-        space={selectedSpace}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        onJoin={() => {
-          if (selectedSpace) {
-            router.push(`/space/${selectedSpace.name}`);
-            setDrawerOpen(false);
-          }
-        }}
-      />
     </div>
   );
 }

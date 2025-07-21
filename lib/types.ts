@@ -24,6 +24,7 @@ export type ParticipantMetadata = {
   identity: number;
   clientFid: number | null;
   isHost: boolean;
+  handRaised?: boolean; // Indicates if participant has raised their hand
 };
 
 export interface SpaceMetadata {

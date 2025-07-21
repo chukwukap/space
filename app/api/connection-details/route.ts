@@ -91,7 +91,7 @@ function createParticipantToken(
   const grant: VideoGrant = {
     room: roomName,
     roomJoin: true,
-    canPublish: true,
+    canPublish: false,
     canPublishData: true,
     canSubscribe: true,
   };

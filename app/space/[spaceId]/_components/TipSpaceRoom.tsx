@@ -2,11 +2,7 @@
 
 import { useTipReaction } from "@/app/hooks/useTipReaction";
 import { useUser } from "@/app/providers/userProvider";
-import {
-  ConnectionDetails,
-  ParticipantMetadata,
-  SpaceMetadata,
-} from "@/lib/types";
+import { ConnectionDetails, ParticipantMetadata } from "@/lib/types";
 import {
   useLocalParticipant,
   useRoomContext,
@@ -30,7 +26,7 @@ import {
   Track,
 } from "livekit-client";
 import { useRouter } from "next/navigation";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useChainId } from "wagmi";
 import ReactionPicker from "./ReactionPicker";
 import ReactionOverlay from "./ReactionOverlay";
@@ -177,6 +173,34 @@ export function TipSpaceRoomLayout() {
     [localParticipant],
   );
 
+  /**
+   * Toggle the local participant's hand raise state and broadcast it to the room.
+   * We store the flag in participant metadata so every client can react to updates
+   * via the `ParticipantMetadataChanged` event.
+   */
+  const handleRaiseHand = useCallback(() => {
+    if (!localParticipant) return;
+
+    try {
+      const currentMeta = localParticipant.metadata
+        ? JSON.parse(localParticipant.metadata)
+        : {};
+
+      const raised = !currentMeta.handRaised;
+      const newMeta = { ...currentMeta, handRaised: raised };
+      localParticipant.setMetadata(JSON.stringify(newMeta));
+
+      // Additionally send a data packet so hosts listening for hand raise events
+      // can surface quicker UI feedback even before metadata propagation.
+      sendData({
+        type: raised ? "handRaise" : "handLower",
+        sid: localParticipant.sid,
+      });
+    } catch (error) {
+      console.error("[HandRaise] Failed to toggle hand raise", error);
+    }
+  }, [localParticipant, sendData]);
+
   // Add floating reaction to the screen
   const addFloatingReaction = (emoji: string) => {
     const id = Date.now();
@@ -189,6 +213,9 @@ export function TipSpaceRoomLayout() {
       3000,
     );
   };
+
+  // Listen for incoming hand raise events to show ✋ reactions (mainly useful for hosts)
+  useHandRaiseListener(room, addFloatingReaction);
 
   // Recipients: host + speakers
   // Build host recipient and speaker recipients, then filter out any without a wallet address
@@ -241,9 +268,9 @@ export function TipSpaceRoomLayout() {
           {/* {roomMetadata.title || "Untitled Space"} */}
           Test Title
         </h1>
-        <div className="flex-1">
+        <div className="flex flex-col justify-center items-center gap bg-background">
           <TrackLoop tracks={audioTracks}>
-            <CustomParticipantTile roleLabel="Host" />
+            <CustomParticipantTile />
           </TrackLoop>
         </div>
         <BottomBar
@@ -252,6 +279,7 @@ export function TipSpaceRoomLayout() {
           onInviteClick={() => {
             console.log("invite");
           }}
+          onRaiseHand={handleRaiseHand}
         />
         {widgetState.showChat && <Chat />}
         {/* Floating reactions overlay */}
@@ -280,6 +308,33 @@ export function TipSpaceRoomLayout() {
       </div>
     </LayoutContextProvider>
   );
+}
+
+// Listen for data messages to surface hand raise notifications for hosts.
+// We keep this logic outside the component body to prevent hook rule violations.
+
+export function useHandRaiseListener(
+  room: Room,
+  addFloatingReaction: (emoji: string) => void,
+) {
+  useEffect(() => {
+    const handleData = (payload: Uint8Array) => {
+      try {
+        const msg = JSON.parse(new TextDecoder().decode(payload));
+        if (msg.type === "handRaise") {
+          // Quick UI feedback – show ✋ floating reaction
+          addFloatingReaction("✋");
+        }
+      } catch (err) {
+        console.error("[LiveKit] Failed to handle data", err);
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, handleData);
+    return () => {
+      room.off(RoomEvent.DataReceived, handleData);
+    };
+  }, [room, addFloatingReaction]);
 }
 
 // useEffect(() => {
