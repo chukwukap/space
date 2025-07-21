@@ -321,9 +321,33 @@ export function useHandRaiseListener(
     const handleData = (payload: Uint8Array) => {
       try {
         const msg = JSON.parse(new TextDecoder().decode(payload));
-        if (msg.type === "handRaise") {
-          // Quick UI feedback – show ✋ floating reaction
-          addFloatingReaction("✋");
+        switch (msg.type) {
+          case "handRaise":
+            addFloatingReaction("✋");
+            break;
+          case "inviteSpeak":
+            // If this message targets us, enable mic
+            if (
+              room.localParticipant &&
+              msg.sid === room.localParticipant.sid
+            ) {
+              room.localParticipant
+                .setMicrophoneEnabled(true)
+                .catch(console.error);
+              // Clear handRaised flag
+              try {
+                const meta = room.localParticipant.metadata
+                  ? JSON.parse(room.localParticipant.metadata)
+                  : {};
+                delete meta.handRaised;
+                room.localParticipant.setMetadata(JSON.stringify(meta));
+              } catch {}
+            }
+            break;
+          case "handLower":
+            break;
+          default:
+            break;
         }
       } catch (err) {
         console.error("[LiveKit] Failed to handle data", err);

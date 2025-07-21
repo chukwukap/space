@@ -5,14 +5,14 @@ import {
   MicrophoneMute as MicOffIcon,
   User as UserIcon,
   DragHandGesture,
+  CheckCircle,
 } from "iconoir-react";
 import { ParticipantMetadata, SpaceMetadata } from "@/lib/types";
-import { Role } from "@/lib/generated/prisma";
 import {
   TrackRefContext,
   TrackReferenceOrPlaceholder,
-  useEnsureTrackRef,
   useRoomInfo,
+  useLocalParticipant,
 } from "@livekit/components-react";
 
 type ParticipantTileProps = {
@@ -27,10 +27,8 @@ export const CustomParticipantTile = forwardRef<
   HTMLDivElement,
   ParticipantTileProps
 >(function CustomParticipantTile({ trackRef, pfpUrl }, ref) {
-  const trackReference = useEnsureTrackRef(
-    trackRef ?? useContext(TrackRefContext),
-  );
-
+  const contextTrackRef = useContext(TrackRefContext);
+  const combinedTrackRef = trackRef ?? contextTrackRef;
   const roomInfo = useRoomInfo();
 
   const roomMeta: SpaceMetadata = useMemo(() => {
@@ -41,7 +39,7 @@ export const CustomParticipantTile = forwardRef<
     }
   }, [roomInfo]);
 
-  const p: Participant | undefined = trackReference?.participant;
+  const p: Participant | undefined = combinedTrackRef?.participant;
 
   const isHost = useMemo(() => {
     return (
@@ -68,6 +66,48 @@ export const CustomParticipantTile = forwardRef<
       return undefined;
     }
   }, [pfpUrl, meta]);
+
+  // Determine if the local user (viewer) is the host
+  const { localParticipant } = useLocalParticipant();
+
+  const isLocalHost = useMemo(() => {
+    if (!localParticipant) return false;
+    try {
+      const localMeta = localParticipant.metadata
+        ? JSON.parse(localParticipant.metadata)
+        : {};
+      return !!localMeta.isHost;
+    } catch {
+      return false;
+    }
+  }, [localParticipant]);
+
+  const inviteToSpeak = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isLocalHost || !p || !localParticipant) return;
+
+    try {
+      // Send inviteSpeak data message
+      localParticipant.publishData(
+        new TextEncoder().encode(
+          JSON.stringify({ type: "inviteSpeak", sid: p.sid }),
+        ),
+        { reliable: true },
+      );
+
+      // Call server to update permissions
+      await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomName: roomInfo?.name,
+          identity: p.identity,
+        }),
+      });
+    } catch (err) {
+      console.error("[InviteToSpeak] failed", err);
+    }
+  };
 
   return (
     <div
@@ -135,6 +175,17 @@ export const CustomParticipantTile = forwardRef<
 
         {p?.isLocal && (
           <span className="absolute inset-0 rounded-full ring-2 ring-cyan-400 pointer-events-none animate-pulse" />
+        )}
+
+        {/* Accept request button for host */}
+        {isLocalHost && meta?.handRaised && !p?.isLocal && (
+          <button
+            onClick={inviteToSpeak}
+            className="absolute -bottom-2 left-1 bg-background rounded-full shadow p-0.5"
+            title="Invite to Speak"
+          >
+            <CheckCircle className="w-4 h-4 text-emerald-500" />
+          </button>
         )}
 
         {/* Hand raise indicator */}
