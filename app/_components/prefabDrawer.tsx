@@ -18,6 +18,7 @@ import {
   DrawerFooter,
   DrawerClose,
 } from "@/components/ui/drawer";
+import { Xmark } from "iconoir-react";
 import { Room } from "livekit-server-sdk";
 import clsx from "clsx";
 import { HTMLAttributes } from "react";
@@ -67,8 +68,21 @@ export default function PrefabDrawer({
         {...rest}
       >
         {/* Header */}
-        <DrawerHeader className="px-6 pb-1 text-center">
-          <DrawerTitle className="text-lg font-semibold leading-snug line-clamp-2">
+        <DrawerHeader className="px-6 pb-1 text-center relative">
+          {/* Quick close */}
+          <DrawerClose asChild>
+            <button
+              className="absolute right-6 top-1 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Close"
+            >
+              <Xmark className="w-5 h-5" />
+            </button>
+          </DrawerClose>
+
+          <DrawerTitle
+            className="text-lg font-semibold leading-snug line-clamp-2"
+            style={{ fontFamily: "Sora, sans-serif" }}
+          >
             {metadata?.title || space.name}
           </DrawerTitle>
         </DrawerHeader>
@@ -100,7 +114,7 @@ export default function PrefabDrawer({
         <DrawerFooter className="pt-4 border-t border-border">
           <button
             onClick={onJoin}
-            className="w-full py-3 rounded-full bg-gradient-to-r from-[#7f5af0] to-[#6236ff] text-white text-base font-semibold active:scale-[0.98] transition-transform"
+            className="w-full py-3 rounded-full aurora-bg glow-hover text-white text-base font-semibold active:scale-[0.97] transition-transform"
           >
             Start listening
           </button>
