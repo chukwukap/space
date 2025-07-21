@@ -94,6 +94,7 @@ function createParticipantToken(
     canPublish: false,
     canPublishData: true,
     canSubscribe: true,
+    canUpdateOwnMetadata: true,
   };
   at.addGrant(grant);
   return at.toJwt();

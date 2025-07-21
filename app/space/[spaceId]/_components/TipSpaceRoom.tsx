@@ -75,12 +75,18 @@ export default function TipSpaceRoom(props: {
     };
   }, [props.userChoices.audioDeviceId]);
 
-  const room = React.useMemo(() => new Room(roomOptions), []);
+  const room = React.useMemo(() => new Room(roomOptions), [roomOptions]);
 
   const connectOptions = React.useMemo((): RoomConnectOptions => {
     return {
       autoSubscribe: true,
     };
+  }, []);
+
+  const router = useRouter();
+  const handleOnLeave = React.useCallback(() => router.push("/"), [router]);
+  const handleError = React.useCallback((error: Error) => {
+    console.error(error);
   }, []);
 
   React.useEffect(() => {
@@ -97,27 +103,30 @@ export default function TipSpaceRoom(props: {
         handleError(error);
       });
 
-    room.localParticipant.setCameraEnabled(true).catch((error) => {
-      handleError(error);
-    });
-
-    room.localParticipant.setMicrophoneEnabled(true).catch((error) => {
-      handleError(error);
-    });
+    const perms = room.localParticipant.permissions;
+    if (perms?.canPublish) {
+      // For hosts/speakers default mic on
+      room.localParticipant.setMicrophoneEnabled(true).catch(handleError);
+    } else {
+      // Ensure tracks remain disabled for listeners
+      room.localParticipant.setCameraEnabled(false).catch(handleError);
+      room.localParticipant.setMicrophoneEnabled(false).catch(handleError);
+    }
 
     return () => {
       room.off(RoomEvent.Disconnected, handleOnLeave);
       room.off(RoomEvent.MediaDevicesError, handleError);
     };
-  }, [room, props.connectionDetails, props.userChoices]);
+  }, [
+    room,
+    props.connectionDetails,
+    props.userChoices,
+    connectOptions,
+    handleOnLeave,
+    handleError,
+  ]);
 
   const lowPowerMode = useLowCPUOptimizer(room);
-
-  const router = useRouter();
-  const handleOnLeave = React.useCallback(() => router.push("/"), [router]);
-  const handleError = React.useCallback((error: Error) => {
-    console.error(error);
-  }, []);
 
   React.useEffect(() => {
     if (lowPowerMode) {
@@ -189,7 +198,7 @@ export function TipSpaceRoomLayout() {
         ? JSON.parse(localParticipant.metadata)
         : {};
 
-      const raised = !currentMeta.handRaised;
+      const raised = !currentMeta?.handRaised;
       const newMeta = { ...currentMeta, handRaised: raised };
       localParticipant.setMetadata(JSON.stringify(newMeta));
 
