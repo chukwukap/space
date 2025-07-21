@@ -23,6 +23,7 @@ import React from "react";
 import { Track } from "livekit-client";
 
 interface Props {
+  roomName: string;
   onOpenReactionPicker: () => void;
   /** Opens tipping (reaction picker) */
   onTipClick: () => void;
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export default function BottomBar({
+  roomName,
   onOpenReactionPicker,
   onTipClick,
   onInviteClick,
@@ -110,7 +112,9 @@ export default function BottomBar({
         icon={ShareIcon}
         onClick={() => {
           try {
-            navigator.clipboard.writeText(window.location.href);
+            navigator.clipboard.writeText(
+              `${window.location.origin}/space/${roomName}`,
+            );
           } catch {}
         }}
       />

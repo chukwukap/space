@@ -330,6 +330,7 @@ export function TipSpaceRoomLayout() {
           )}
         </div>
         <BottomBar
+          roomName={room.name}
           onOpenReactionPicker={() => setPickerOpen(true)}
           onTipClick={() => setTipModalOpen(true)}
           onInviteClick={() => {
