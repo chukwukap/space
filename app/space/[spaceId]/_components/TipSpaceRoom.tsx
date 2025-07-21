@@ -6,15 +6,15 @@ import { ConnectionDetails, ParticipantMetadata } from "@/lib/types";
 import {
   useLocalParticipant,
   useRoomContext,
-  useTracks,
   ConnectionStateToast,
   LocalUserChoices,
   RoomContext,
-  TrackLoop,
   WidgetState,
   Chat,
   LayoutContextProvider,
   RoomAudioRenderer,
+  // TrackLoop removed – we render tiles directly
+  // useTracks,
 } from "@livekit/components-react";
 import {
   AudioCaptureOptions,
@@ -23,11 +23,10 @@ import {
   RoomConnectOptions,
   RoomEvent,
   RoomOptions,
-  Track,
   Participant,
 } from "livekit-client";
 import { useRouter } from "next/navigation";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useChainId } from "wagmi";
 import ReactionPicker from "./ReactionPicker";
 import ReactionOverlay from "./ReactionOverlay";
@@ -158,7 +157,6 @@ export function TipSpaceRoomLayout() {
   });
   const { user } = useUser();
   const { localParticipant } = useLocalParticipant();
-  const audioTracks = useTracks([Track.Source.Microphone]);
   const chainId = useChainId();
   const [reactions, setReactions] = useState<
     Array<{ id: number; left: number; emoji: string }>
@@ -171,6 +169,17 @@ export function TipSpaceRoomLayout() {
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const [tipModalOpen, setTipModalOpen] = useState(false);
+
+  // We still render RoomAudioRenderer globally for audio playback
+
+  // Compute list of speaker participants (publish-capable)
+  const speakers = useMemo(() => {
+    const all = [
+      ...Array.from(room.remoteParticipants.values()),
+      room.localParticipant,
+    ].filter(Boolean) as Participant[];
+    return all.filter((p) => p.permissions?.canPublish);
+  }, [room]);
 
   // Helper – send data messages to room
   const sendData = useCallback(
@@ -298,15 +307,20 @@ export function TipSpaceRoomLayout() {
           {/* {roomMetadata.title || "Untitled Space"} */}
           Test Title
         </h1>
-        <div className="flex flex-col justify-center items-center gap bg-background">
-          <TrackLoop tracks={audioTracks}>
-            <CustomParticipantTile />
-          </TrackLoop>
-
+        <div className="flex flex-col gap-6 bg-background">
+          {/* Host & Speakers horizontal list */}
+          <div
+            className="w-full overflow-x-auto px-4 flex gap-4 items-center"
+            data-testid="speakers-row"
+          >
+            {speakers.map((sp) => (
+              <CustomParticipantTile key={sp.sid} participant={sp} />
+            ))}
+          </div>
           {/* Listeners grid */}
           {listeners.length > 0 && (
             <div
-              className="flex flex-wrap justify-center gap-4 mt-4 px-4"
+              className="grid grid-cols-4 sm:grid-cols-6 gap-4 px-4"
               data-testid="listeners-grid"
             >
               {listeners.map((lp) => (

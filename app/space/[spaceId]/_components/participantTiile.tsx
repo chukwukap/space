@@ -43,21 +43,22 @@ export const CustomParticipantTile = forwardRef<
   const p: Participant | undefined =
     participant ?? combinedTrackRef?.participant;
 
-  const isHost = useMemo(() => {
-    return (
-      roomMeta.host?.identity &&
-      p?.identity &&
-      roomMeta.host?.identity === parseInt(p?.identity)
-    );
-  }, [roomMeta, p]);
-
   const meta: ParticipantMetadata = useMemo(() => {
     try {
       return p?.metadata ? JSON.parse(p.metadata) : {};
     } catch {
-      return {};
+      return {} as ParticipantMetadata;
     }
   }, [p?.metadata]);
+
+  const isHost = useMemo(() => {
+    if (meta?.isHost) return true;
+    // fallback to roomMeta comparison (legacy)
+    if (roomMeta.host?.identity && p?.identity) {
+      return roomMeta.host.identity.toString() === p.identity.toString();
+    }
+    return false;
+  }, [meta?.isHost, roomMeta, p?.identity]);
 
   const avatarUrl = useMemo(() => {
     if (pfpUrl) return pfpUrl;
@@ -209,7 +210,7 @@ export const CustomParticipantTile = forwardRef<
             p?.isSpeaking ? "bg-secondary" : "bg-muted-foreground"
           }`}
         />
-        {isHost ? "Host" : p?.isMicrophoneEnabled ? "Speaker" : "Listener"}
+        {isHost ? "Host" : p?.permissions?.canPublish ? "Speaker" : "Listener"}
       </span>
     </div>
   );
