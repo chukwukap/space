@@ -17,6 +17,7 @@ import {
 
 type ParticipantTileProps = {
   trackRef?: TrackReferenceOrPlaceholder;
+  participant?: Participant;
   pfpUrl?: string;
 };
 
@@ -26,7 +27,7 @@ type ParticipantTileProps = {
 export const CustomParticipantTile = forwardRef<
   HTMLDivElement,
   ParticipantTileProps
->(function CustomParticipantTile({ trackRef, pfpUrl }, ref) {
+>(function CustomParticipantTile({ trackRef, participant, pfpUrl }, ref) {
   const contextTrackRef = useContext(TrackRefContext);
   const combinedTrackRef = trackRef ?? contextTrackRef;
   const roomInfo = useRoomInfo();
@@ -39,7 +40,8 @@ export const CustomParticipantTile = forwardRef<
     }
   }, [roomInfo]);
 
-  const p: Participant | undefined = combinedTrackRef?.participant;
+  const p: Participant | undefined =
+    participant ?? combinedTrackRef?.participant;
 
   const isHost = useMemo(() => {
     return (

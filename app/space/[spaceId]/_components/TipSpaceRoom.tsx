@@ -24,6 +24,7 @@ import {
   RoomEvent,
   RoomOptions,
   Track,
+  Participant,
 } from "livekit-client";
 import { useRouter } from "next/navigation";
 import React, { useState, useCallback, useEffect } from "react";
@@ -154,11 +155,15 @@ export function TipSpaceRoomLayout() {
     Array<{ id: number; left: number; emoji: string }>
   >([]);
 
+  // Listeners list (participants without microphone enabled)
+  const [listeners, setListeners] = useState<Participant[]>([]);
+
   // Reaction picker open state
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const [tipModalOpen, setTipModalOpen] = useState(false);
-  // Helper – send data messages (move above hooks)
+
+  // Helper – send data messages to room
   const sendData = useCallback(
     (message: Record<string, unknown>) => {
       try {
@@ -174,9 +179,7 @@ export function TipSpaceRoomLayout() {
   );
 
   /**
-   * Toggle the local participant's hand raise state and broadcast it to the room.
-   * We store the flag in participant metadata so every client can react to updates
-   * via the `ParticipantMetadataChanged` event.
+   * Toggle local participant hand raise and broadcast.
    */
   const handleRaiseHand = useCallback(() => {
     if (!localParticipant) return;
@@ -190,18 +193,17 @@ export function TipSpaceRoomLayout() {
       const newMeta = { ...currentMeta, handRaised: raised };
       localParticipant.setMetadata(JSON.stringify(newMeta));
 
-      // Additionally send a data packet so hosts listening for hand raise events
-      // can surface quicker UI feedback even before metadata propagation.
+      // Broadcast data message for hosts
       sendData({
         type: raised ? "handRaise" : "handLower",
         sid: localParticipant.sid,
       });
     } catch (error) {
-      console.error("[HandRaise] Failed to toggle hand raise", error);
+      console.error("[HandRaise] toggle error", error);
     }
   }, [localParticipant, sendData]);
 
-  // Add floating reaction to the screen
+  // Add floating reaction helper
   const addFloatingReaction = (emoji: string) => {
     const id = Date.now();
     setReactions((prev) => [
@@ -214,8 +216,27 @@ export function TipSpaceRoomLayout() {
     );
   };
 
-  // Listen for incoming hand raise events to show ✋ reactions (mainly useful for hosts)
+  // Listen for incoming hand raise & invite messages
   useHandRaiseListener(room, addFloatingReaction);
+
+  // Update listeners whenever room roster changes
+  useEffect(() => {
+    if (!room) return;
+    const recompute = () => {
+      const all = [
+        ...Array.from(room.remoteParticipants.values()),
+        room.localParticipant,
+      ].filter(Boolean) as Participant[];
+      setListeners(all.filter((p) => !p.isMicrophoneEnabled));
+    };
+    recompute();
+    room.on(RoomEvent.ParticipantConnected, recompute);
+    room.on(RoomEvent.ParticipantDisconnected, recompute);
+    return () => {
+      room.off(RoomEvent.ParticipantConnected, recompute);
+      room.off(RoomEvent.ParticipantDisconnected, recompute);
+    };
+  }, [room]);
 
   // Recipients: host + speakers
   // Build host recipient and speaker recipients, then filter out any without a wallet address
@@ -272,6 +293,18 @@ export function TipSpaceRoomLayout() {
           <TrackLoop tracks={audioTracks}>
             <CustomParticipantTile />
           </TrackLoop>
+
+          {/* Listeners grid */}
+          {listeners.length > 0 && (
+            <div
+              className="flex flex-wrap justify-center gap-4 mt-4 px-4"
+              data-testid="listeners-grid"
+            >
+              {listeners.map((lp) => (
+                <CustomParticipantTile key={lp.sid} participant={lp} />
+              ))}
+            </div>
+          )}
         </div>
         <BottomBar
           onOpenReactionPicker={() => setPickerOpen(true)}
