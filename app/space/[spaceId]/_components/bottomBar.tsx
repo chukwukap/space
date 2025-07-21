@@ -6,29 +6,19 @@ import {
   DragHandGesture,
 } from "iconoir-react";
 import { cn } from "@/lib/utils";
+import { useChatToggle, ChatIcon } from "@livekit/components-react";
+import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
+import React, { useState } from "react";
 import {
-  ChatIcon,
-  ChatToggle,
-  DisconnectButton,
-  LeaveIcon,
-  TrackToggle,
-} from "@livekit/components-react";
-
-import {
-  useLocalParticipantPermissions,
-  usePersistentUserChoices,
-} from "@livekit/components-react";
-import { useMaybeLayoutContext } from "@livekit/components-react";
-import React from "react";
-import { Track } from "livekit-client";
+  Microphone as MicIcon,
+  MicrophoneMute as MicOffIcon,
+  LogOut,
+} from "iconoir-react";
 
 interface Props {
   onOpenReactionPicker: () => void;
-  /** Opens tipping (reaction picker) */
   onTipClick: () => void;
-  /** Callback fired when the user taps the “Invite” button. */
   onInviteClick: () => void;
-  /** Listener requests to speak (hand raise) */
   onRaiseHand: () => void;
 }
 
@@ -38,122 +28,102 @@ export default function BottomBar({
   onInviteClick,
   onRaiseHand,
 }: Props) {
-  const [, setIsChatOpen] = React.useState(false);
-  const layoutContext = useMaybeLayoutContext();
-  React.useEffect(() => {
-    if (layoutContext?.widget.state?.showChat !== undefined) {
-      setIsChatOpen(layoutContext?.widget.state?.showChat);
-    }
-  }, [layoutContext?.widget.state?.showChat]);
+  const room = useRoomContext();
+  const { localParticipant } = useLocalParticipant();
 
-  const localPermissions = useLocalParticipantPermissions();
+  const canPublish = localParticipant?.permissions?.canPublish ?? false;
 
-  const canPublishMic =
-    localPermissions &&
-    localPermissions.canPublish &&
-    (localPermissions.canPublishSources.length === 0 ||
-      localPermissions.canPublishSources.includes(2));
-
-  const { saveAudioInputEnabled } = usePersistentUserChoices({
-    preventSave: true,
-  });
-
-  console.log("canPublishMic", canPublishMic);
-  console.log("localPermissions", localPermissions);
-
-  const microphoneOnChange = React.useCallback(
-    (enabled: boolean, isUserInitiated: boolean) =>
-      isUserInitiated ? saveAudioInputEnabled(enabled) : null,
-    [saveAudioInputEnabled],
+  const [micEnabled, setMicEnabled] = useState<boolean>(
+    localParticipant?.isMicrophoneEnabled ?? false,
   );
+
+  const toggleMic = async () => {
+    if (!localParticipant) return;
+    const newState = !micEnabled;
+    await localParticipant.setMicrophoneEnabled(newState);
+    setMicEnabled(newState);
+  };
+
+  // Chat toggle merged props
+  const { mergedProps: chatBtnProps } = useChatToggle({ props: {} });
+
+  const leaveRoom = async () => {
+    await room.disconnect();
+    window.location.href = "/";
+  };
 
   return (
     <footer
       className={cn(
-        "w-full bg-card/60 backdrop-blur flex justify-around items-center px-4 py-3 z-50 fixed bottom-0 left-0 right-0",
+        "w-full bg-card/60 backdrop-blur flex justify-between items-center px-6 py-3 z-50 fixed bottom-0 left-0 right-0",
       )}
     >
-      {canPublishMic ? (
-        <TrackToggle
-          source={Track.Source.Microphone}
-          showIcon={true}
-          onChange={microphoneOnChange}
-          onDeviceError={(error) => {
-            console.error(error);
-          }}
-        ></TrackToggle>
+      {/* Mic or Raise Hand */}
+      {canPublish ? (
+        <IconAction
+          active={micEnabled}
+          icon={micEnabled ? <MicIcon /> : <MicOffIcon />}
+          label={micEnabled ? "Mute" : "Unmute"}
+          onClick={toggleMic}
+        />
       ) : (
-        <BarButton
-          label="Request to speak"
-          icon={DragHandGesture}
+        <IconAction
+          icon={<DragHandGesture />}
+          label="Request"
           onClick={onRaiseHand}
         />
       )}
 
-      <BarButton label="Tip" icon={HeartIcon} onClick={onTipClick} />
-
-      <BarButton
-        label="Reactions"
-        icon={HeartIcon}
+      <IconAction icon={<HeartIcon />} label="Tip" onClick={onTipClick} />
+      <IconAction
+        icon={<HeartIcon />}
+        label="React"
         onClick={onOpenReactionPicker}
       />
 
-      {
-        <ChatToggle>
-          <ChatIcon />
-          {"Chat"}
-        </ChatToggle>
-      }
+      <IconAction {...chatBtnProps} icon={<ChatIcon />} label="Chat" />
 
-      <BarButton
+      <IconAction
+        icon={<ShareIcon />}
         label="Share"
-        icon={ShareIcon}
-        onClick={() => {
-          try {
-            navigator.clipboard.writeText(window.location.href);
-          } catch {}
-        }}
+        onClick={() => navigator.clipboard.writeText(window.location.href)}
       />
 
-      <BarButton label="Invite" icon={UsersIcon} onClick={onInviteClick} />
+      <IconAction icon={<UsersIcon />} label="Invite" onClick={onInviteClick} />
 
-      <DisconnectButton>
-        <LeaveIcon />
-        {"Leave"}
-      </DisconnectButton>
+      <IconAction icon={<LogOut />} label="Leave" onClick={leaveRoom} danger />
     </footer>
   );
 }
 
-interface BarButtonProps {
+interface IconActionProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  icon: React.ReactElement;
   label: string;
-  icon: React.ElementType;
-  onClick: () => void;
-  disabled?: boolean;
-  loading?: boolean;
+  active?: boolean;
+  danger?: boolean;
 }
 
-function BarButton({
-  label,
-  icon: IconCmp,
-  onClick,
-  disabled,
-  loading,
-}: BarButtonProps) {
+function IconAction({ icon, label, active, danger, ...rest }: IconActionProps) {
   return (
     <button
-      className="flex flex-col items-center text-foreground hover:opacity-90 disabled:opacity-50"
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {loading ? (
-        <span className="w-6 h-6 flex items-center justify-center">
-          <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
-        </span>
-      ) : (
-        <IconCmp className="w-6 h-6" />
+      className={cn(
+        "flex flex-col items-center gap-1 text-xs group focus:outline-none",
+        danger ? "text-destructive" : "text-foreground",
       )}
-      <span className="text-[10px] mt-1">{label}</span>
+      {...rest}
+    >
+      <span
+        className={cn(
+          "w-9 h-9 rounded-lg flex items-center justify-center transition-colors",
+          active
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted/20 group-hover:bg-muted/30",
+        )}
+      >
+        {icon}
+      </span>
+      {label}
     </button>
   );
 }
