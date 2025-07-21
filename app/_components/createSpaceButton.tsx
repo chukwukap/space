@@ -93,7 +93,7 @@ export default function CreateSpaceButton() {
       }
 
       const livekitRoom: Room = await res.json();
-      const path = `/space/${livekitRoom.name}?title=${encodeURIComponent(
+      const path = `/space/${livekitRoom.name}?host=1&title=${encodeURIComponent(
         title,
       )}`;
 

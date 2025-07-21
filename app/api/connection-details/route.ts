@@ -4,6 +4,7 @@ import { ConnectionDetails } from "@/lib/types";
 import {
   AccessToken,
   AccessTokenOptions,
+  TrackSource,
   VideoGrant,
 } from "livekit-server-sdk";
 import { NextRequest, NextResponse } from "next/server";
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
     const participantName = request.nextUrl.searchParams.get("participantName");
     const metadata = request.nextUrl.searchParams.get("metadata") ?? "";
     const region = request.nextUrl.searchParams.get("region");
+    const isHost = request.nextUrl.searchParams.get("host") === "1";
     if (!LIVEKIT_URL) {
       throw new Error("LIVEKIT_URL is not defined");
     }
@@ -57,9 +59,10 @@ export async function GET(request: NextRequest) {
       {
         identity: `${participantName}__${randomParticipantPostfix}`,
         name: participantName,
-        metadata,
+        metadata: JSON.stringify({ ...JSON.parse(metadata), isHost }),
       },
       roomName,
+      isHost,
     );
 
     // Return connection details
@@ -85,25 +88,27 @@ export async function GET(request: NextRequest) {
 function createParticipantToken(
   userInfo: AccessTokenOptions,
   roomName: string,
+  host: boolean,
 ) {
   const at = new AccessToken(API_KEY, API_SECRET, userInfo);
   at.ttl = "5m";
   const grant: VideoGrant = {
     room: roomName,
     roomJoin: true,
-    canPublish: false,
+    canPublish: host,
     canPublishData: true,
     canSubscribe: true,
     canUpdateOwnMetadata: true,
+    canPublishSources: [TrackSource.MICROPHONE],
   };
   at.addGrant(grant);
   return at.toJwt();
 }
 
 function getCookieExpirationTime(): string {
-  var now = new Date();
-  var time = now.getTime();
-  var expireTime = time + 60 * 120 * 1000;
+  const now = new Date();
+  const time = now.getTime();
+  const expireTime = time + 60 * 120 * 1000;
   now.setTime(expireTime);
   return now.toUTCString();
 }

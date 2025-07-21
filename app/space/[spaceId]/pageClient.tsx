@@ -32,6 +32,11 @@ export default function PageClientImpl(props: {
     ConnectionDetails | undefined
   >(undefined);
 
+  const isHost = React.useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("host") === "1";
+  }, []);
+
   const handlePreJoinSubmit = React.useCallback(async () => {
     const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
     url.searchParams.append("roomName", props.roomName);
@@ -40,13 +45,16 @@ export default function PageClientImpl(props: {
       userMetadata?.username || "Guest",
     );
     url.searchParams.append("metadata", JSON.stringify(userMetadata)); // required
+    if (isHost) {
+      url.searchParams.append("host", "1");
+    }
     if (props.region) {
       url.searchParams.append("region", props.region);
     }
     const connectionDetailsResp = await fetch(url.toString());
     const connectionDetailsData = await connectionDetailsResp.json();
     setConnectionDetails(connectionDetailsData);
-  }, [props.roomName, props.region, userMetadata]);
+  }, [props.roomName, props.region, userMetadata, isHost]);
 
   return (
     <>

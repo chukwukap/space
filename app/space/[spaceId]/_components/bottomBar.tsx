@@ -38,7 +38,7 @@ export default function BottomBar({
   onInviteClick,
   onRaiseHand,
 }: Props) {
-  const [isChatOpen, setIsChatOpen] = React.useState(false);
+  const [, setIsChatOpen] = React.useState(false);
   const layoutContext = useMaybeLayoutContext();
   React.useEffect(() => {
     if (layoutContext?.widget.state?.showChat !== undefined) {
