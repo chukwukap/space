@@ -146,22 +146,25 @@ export const CustomParticipantTile = forwardRef<
           </span>
         )}
 
-        <span
-          className="absolute -bottom-2 right-1 z-20"
-          title={p?.isMicrophoneEnabled ? "Mic On" : "Mic Off"}
-        >
-          {!p?.isMicrophoneEnabled ? (
-            <MicOffIcon
-              className="w-5 h-5 text-destructive bg-background rounded-full p-0.5 shadow"
-              aria-label="Muted"
-            />
-          ) : (
-            <MicIcon
-              className="text-muted-foreground w-5 h-5 bg-background rounded-full p-0.5 shadow"
-              aria-label="Mic On"
-            />
-          )}
-        </span>
+        {/* Show mic status only for participants who have publish permission */}
+        {p?.permissions?.canPublish && (
+          <span
+            className="absolute -bottom-2 right-1 z-20"
+            title={p?.isMicrophoneEnabled ? "Mic On" : "Mic Off"}
+          >
+            {!p?.isMicrophoneEnabled ? (
+              <MicOffIcon
+                className="w-5 h-5 text-destructive bg-background rounded-full p-0.5 shadow"
+                aria-label="Muted"
+              />
+            ) : (
+              <MicIcon
+                className="text-muted-foreground w-5 h-5 bg-background rounded-full p-0.5 shadow"
+                aria-label="Mic On"
+              />
+            )}
+          </span>
+        )}
 
         {p?.isSpeaking && p?.isMicrophoneEnabled && (
           <span className="absolute -right-2 bottom-1 flex flex-col items-center gap-[2px]">
