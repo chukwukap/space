@@ -8,6 +8,7 @@ import {
   Hex,
   http,
   parseUnits,
+  getAddress,
 } from "viem";
 import { baseSepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
@@ -118,7 +119,7 @@ export function getSpendPermTypedData(from: Address, chainId: number) {
   const end = now + period; // 1 month from now
 
   const spendPerm: SpendPermission = {
-    account: from,
+    account: getAddress(from),
     spender: spendPermissionManagerAddress as Address,
     token: USDC_ADDRESS,
     allowance: allowance,
@@ -134,7 +135,7 @@ export function getSpendPermTypedData(from: Address, chainId: number) {
       name: "Spend Permission Manager",
       version: "1",
       chainId,
-      verifyingContract: spendPermissionManagerAddress,
+      verifyingContract: getAddress(spendPermissionManagerAddress),
     },
     types: {
       SpendPermission: [
