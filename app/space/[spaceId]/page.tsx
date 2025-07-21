@@ -1,49 +1,22 @@
-import SpaceRoom from "./_components/spaceRoom";
-import { roomService } from "@/lib/livekit";
-import { Room } from "livekit-server-sdk";
-import { SpaceMetadata } from "@/lib/types";
-
-export const revalidate = 0;
+import PageClientImpl from "./pageClient";
 
 export default async function SpacePage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ spaceId: string; title: string }>;
+  params: Promise<{ roomName: string }>;
+  searchParams: Promise<{ hq?: string; region?: string }>;
 }) {
-  const { spaceId, title } = await params;
-  let serverRoom: Room | undefined;
-  let metadata: SpaceMetadata | undefined;
-  try {
-    const spaces = await roomService.listRooms([spaceId]);
-    console.log("spaceWithHost", JSON.stringify(spaces, null, 2));
-    serverRoom = spaces[0];
-    metadata = JSON.parse(serverRoom.metadata) as SpaceMetadata;
-  } catch (error) {
-    console.error("[GET] error:", error);
-    return (
-      <div>
-        <p>Could not load this space. Please try again later.</p>
-      </div>
-    );
-  }
+  const _params = await params;
+  const _searchParams = await searchParams;
 
-  if (!serverRoom) {
-    return <div>Space not found</div>;
-  }
-
-  if (!metadata) {
-    return <div>Could not load this space. Please try again later.</div>;
-  }
-
-  if (metadata.ended) {
-    return <div>This space has already ended</div>;
-  }
+  const hq = _searchParams.hq === "true" ? true : false;
 
   return (
-    <SpaceRoom
-      serverRoom={serverRoom}
-      title={decodeURIComponent(title)}
-      roomMetadata={metadata}
+    <PageClientImpl
+      roomName={"test" ?? _params.roomName}
+      region={_searchParams.region}
+      hq={hq}
     />
   );
 }

@@ -11,8 +11,8 @@ export function generateRoomId(): string {
 }
 
 export function randomString(length: number): string {
-  let result = "";
-  const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let result = '';
+  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
   const charactersLength = characters.length;
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
@@ -21,11 +21,5 @@ export function randomString(length: number): string {
 }
 
 export function isLowPowerDevice() {
-  if (
-    typeof navigator === "undefined" ||
-    typeof navigator.hardwareConcurrency === "undefined"
-  ) {
-    return false;
-  }
   return navigator.hardwareConcurrency < 6;
 }
