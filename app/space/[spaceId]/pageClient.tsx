@@ -2,7 +2,6 @@
 
 import {
   LocalUserChoices,
-  PreJoin,
   usePersistentUserChoices,
 } from "@livekit/components-react";
 import React from "react";
@@ -22,9 +21,7 @@ export default function PageClientImpl(props: {
   hq: boolean;
 }) {
   const { userMetadata } = useUser();
-  const [preJoinChoices, setPreJoinChoices] = React.useState<
-    LocalUserChoices | undefined
-  >(undefined);
+  const [userChoices, setUserChoices] = React.useState<LocalUserChoices>();
 
   const preJoinDefaults = React.useMemo(() => {
     return {
@@ -50,43 +47,42 @@ export default function PageClientImpl(props: {
     ConnectionDetails | undefined
   >(undefined);
 
-  const handlePreJoinSubmit = React.useCallback(
-    async (values: LocalUserChoices) => {
-      setPreJoinChoices(values);
+  // Fetch connection details once userChoices ready
+  React.useEffect(() => {
+    const fetchConn = async () => {
+      const choices = initialUserChoices || preJoinDefaults;
+      setUserChoices(choices);
       const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
       url.searchParams.append("roomName", props.roomName);
-      url.searchParams.append("participantName", values.username);
+      url.searchParams.append("participantName", choices.username);
       url.searchParams.append("metadata", JSON.stringify(userMetadata)); // required
       if (props.region) {
         url.searchParams.append("region", props.region);
       }
-      const connectionDetailsResp = await fetch(url.toString());
-      const connectionDetailsData = await connectionDetailsResp.json();
-      setConnectionDetails(connectionDetailsData);
-    },
-    [],
-  );
-  const handlePreJoinError = React.useCallback(
-    (e: any) => console.error(e),
-    [],
-  );
+      try {
+        const resp = await fetch(url.toString());
+        const data = await resp.json();
+        setConnectionDetails(data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchConn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
       <main data-lk-theme="default" style={{ height: "100%" }}>
-        {connectionDetails === undefined || preJoinChoices === undefined ? (
+        {connectionDetails === undefined || userChoices === undefined ? (
           <div
             style={{ display: "grid", placeItems: "center", height: "100%" }}
           >
-            <PreJoin
-              defaults={preJoinDefaults}
-              onSubmit={handlePreJoinSubmit}
-              onError={handlePreJoinError}
-            />
+            Joining…
           </div>
         ) : (
           <TipSpaceRoom
-            userChoices={preJoinChoices}
+            userChoices={userChoices}
             connectionDetails={connectionDetails}
             options={{ hq: props.hq }}
           />
