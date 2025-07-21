@@ -24,6 +24,11 @@ export default function CreateSpaceButton() {
   const router = useRouter();
   const { user, userMetadata } = useUser();
 
+  // Check if we are running with mock participant (development)
+  const isMock =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("mock");
+
   const [title, setTitle] = useState("");
   const [record, setRecord] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -64,7 +69,9 @@ export default function CreateSpaceButton() {
     // }
 
     // If user is missing fid, refresh user and prompt
-    if (!user?.fid) {
+    if (!user?.fid && !isMock) {
+      // Require Farcaster user in production; allow bypass when mocking
+      toast.error("Farcaster user required");
       return;
     }
 
