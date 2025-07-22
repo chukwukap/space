@@ -7,93 +7,51 @@ import { motion } from "framer-motion";
 import {
   Share2 as ShareIcon,
   Pencil as EditIcon,
-  Users as UsersIcon,
-  Gift as GiftIcon,
-  Smile as ReactionIcon,
-  Mic as SpaceIcon,
+  KeyRound as KeyIcon,
 } from "lucide-react";
 import MobileHeader from "../_components/mobileHeader";
 import { ThemeToggle } from "../_components/themeToggle";
-import useSWR from "swr";
 import * as React from "react";
-
-// --- Types ---
-type UserProfile = {
-  id: number;
-  fid?: number | null;
-  address: string;
-  displayName?: string | null;
-  username?: string | null;
-  avatarUrl?: string | null;
-  createdAt: string;
-  spendPerm?: unknown;
-  hostedSpaces?: HostedSpace[];
-  participants?: Participant[];
-  tipsSent?: Tip[];
-  tipsReceived?: Tip[];
-  reactions?: Reaction[];
-};
-
-type HostedSpace = {
-  id: number;
-  title: string;
-  startedAt: string;
-  endedAt?: string | null;
-  coverUrl?: string | null;
-};
-
-type Participant = {
-  id: number;
-  spaceId: number;
-  joinedAt: string;
-  leftAt?: string | null;
-  space: HostedSpace;
-};
-
-type Tip = {
-  id: number;
-  amount: number;
-  createdAt: string;
-  toUser?: {
-    id: number;
-    displayName?: string | null;
-    username?: string | null;
-    avatarUrl?: string | null;
-  };
-  fromUser?: {
-    id: number;
-    displayName?: string | null;
-    username?: string | null;
-    avatarUrl?: string | null;
-  };
-};
-
-type Reaction = {
-  id: number;
-  emoji: string;
-  createdAt: string;
-  space?: HostedSpace;
-};
-
-const fetcher = (url: string) =>
-  fetch(url).then((res) => {
-    if (!res.ok) throw new Error("Failed to fetch user profile");
-    return res.json();
-  });
+import { useSpendPermission } from "@/app/hooks/useSpendPermission"; // Custom hook for spend permissions
+import { SUPPORTED_TOKENS } from "@/lib/constants";
+import { SupportedToken } from "@/lib/types";
 
 export default function UserProfilePage() {
   const { user } = useUser();
-
-  // Only fetch if user.id is available and a number
-  const userId = typeof user?.id === "number" ? user.id : undefined;
   const {
-    data: profile,
-    error,
-    isLoading,
-  } = useSWR<UserProfile>(userId ? `/api/user?id=${userId}` : null, fetcher);
+    permissions,
+    loading: spendLoading,
+    error: spendError,
+    approve: approveSingle,
+    batchApprove,
+    refetch: refetchSpend,
+  } = useSpendPermission({
+    userAddress: user?.address ?? undefined,
+    tokens: SUPPORTED_TOKENS,
+  });
+
+  // UI state for selected tokens for batch approval
+  const [selectedTokens, setSelectedTokens] = React.useState<SupportedToken[]>(
+    [],
+  );
+
+  // Handle select/deselect token for batch approval
+  const handleTokenToggle = (token: SupportedToken) => {
+    setSelectedTokens((prev) =>
+      prev.includes(token) ? prev.filter((t) => t !== token) : [...prev, token],
+    );
+  };
+
+  // Handle batch approve
+  const handleBatchApprove = async () => {
+    if (selectedTokens.length === 0) return;
+    await batchApprove(selectedTokens);
+    setSelectedTokens([]);
+    refetchSpend(selectedTokens);
+  };
 
   // --- UI states ---
-  if (isLoading) {
+  if (spendLoading) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -114,7 +72,7 @@ export default function UserProfilePage() {
     );
   }
 
-  if (error || !profile) {
+  if (spendError) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -128,9 +86,7 @@ export default function UserProfilePage() {
           right={<ThemeToggle />}
           lowerVisible={false}
         />
-        <div className="mt-32 text-lg text-muted-foreground">
-          Profile not found.
-        </div>
+        <div className="mt-32 text-lg text-muted-foreground">{spendError}</div>
       </motion.div>
     );
   }
@@ -166,8 +122,8 @@ export default function UserProfilePage() {
         <div className="flex items-end justify-between w-full">
           <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-background overflow-hidden">
             <Image
-              src={profile.avatarUrl || "/icon.png"}
-              alt={profile.username || profile.displayName || "User"}
+              src={user?.avatarUrl || "/icon.png"}
+              alt={user?.username || user?.displayName || "User"}
               fill
               className="object-cover"
             />
@@ -185,10 +141,10 @@ export default function UserProfilePage() {
         {/* Name & handle */}
         <div className="mt-4">
           <h2 className="text-2xl font-bold flex items-center gap-1">
-            {profile.displayName || profile.username || "Spacer"}
+            {user?.displayName || user?.username || "Spacer"}
           </h2>
-          {profile.username && (
-            <p className="text-muted-foreground">@{profile.username}</p>
+          {user?.username && (
+            <p className="text-muted-foreground">@{user.username}</p>
           )}
         </div>
 
@@ -196,7 +152,7 @@ export default function UserProfilePage() {
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-4">
           <span>
             🗓 Joined{" "}
-            {new Date(profile.createdAt).toLocaleString("en-US", {
+            {new Date(user?.createdAt ?? "").toLocaleString("en-US", {
               month: "short",
               year: "numeric",
             })}
@@ -204,8 +160,94 @@ export default function UserProfilePage() {
         </div>
       </div>
 
+      {/* --- Spend Permission Section --- */}
+      <SectionCard
+        title="Approve Spend Permissions"
+        icon={<KeyIcon className="w-5 h-5 text-blue-500" />}
+      >
+        <div className="flex flex-col gap-2">
+          {spendError && (
+            <div className="text-red-500 text-sm mb-2">
+              {typeof spendError === "string"
+                ? spendError
+                : "Failed to load spend permissions."}
+            </div>
+          )}
+          {SUPPORTED_TOKENS.map((token) => {
+            const isApproved =
+              permissions?.find(
+                (p) => p.spendPermissionMessage.token === token.address,
+              )?.txHash !== null;
+            const isLoading = spendLoading;
+            return (
+              <div
+                key={token.address}
+                className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-2"
+              >
+                <div className="flex items-center gap-3">
+                  <Image
+                    src={token.iconUrl}
+                    alt={token.symbol}
+                    width={32}
+                    height={32}
+                    className="rounded-full border border-muted"
+                  />
+                  <div>
+                    <div className="font-semibold text-base font-sora">
+                      {token.symbol}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {token.name}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="accent-blue-500 w-5 h-5"
+                    checked={selectedTokens.includes(token)}
+                    onChange={() => handleTokenToggle(token)}
+                    aria-label={`Select ${token.symbol} for batch approval`}
+                  />
+                  <Button
+                    size="sm"
+                    variant={isApproved ? "secondary" : "default"}
+                    disabled={isApproved || isLoading}
+                    onClick={async () => {
+                      await approveSingle();
+                      refetchSpend();
+                    }}
+                  >
+                    {isApproved
+                      ? "Approved"
+                      : isLoading
+                        ? "Approving..."
+                        : "Approve"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex justify-end mt-3">
+          <Button
+            size="sm"
+            variant="default"
+            disabled={selectedTokens.length === 0 || spendLoading}
+            onClick={handleBatchApprove}
+          >
+            {spendLoading ? "Approving..." : "Approve Selected"}
+          </Button>
+        </div>
+        <div className="text-xs text-muted-foreground mt-2">
+          Approving spend permissions lets Sonic Space send tokens on your
+          behalf for tips and rewards. You can revoke at any time in your
+          wallet.
+        </div>
+      </SectionCard>
+
       {/* --- Profile Stats Section --- */}
-      <section className="px-6 mb-8">
+      {/* <section className="px-6 mb-8">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatCard
             icon={<SpaceIcon className="w-6 h-6 text-primary" />}
@@ -228,84 +270,10 @@ export default function UserProfilePage() {
             value={profile.tipsReceived?.length ?? 0}
           />
         </div>
-      </section>
-
-      {/* --- Hosted Spaces --- */}
-      {profile.hostedSpaces && profile.hostedSpaces.length > 0 && (
-        <SectionCard
-          title="Hosted Spaces"
-          icon={<SpaceIcon className="w-5 h-5 text-primary" />}
-        >
-          <div className="flex flex-col gap-3">
-            {profile.hostedSpaces.map((space) => (
-              <div
-                key={space.id}
-                className="flex items-center gap-3 rounded-xl bg-muted/60 p-3"
-              >
-                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-primary/30 to-secondary/20">
-                  <Image
-                    src={space.coverUrl || "/hero.png"}
-                    alt={space.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-base">{space.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(space.startedAt).toLocaleDateString()}{" "}
-                    {space.endedAt && (
-                      <span className="ml-1">
-                        - Ended {new Date(space.endedAt).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-
-      {/* --- Spaces Joined --- */}
-      {profile.participants && profile.participants.length > 0 && (
-        <SectionCard
-          title="Spaces Joined"
-          icon={<UsersIcon className="w-5 h-5 text-secondary" />}
-        >
-          <div className="flex flex-col gap-3">
-            {profile.participants.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-3 rounded-xl bg-muted/60 p-3"
-              >
-                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-secondary/30 to-primary/20">
-                  <Image
-                    src={p.space.coverUrl || "/hero.png"}
-                    alt={p.space.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-base">{p.space.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Joined {new Date(p.joinedAt).toLocaleDateString()}
-                    {p.leftAt && (
-                      <span className="ml-1">
-                        - Left {new Date(p.leftAt).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
+      </section> */}
 
       {/* --- Tips Sent --- */}
-      {profile.tipsSent && profile.tipsSent.length > 0 && (
+      {/* {profile.tipsSent && profile.tipsSent.length > 0 && (
         <SectionCard
           title="Tips Sent"
           icon={<GiftIcon className="w-5 h-5 text-pink-500" />}
@@ -342,10 +310,10 @@ export default function UserProfilePage() {
             ))}
           </div>
         </SectionCard>
-      )}
+      )} */}
 
       {/* --- Tips Received --- */}
-      {profile.tipsReceived && profile.tipsReceived.length > 0 && (
+      {/* {profile.tipsReceived && profile.tipsReceived.length > 0 && (
         <SectionCard
           title="Tips Received"
           icon={<GiftIcon className="w-5 h-5 text-green-500" />}
@@ -386,10 +354,10 @@ export default function UserProfilePage() {
             ))}
           </div>
         </SectionCard>
-      )}
+      )} */}
 
       {/* --- Reactions --- */}
-      {profile.reactions && profile.reactions.length > 0 && (
+      {/* {profile.reactions && profile.reactions.length > 0 && (
         <SectionCard
           title="Reactions"
           icon={<ReactionIcon className="w-5 h-5 text-yellow-500" />}
@@ -413,7 +381,7 @@ export default function UserProfilePage() {
             ))}
           </div>
         </SectionCard>
-      )}
+      )} */}
     </motion.div>
   );
 }
@@ -421,21 +389,21 @@ export default function UserProfilePage() {
 /* ------------------------------------------------------------------ */
 /* Reusable sub-components                                            */
 /* ------------------------------------------------------------------ */
-type StatCardProps = {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-};
+// type StatCardProps = {
+//   icon: React.ReactNode;
+//   label: string;
+//   value: number;
+// };
 
-function StatCard({ icon, label, value }: StatCardProps) {
-  return (
-    <div className="rounded-xl bg-card shadow-md flex flex-col items-center justify-center py-5 px-2">
-      <div className="mb-2">{icon}</div>
-      <div className="text-2xl font-extrabold font-sora">{value}</div>
-      <div className="text-xs text-muted-foreground font-medium">{label}</div>
-    </div>
-  );
-}
+// function StatCard({ icon, label, value }: StatCardProps) {
+//   return (
+//     <div className="rounded-xl bg-card shadow-md flex flex-col items-center justify-center py-5 px-2">
+//       <div className="mb-2">{icon}</div>
+//       <div className="text-2xl font-extrabold font-sora">{value}</div>
+//       <div className="text-xs text-muted-foreground font-medium">{label}</div>
+//     </div>
+//   );
+// }
 
 type SectionCardProps = {
   title: string;

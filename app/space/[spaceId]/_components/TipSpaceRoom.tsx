@@ -298,7 +298,7 @@ export function TipSpaceRoomLayout() {
 
   return (
     <LayoutContextProvider onWidgetChange={setWidgetState}>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col">
         {/* Room Title */}
         <h1
           className="px-6 text-lg font-bold leading-snug mt-4"

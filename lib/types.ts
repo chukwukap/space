@@ -65,12 +65,82 @@ export interface SpendPermissionTypedData {
   message: SpendPermission;
 }
 
+export interface PermissionDetails {
+  spender: Address;
+  token: Address;
+  allowance: bigint;
+  salt: bigint;
+  extraData: string;
+}
+
+export interface SpendPermissionBatch {
+  account: Address;
+  period: bigint;
+  start: bigint;
+  end: bigint;
+  permissions: PermissionDetails[];
+}
+
+export interface SpendPermissionBatchTypedData {
+  domain: {
+    name: string;
+    version: string;
+    chainId: number;
+    verifyingContract: Address;
+  };
+  types: {
+    PermissionDetails: { name: string; type: string }[];
+    SpendPermissionBatch: { name: string; type: string }[];
+  };
+  primaryType: "SpendPermissionBatch";
+  message: SpendPermissionBatch;
+}
+
+export type SpendPermissionWithSignature = {
+  spendPermissionMessage: SpendPermission;
+  signature: string;
+  txHash: string;
+};
+
 export type TipRecipient = {
   fid: number;
   name: string;
   walletAddress: string | null;
 };
 
+export type Tip = {
+  id: number;
+  amount: number;
+  createdAt: string;
+  toUser?: {
+    id: number;
+    displayName?: string | null;
+    username?: string | null;
+    avatarUrl?: string | null;
+  };
+  fromUser?: {
+    id: number;
+    displayName?: string | null;
+    username?: string | null;
+    avatarUrl?: string | null;
+  };
+};
+
+export type Reaction = {
+  id: number;
+  emoji: string;
+  createdAt: string;
+  // space?: HostedSpace;
+};
+
+export type SupportedToken = {
+  address: string;
+  symbol: string;
+  name: string;
+  iconUrl: string;
+  decimals: number;
+  allowance: string;
+};
 export type ConnectionDetails = {
   serverUrl: string;
   roomName: string;

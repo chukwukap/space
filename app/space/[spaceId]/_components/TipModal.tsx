@@ -16,7 +16,7 @@ import {
   useSignTypedData,
 } from "wagmi";
 import { getSpendPermTypedData } from "@/lib/utils";
-import { approveSpendPermission } from "@/actions/spendPermission";
+import { storeSpendPermission } from "@/actions/spendPermission";
 import { spend } from "@/actions/utils";
 import { toast } from "sonner";
 import { Address } from "viem";
@@ -72,7 +72,7 @@ export default function TipModal({
       const spendPerm = getSpendPermTypedData(addr, chainId);
       const signature = await signTypedDataAsync(spendPerm);
       // Approve spend permission
-      await approveSpendPermission(spendPerm.message, signature, userId);
+      await storeSpendPermission(spendPerm.message, signature, userId);
       // Send tip on-chain
       const amountBigInt = BigInt(Math.floor(parseFloat(amount) * 1e6)); // USDC 6 decimals
       const spendTxHash = await spend(

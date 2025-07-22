@@ -7,8 +7,6 @@ import {
 } from "iconoir-react";
 import { cn } from "@/lib/utils";
 import {
-  ChatIcon,
-  ChatToggle,
   DisconnectButton,
   LeaveIcon,
   TrackToggle,
@@ -101,10 +99,10 @@ export default function BottomBar({
       />
 
       {
-        <ChatToggle>
-          <ChatIcon />
-          {"Chat"}
-        </ChatToggle>
+        // <ChatToggle>
+        //   <ChatIcon />
+        //   {"Chat"}
+        // </ChatToggle>
       }
 
       <BarButton
