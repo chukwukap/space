@@ -15,7 +15,7 @@ import {
   useConnectors,
   useSignTypedData,
 } from "wagmi";
-import { getSpendPermTypedData } from "@/lib/utils";
+
 import { storeSpendPermission } from "@/actions/spendPermission";
 import { spend } from "@/actions/utils";
 import { toast } from "sonner";

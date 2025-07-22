@@ -27,7 +27,7 @@ import {
 } from "livekit-client";
 import { useRouter } from "next/navigation";
 import React, { useState, useCallback, useEffect, useMemo } from "react";
-import { useChainId } from "wagmi";
+
 import ReactionPicker from "./ReactionPicker";
 import ReactionOverlay from "./ReactionOverlay";
 import TipModal from "./TipModal";
@@ -35,7 +35,7 @@ import TipModal from "./TipModal";
 import BottomBar from "./bottomBar";
 import { TipRecipient } from "@/lib/types";
 import { toast } from "sonner";
-import { approveSpendPermission } from "@/actions/spendPermission";
+
 import "@livekit/components-styles";
 import { useLowCPUOptimizer } from "@/app/hooks/usePerfomanceOptimiser";
 import { KeyboardShortcuts } from "@/lib/KeyboardShortcuts";
@@ -157,7 +157,7 @@ export function TipSpaceRoomLayout() {
   });
   const { user } = useUser();
   const { localParticipant } = useLocalParticipant();
-  const chainId = useChainId();
+
   const [reactions, setReactions] = useState<
     Array<{ id: number; left: number; emoji: string }>
   >([]);
@@ -290,9 +290,7 @@ export function TipSpaceRoomLayout() {
     // hostId: roomMetadata.host.fid.toString(),
     hostId: "1",
     spaceId: room.name,
-    chainId,
-    approveSpendPermission,
-    sendData,
+    localParticipant,
     addFloatingReaction,
   });
 

@@ -3,7 +3,7 @@ import {
   spendPermissionManagerAddress,
 } from "@/lib/abi/SpendPermissionManager";
 import { SpendPermission } from "@/lib/types";
-import { getPublicClient, getSpenderWalletClient } from "@/lib/utils";
+import { getPublicClient, getSpenderWalletClient } from "@/lib/wallet";
 import { Address } from "viem";
 
 export async function spend(

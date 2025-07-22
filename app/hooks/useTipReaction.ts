@@ -1,35 +1,27 @@
 import { useState, useCallback } from "react";
-import { getSpendPermTypedData } from "@/lib/utils";
-import { SpendPermission, UserWithRelations } from "@/lib/types";
-import { useSignTypedData, useConnect, useAccount } from "wagmi";
+
+import { UserWithRelations } from "@/lib/types";
+import { useConnect, useAccount } from "wagmi";
 import { toast } from "sonner";
 import { REACTION_EMOJIS } from "@/lib/constants";
 import { ReactionType } from "@/lib/generated/prisma";
+import { LocalParticipant } from "livekit-client";
 
 export function useTipReaction({
+  localParticipant,
   user,
   hostId,
   spaceId,
-  chainId,
-  approveSpendPermission,
-  sendData,
   addFloatingReaction,
 }: {
+  localParticipant: LocalParticipant;
   user: UserWithRelations | null;
   hostId: string;
   spaceId: string;
-  chainId: number;
-  approveSpendPermission: (
-    spendPermissionMessage: SpendPermission,
-    signature: string,
-    userId: number,
-  ) => Promise<string>;
-  sendData: (msg: Record<string, unknown>) => void;
   addFloatingReaction: (emoji: string) => void;
 }) {
   const { connect, connectors } = useConnect();
   const { address } = useAccount();
-  const { signTypedDataAsync } = useSignTypedData();
   const [reactionLoading, setReactionLoading] = useState(false);
 
   const handleSendReaction = useCallback(
@@ -45,7 +37,11 @@ export function useTipReaction({
       setReactionLoading(true);
       // Optimistic UI
       addFloatingReaction(emoji);
-      sendData({ type: "reaction", reactionType: type });
+      localParticipant.publishData(
+        new TextEncoder().encode(
+          JSON.stringify({ type: "reaction", reactionType: type }),
+        ),
+      );
 
       try {
         let addr = address;
@@ -56,14 +52,7 @@ export function useTipReaction({
         }
 
         if (!user.spendPerm) {
-          const spendPerm = getSpendPermTypedData(addr, chainId);
-          const signature = await signTypedDataAsync(spendPerm);
-
-          await approveSpendPermission(
-            spendPerm.message,
-            signature,
-            Number(user.id),
-          );
+          // TODO: Implement spend permission
         }
 
         const res = await fetch("/api/reactions", {
@@ -90,19 +79,7 @@ export function useTipReaction({
         setReactionLoading(false);
       }
     },
-    [
-      user,
-      hostId,
-      spaceId,
-      chainId,
-      connect,
-      signTypedDataAsync,
-      approveSpendPermission,
-      sendData,
-      address,
-      connectors,
-      addFloatingReaction,
-    ],
+    [user, hostId, spaceId, connect, address, connectors, addFloatingReaction],
   );
 
   return { handleSendReaction, reactionLoading };

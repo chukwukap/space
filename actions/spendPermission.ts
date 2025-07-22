@@ -1,6 +1,6 @@
 "use server";
 
-import { getPublicClient, getSpenderWalletClient } from "@/lib/utils";
+import { getPublicClient, getSpenderWalletClient } from "@/lib/wallet";
 import {
   SpendPermission,
   SpendPermissionBatch,

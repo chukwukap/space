@@ -7,7 +7,7 @@ import {
   setLogExtension,
 } from "livekit-client";
 
-// @ts-expect-error
+// @ts-expect-error tinykeys types are not typed
 import { tinykeys } from "tinykeys";
 import { datadogLogs } from "@datadog/browser-logs";
 
@@ -51,11 +51,11 @@ export const useDebugMode = ({ logLevel }: { logLevel?: LogLevel }) => {
       });
     }
 
-    // @ts-expect-error
+    // @ts-expect-error livekit types are not typed
     window.__lk_room = room;
 
     return () => {
-      // @ts-expect-error
+      // @ts-expect-error livekit types are not typed
       window.__lk_room = undefined;
     };
   }, [room, logLevel]);
@@ -98,23 +98,23 @@ export const DebugMode = ({ logLevel }: { logLevel?: LogLevel }) => {
     return null;
   }
 
-  const handleSimulate = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const { value } = event.target;
-    if (value == "") {
-      return;
-    }
-    event.target.value = "";
-    let isReconnect = false;
-    switch (value) {
-      case "signal-reconnect":
-        isReconnect = true;
+  // const handleSimulate = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  //   const { value } = event.target;
+  //   if (value == "") {
+  //     return;
+  //   }
+  //   event.target.value = "";
+  //   let isReconnect = false;
+  //   switch (value) {
+  //     case "signal-reconnect":
+  //       isReconnect = true;
 
-      // fall through
-      default:
-        // @ts-expect-error
-        room.simulateScenario(value);
-    }
-  };
+  //     // fall through
+  //     default:
+  //       // @ts-expect-error livekit types are not typed simulateScenario
+  //       room.simulateScenario(value);
+  //   }
+  // };
 
   const lp = room.localParticipant;
 

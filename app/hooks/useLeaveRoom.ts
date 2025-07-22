@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Room } from "livekit-client";
 import { useRouter } from "next/navigation";
-import { SpaceMetadata, SpaceWithHostParticipant } from "@/lib/types";
+import { SpaceMetadata } from "@/lib/types";
 import { UserWithRelations } from "@/lib/types";
 
 export function useLeaveRoom({
