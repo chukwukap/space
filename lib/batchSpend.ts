@@ -1,31 +1,12 @@
-import { parseUnits } from "viem/utils";
-import { Address, getAddress } from "viem";
+import { Address } from "viem";
 import {
   PermissionDetails,
   SpendPermissionBatchTypedData,
   SupportedToken,
 } from "./types";
+import { SUPPORTED_TOKENS } from "./constants";
+import { spendPermissionManagerAddress } from "./abi/SpendPermissionManager";
 
-const TOKENS: Record<string, SupportedToken> = {
-  USDC: {
-    symbol: "USDC",
-    address: "0x...", // your USDC address
-    decimals: 6,
-    allowance: "20",
-    name: "USD Coin",
-    iconUrl: "/tokens/usdc.png",
-  },
-  SPAY: {
-    symbol: "SPAY",
-    address: "0x...", // your SPAY address
-    decimals: 18,
-    allowance: "250",
-    name: "Sonic Pay",
-    iconUrl: "/tokens/spay.png",
-  },
-} as const;
-
-const spendPermissionManagerAddress = "0x..."; // actual contract address
 const domainName = "Spend Permission Manager";
 const domainVersion = "1";
 
@@ -38,19 +19,19 @@ export function getSpendPermissionBatchTypedData(
   const period = 60 * 60 * 24 * 30; // 30 days
 
   const permissions: PermissionDetails[] = !tokens
-    ? Object.values(TOKENS).map((token, i) => ({
-        spender: getAddress(spendPermissionManagerAddress),
-        token: getAddress(token.address),
-        allowance: parseUnits(token.allowance, token.decimals),
+    ? Object.values(SUPPORTED_TOKENS).map((token, i) => ({
+        spender: spendPermissionManagerAddress,
+        token: token.address as Address,
+        allowance: token.defaultAllowance,
         salt: BigInt(now + i), // for uniqueness
-        extraData: "0x",
+        extraData: "",
       }))
     : tokens.map((token, i) => ({
-        spender: getAddress(spendPermissionManagerAddress),
-        token: getAddress(token.address),
-        allowance: parseUnits(token.allowance, token.decimals),
+        spender: spendPermissionManagerAddress,
+        token: token.address,
+        allowance: token.defaultAllowance,
         salt: BigInt(now + i), // for uniqueness
-        extraData: "0x",
+        extraData: "",
       }));
 
   return {
@@ -58,7 +39,7 @@ export function getSpendPermissionBatchTypedData(
       name: domainName,
       version: domainVersion,
       chainId,
-      verifyingContract: getAddress(spendPermissionManagerAddress),
+      verifyingContract: spendPermissionManagerAddress,
     },
     types: {
       PermissionDetails: [
@@ -78,7 +59,7 @@ export function getSpendPermissionBatchTypedData(
     },
     primaryType: "SpendPermissionBatch",
     message: {
-      account: getAddress(from),
+      account: from,
       period: BigInt(period),
       start: BigInt(now),
       end: BigInt(now + period),

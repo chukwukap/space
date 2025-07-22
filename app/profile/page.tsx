@@ -4,11 +4,7 @@ import Image from "next/image";
 import { useUser } from "@/app/providers/userProvider";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import {
-  Share2 as ShareIcon,
-  Pencil as EditIcon,
-  KeyRound as KeyIcon,
-} from "lucide-react";
+import { Share2 as ShareIcon, Pencil as EditIcon } from "lucide-react";
 import MobileHeader from "../_components/mobileHeader";
 import { ThemeToggle } from "../_components/themeToggle";
 import * as React from "react";
@@ -43,11 +39,11 @@ export default function UserProfilePage() {
   };
 
   // Handle batch approve
-  const handleBatchApprove = async () => {
-    if (selectedTokens.length === 0) return;
-    await batchApprove(selectedTokens);
+  const handleBatchApprove = async (tokens: SupportedToken[]) => {
+    if (tokens.length === 0) return;
+    await batchApprove(tokens);
     setSelectedTokens([]);
-    refetchSpend(selectedTokens);
+    refetchSpend(tokens);
   };
 
   // --- UI states ---
@@ -73,22 +69,7 @@ export default function UserProfilePage() {
   }
 
   if (spendError) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex flex-col min-h-screen bg-background text-foreground items-center justify-center"
-      >
-        <MobileHeader
-          title="Profile"
-          showBack={true}
-          right={<ThemeToggle />}
-          lowerVisible={false}
-        />
-        <div className="mt-32 text-lg text-muted-foreground">{spendError}</div>
-      </motion.div>
-    );
+    console.error(spendError);
   }
 
   // --- Main Profile UI ---
@@ -122,7 +103,7 @@ export default function UserProfilePage() {
         <div className="flex items-end justify-between w-full">
           <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-background overflow-hidden">
             <Image
-              src={user?.avatarUrl || "/icon.png"}
+              src={user?.avatarUrl || "/me.jpg"}
               alt={user?.username || user?.displayName || "User"}
               fill
               className="object-cover"
@@ -152,19 +133,18 @@ export default function UserProfilePage() {
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-4">
           <span>
             🗓 Joined{" "}
-            {new Date(user?.createdAt ?? "").toLocaleString("en-US", {
-              month: "short",
-              year: "numeric",
-            })}
+            {user?.createdAt
+              ? new Date(user.createdAt).toLocaleString("en-US", {
+                  month: "short",
+                  year: "numeric",
+                })
+              : "--"}
           </span>
         </div>
       </div>
 
       {/* --- Spend Permission Section --- */}
-      <SectionCard
-        title="Approve Spend Permissions"
-        icon={<KeyIcon className="w-5 h-5 text-blue-500" />}
-      >
+      <SectionCard title="Approve Spend Permissions" icon={<></>}>
         <div className="flex flex-col gap-2">
           {spendError && (
             <div className="text-red-500 text-sm mb-2">
@@ -174,10 +154,12 @@ export default function UserProfilePage() {
             </div>
           )}
           {SUPPORTED_TOKENS.map((token) => {
-            const isApproved =
-              permissions?.find(
-                (p) => p.spendPermissionMessage.token === token.address,
-              )?.txHash !== null;
+            // Find the permission object for this token
+            const permission = permissions?.find(
+              (p) => p.spendPermissionMessage.token === token.address,
+            );
+            // txHash is string | undefined. If it's defined, it's approved.
+            const isApproved = !!permission?.txHash;
             const isLoading = spendLoading;
             return (
               <div
@@ -212,10 +194,11 @@ export default function UserProfilePage() {
                   <Button
                     size="sm"
                     variant={isApproved ? "secondary" : "default"}
+                    // The approve button should only be disabled if already approved or loading, not based on the checkbox
                     disabled={isApproved || isLoading}
                     onClick={async () => {
-                      await approveSingle();
-                      refetchSpend();
+                      await approveSingle(token);
+                      refetchSpend([token]);
                     }}
                   >
                     {isApproved
@@ -233,8 +216,9 @@ export default function UserProfilePage() {
           <Button
             size="sm"
             variant="default"
+            // The batch approve button is enabled only if at least one token is selected and not loading
             disabled={selectedTokens.length === 0 || spendLoading}
-            onClick={handleBatchApprove}
+            onClick={() => handleBatchApprove(selectedTokens)}
           >
             {spendLoading ? "Approving..." : "Approve Selected"}
           </Button>

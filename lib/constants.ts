@@ -1,17 +1,6 @@
 import { ReactionType } from "./generated/prisma";
 import { SupportedToken } from "./types";
-
-export const USDC_DECIMALS = 6;
-export const SPEND_PERMISSION_ALLOWANCE =
-  process.env.NEXT_PUBLIC_PERMISSION_ALLOWANCE || "20";
-
-/**
- * USDC contract address on the current chain (Base or Base Sepolia).
- * Provide NEXT_PUBLIC_USDC_ADDRESS env var to override.
- */
-export const USDC_ADDRESS = (process.env.NEXT_PUBLIC_USDC_ADDRESS ||
-  // Default to Base Sepolia USDC
-  "0x9713C1cdD9b4b7bA860E5f8e0eDD3670C38AcD7C") as `0x${string}`;
+import { Address, parseUnits } from "viem";
 
 export const NEXT_PUBLIC_LK_SERVER_URL: string =
   process.env.NEXT_PUBLIC_LK_SERVER_URL ?? "";
@@ -24,27 +13,50 @@ export const REACTION_EMOJIS = {
   [ReactionType.LIKE]: "💯",
 };
 
-// Dummy supported tokens list (replace with real data or fetch from API)
+export const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+export const USDC_ADDRESS_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+export const TSPACE_ADDRESS =
+  process.env.NEXT_PUBLIC_TSPACE_ADDRESS ??
+  "0x0000000000000000000000000000000000000000";
+
+// Helper to get current unix timestamp in seconds
+const now = () => Math.floor(Date.now() / 1000);
+
 export const SUPPORTED_TOKENS: SupportedToken[] = [
   {
-    address: "0x0000000000000000000000000000000000000000",
+    address: ETH_ADDRESS,
     symbol: "ETH",
     name: "Ethereum",
     iconUrl: "/tokens/eth.png",
     decimals: 18,
+    // Spend permission defaults: 1 day period, valid from now, for 1 year, 20 ETH allowance
+    defaultPeriod: BigInt(24 * 60 * 60), // 1 day in seconds
+    defaultStart: BigInt(now()), // Start now
+    defaultEnd: BigInt(now() + 31_536_000), // 1 year from now
+    defaultAllowance: parseUnits("0.1", 18), // 0.1 ETH per day
   },
   {
-    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    address: USDC_ADDRESS_BASE,
     symbol: "USDC",
     name: "USD Coin",
     iconUrl: "/tokens/usdc.png",
     decimals: 6,
+    // Spend permission defaults: 1 day period, valid from now, for 1 year, 20,000 USDC allowance
+    defaultPeriod: BigInt(24 * 60 * 60),
+    defaultStart: BigInt(now()),
+    defaultEnd: BigInt(now() + 31_536_000),
+    defaultAllowance: parseUnits("20000", 6),
   },
   {
-    address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    symbol: "USDT",
-    name: "Tether",
-    iconUrl: "/tokens/usdt.png",
+    address: TSPACE_ADDRESS as Address,
+    symbol: "TSPACE",
+    name: "Tip Space",
+    iconUrl: "/tokens/tspace.png",
     decimals: 6,
+    // Spend permission defaults: 1 day period, valid from now, for 1 year, 20,000 USDT allowance
+    defaultPeriod: BigInt(24 * 60 * 60),
+    defaultStart: BigInt(now()),
+    defaultEnd: BigInt(now() + 31_536_000),
+    defaultAllowance: parseUnits("20000", 6),
   },
 ];

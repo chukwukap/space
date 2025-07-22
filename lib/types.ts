@@ -134,12 +134,15 @@ export type Reaction = {
 };
 
 export type SupportedToken = {
-  address: string;
+  address: Address;
   symbol: string;
   name: string;
+  defaultPeriod: bigint;
+  defaultStart: bigint;
+  defaultEnd: bigint;
   iconUrl: string;
   decimals: number;
-  allowance: string;
+  defaultAllowance: bigint;
 };
 export type ConnectionDetails = {
   serverUrl: string;

@@ -12,7 +12,12 @@ import {
   useSignTypedData,
 } from "wagmi";
 import { Address, Hex } from "viem";
-import { SpendPermissionWithSignature, SupportedToken } from "@/lib/types";
+import {
+  SpendPermissionWithSignature,
+  SupportedToken,
+  SpendPermission,
+} from "@/lib/types";
+import { spendPermissionManagerAddress } from "@/lib/abi/SpendPermissionManager";
 
 /**
  * useSpendPermission hook
@@ -50,8 +55,6 @@ export function useSpendPermission({
       setLoading(true);
       setError(null);
       try {
-        // Assume userAddress is a wallet address, need to fetch userFid from backend if needed
-        // For now, treat userAddress as fid if it's a number, else skip
         if (!fid) {
           setPermissions([]);
           setLoading(false);
@@ -78,13 +81,95 @@ export function useSpendPermission({
   }, [userAddress, fid, refetch, tokens]);
 
   /**
-   * Approve spend permission for a single token (not batch).
-   * Not implemented in this batch-focused hook, but stub provided for interface compatibility.
+   * Approve spend permission for a single token.
+   * This implementation follows the SpendPermission type from @types.ts.
    */
-  const approve = useCallback(async () => {
-    // This hook is batch-focused; single approve can be implemented as needed.
-    throw new Error("Single token approve not implemented in batch hook.");
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const approve = useCallback(
+    async (token: SupportedToken) => {
+      setApproving(true);
+      setError(null);
+      try {
+        let addr: Address | undefined = account.address as Address | undefined;
+        if (!addr) {
+          // Connect wallet if not connected
+          const res = await connectAsync({ connector: connectors[0] });
+          addr = res.accounts[0];
+        }
+        if (!addr) throw new Error("Wallet address not found");
+
+        // Prepare EIP-712 domain and types
+        const domain = {
+          name: "Spend Permission Manager",
+          version: "1",
+          chainId,
+          verifyingContract: spendPermissionManagerAddress,
+        };
+        const types = {
+          SpendPermission: [
+            { name: "account", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "token", type: "address" },
+            { name: "allowance", type: "uint160" },
+            { name: "period", type: "uint48" },
+            { name: "start", type: "uint48" },
+            { name: "end", type: "uint48" },
+            { name: "salt", type: "uint256" },
+            { name: "extraData", type: "bytes" },
+          ],
+        };
+
+        const spendPerm: SpendPermission = {
+          account: addr,
+          spender: spendPermissionManagerAddress as Address,
+          token: token.address as Address,
+          allowance: token.defaultAllowance,
+          period: token.defaultPeriod,
+          start: token.defaultStart,
+          end: token.defaultEnd,
+          salt: BigInt(Date.now()),
+          extraData: "",
+        };
+
+        // Sign the typed data
+        const signature: Hex = await signTypedDataAsync({
+          domain,
+          types,
+          primaryType: "SpendPermission",
+          message: spendPerm,
+        });
+
+        if (!fid) throw new Error("User FID not found for approval");
+
+        // Store the spend permission onchain and in DB
+        await storeSpendPermission(
+          spendPerm,
+          signature,
+          fid,
+          false, // isBatch
+        );
+
+        await refetch([token]);
+      } catch (err) {
+        console.error(err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to approve spend permission",
+        );
+      } finally {
+        setApproving(false);
+      }
+    },
+    [
+      account.address,
+      chainId,
+      connectAsync,
+      connectors,
+      signTypedDataAsync,
+      fid,
+      refetch,
+    ],
+  );
 
   /**
    * Approve spend permissions for all tokens in batch.
@@ -116,6 +201,8 @@ export function useSpendPermission({
           message: { ...typedData.message } as Record<string, unknown>,
         });
 
+        console.log("addr", addr);
+
         if (!fid) throw new Error("User FID not found for batch approval");
 
         // Store the batch spend permission onchain and in DB
@@ -128,6 +215,7 @@ export function useSpendPermission({
 
         await refetch(tokens);
       } catch (err) {
+        console.error(err);
         setError(
           err instanceof Error
             ? err.message

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Address, Hex, parseUnits } from "viem";
-import { USDC_ADDRESS, USDC_DECIMALS } from "@/lib/constants";
+import { USDC_ADDRESS_BASE } from "@/lib/constants";
 import {
   useAccount,
   useChainId,
@@ -65,8 +65,8 @@ export default function SubscribeButton() {
     const spendPerm: SpendPermissionStruct = {
       account: addr!,
       spender: process.env.NEXT_PUBLIC_SPENDER_ADDRESS as Address,
-      token: USDC_ADDRESS,
-      allowance: parseUnits("10", USDC_DECIMALS),
+      token: USDC_ADDRESS_BASE,
+      allowance: parseUnits("10", 6),
       period: 86400,
       start: 0,
       end: 281474976710655,
