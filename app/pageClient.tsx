@@ -12,6 +12,7 @@ import { ThemeToggle } from "./_components/themeToggle";
 
 import { Room } from "livekit-server-sdk";
 import { SpaceMetadata } from "@/lib/types";
+import { EmptyPage } from "iconoir-react";
 
 /**
  * Space type extends Room with additional metadata fields.
@@ -122,13 +123,7 @@ export default function LandingPageClient() {
           ))
         ) : (
           <div className="w-full flex flex-col items-center justify-center py-12 text-center">
-            <Image
-              src="/empty-space.svg"
-              alt="No spaces"
-              width={80}
-              height={80}
-              className="mb-4 opacity-80"
-            />
+            <EmptyPage className="w-12 h-12 text-muted-foreground" />
             <h4
               className="text-lg font-semibold mb-1"
               style={{ fontFamily: "Sora, sans-serif" }}
