@@ -344,8 +344,6 @@ export function TipSpaceRoomLayout() {
           onClose={() => setTipModalOpen(false)}
           recipients={recipients}
           defaultRecipientId={1}
-          userId={user?.id ?? 0}
-          spaceId={room.name}
           onTipSuccess={() => {
             setTipModalOpen(false);
             if (toast) toast.success("Tip sent!");

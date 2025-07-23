@@ -8,7 +8,12 @@ import { ReactionType } from "@/lib/generated/prisma";
 import { updateTippingPreferences } from "@/actions/tippingPreference";
 import { useUser } from "@/app/providers/userProvider";
 import type { Address } from "viem";
-import { REACTION_EMOJIS } from "@/lib/constants";
+import {
+  REACTION_EMOJIS,
+  USDC_ADDRESS_BASE,
+  BASE_CHAIN_ID,
+} from "@/lib/constants";
+import { toast } from "sonner";
 
 // Default tip values for each reaction (can be customized)
 const DEFAULT_TIP_VALUES: Record<
@@ -38,43 +43,25 @@ export default function TippingPreferences() {
   const tippingPref = user?.tippingPreferences;
 
   // Token and chainId (static for now, should be dynamic in future)
-  const token: Address = (tippingPref?.token ||
-    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48") as Address; // USDC mainnet
-  const chainId: number = tippingPref?.chainId || 1;
-
-  // Compose initial state from tippingPref or defaults
-  function getInitialTipSettings() {
-    const base: Record<
-      ReactionType,
-      { enabled: boolean; amount: string; delta: number }
-    > = DEFAULT_TIP_VALUES;
-
-    return base;
-  }
+  const token: Address = (tippingPref?.token as Address) || USDC_ADDRESS_BASE;
+  const chainId: number = tippingPref?.chainId || BASE_CHAIN_ID;
 
   // State for global tipping enabled/disabled
   const [tippingEnabled, setTippingEnabled] = useState(
-    typeof tippingPref?.tippingEnabled === "string"
-      ? tippingPref?.tippingEnabled === "true"
-      : (tippingPref?.tippingEnabled ?? true),
+    tippingPref?.tippingEnabled ?? true,
   );
 
   // State for tip settings per type
-  const [tipSettings, setTipSettings] = useState(getInitialTipSettings);
+  const [tipSettings, setTipSettings] = useState(DEFAULT_TIP_VALUES);
 
   // State for update button loading
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Sync state with user context if it changes
   useEffect(() => {
-    setTippingEnabled(
-      typeof tippingPref?.tippingEnabled === "string"
-        ? tippingPref?.tippingEnabled === "true"
-        : (tippingPref?.tippingEnabled ?? true),
-    );
-    setTipSettings(getInitialTipSettings());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.tippingPreferences]);
+    setTippingEnabled(tippingPref?.tippingEnabled ?? true);
+    setTipSettings(DEFAULT_TIP_VALUES);
+  }, [user?.tippingPreferences, tippingPref?.tippingEnabled]);
 
   // Toggle tip enable/disable for each type
   const handleTipToggle = (key: ReactionType) => {
@@ -155,10 +142,9 @@ export default function TippingPreferences() {
         chainId,
       };
       await updateTippingPreferences(payload, user.id);
-      // Optionally show a toast or feedback here
+
+      toast.success("Tipping preferences updated");
     } catch (e) {
-      // Optionally handle error
-      // eslint-disable-next-line no-console
       console.error(e);
     } finally {
       setIsUpdating(false);
@@ -366,7 +352,7 @@ export default function TippingPreferences() {
                 Updating...
               </span>
             ) : (
-              <>Update</>
+              "Update"
             )}
           </button>
         </div>

@@ -51,10 +51,6 @@ export function useTipReaction({
           return;
         }
 
-        if (!user.spendPerm) {
-          // TODO: Implement spend permission
-        }
-
         const res = await fetch("/api/reactions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -79,7 +75,7 @@ export function useTipReaction({
         setReactionLoading(false);
       }
     },
-    [user, hostId, spaceId, connect, address, connectors, addFloatingReaction],
+    [user, hostId, spaceId, addFloatingReaction],
   );
 
   return { handleSendReaction, reactionLoading };

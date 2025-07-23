@@ -13,6 +13,9 @@ export const REACTION_EMOJIS: Record<ReactionType, string> = {
   [ReactionType.LAUGH]: "😂",
   [ReactionType.LIKE]: "💯",
 };
+export const BASE_CHAIN_ID = parseInt(
+  process.env.NEXT_PUBLIC_BASE_CHAIN_ID ?? "8453",
+);
 export const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 export const USDC_ADDRESS_BASE =
   "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" as Address;

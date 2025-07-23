@@ -12,7 +12,6 @@ import type { Address, Hex } from "viem";
 type UseApprovalOptions = {
   tokenAddress: Address;
   spender: Address;
-  amount: bigint;
 };
 
 type ApprovalStatus =
@@ -45,7 +44,6 @@ interface UseApprovalResult {
 export function useApproval({
   tokenAddress,
   spender,
-  amount,
 }: UseApprovalOptions): UseApprovalResult {
   const { address } = useAccount();
   const publicClient = usePublicClient();
@@ -69,8 +67,6 @@ export function useApproval({
   const fetchAllowance = useCallback(async () => {
     console.log("Fetching allowance", address, tokenAddress, spender);
 
-    console.log("Fetching allowance", address, tokenAddress, spender);
-
     if (!address) {
       setAllowance(null);
       setStatus("connect_wallet");
@@ -92,8 +88,11 @@ export function useApproval({
         functionName: "allowance",
         args: [address, spender],
       });
+      console.log("Allowance read result::", result);
       setAllowance(result);
-      setStatus(result >= amount ? "approved" : "not_approved");
+      setStatus(
+        result >= (allowance ?? BigInt(0)) ? "approved" : "not_approved",
+      );
     } catch {
       setError("Failed to fetch allowance");
       setStatus("error");
@@ -101,7 +100,7 @@ export function useApproval({
     } finally {
       setLoading(false);
     }
-  }, [address, tokenAddress, spender, amount, publicClient, connectWallet]);
+  }, [address, tokenAddress, spender, allowance, publicClient, connectWallet]);
 
   // Approve function
   const approve = useCallback(async () => {
@@ -125,13 +124,18 @@ export function useApproval({
     setStatus("pending");
     setError(null);
     try {
-      console.log("Approving", tokenAddress, spender, amount);
+      console.log("Approving", tokenAddress, spender, allowance);
       // Approve the exact amount requested (could use MaxUint256 for infinite approval if desired)
+      if (!allowance) {
+        setError("No allowance found");
+        setStatus("error");
+        return;
+      }
       const txHash = await walletClient.writeContract({
         address: tokenAddress,
         abi: ERC20_ABI,
         functionName: "approve",
-        args: [spender, amount],
+        args: [spender, allowance],
         account: address,
       });
       // Wait for tx confirmation
@@ -156,7 +160,7 @@ export function useApproval({
     address,
     tokenAddress,
     spender,
-    amount,
+    allowance,
     publicClient,
     fetchAllowance,
     connectWallet,
@@ -170,8 +174,7 @@ export function useApproval({
   // Auto-fetch allowance on mount and when dependencies change
   useEffect(() => {
     fetchAllowance();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, tokenAddress, spender, amount, publicClient]);
+  }, [address, tokenAddress, spender, allowance, publicClient, fetchAllowance]);
 
   return {
     isApproved: status === "approved",

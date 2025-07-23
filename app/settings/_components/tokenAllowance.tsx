@@ -19,16 +19,13 @@ import { toBigInt } from "@/lib/utils";
 export default function SpendLimit() {
   const { user } = useUser();
 
-  const [amount, setAmount] = useState<bigint>(
-    toBigInt(user?.tippingPreferences?.custom) ?? BigInt(0),
-  );
-
-  const { isApproved, loading, approve } = useApproval({
+  const { isApproved, loading, approve, allowance } = useApproval({
     tokenAddress:
       (user?.tippingPreferences?.token as Address) || USDC_ADDRESS_BASE,
     spender: ADMIN_SPENDER_ADDRESS,
-    amount: amount,
   });
+
+  const [amount, setAmount] = useState<bigint>(allowance ?? BigInt(0));
   const [copied, setCopied] = useState(false);
   const { address } = useAccount();
 
@@ -92,7 +89,7 @@ export default function SpendLimit() {
                   isApproved ? "bg-primary" : "bg-destructive",
                 )}
               />
-              {isApproved ? "approved" : "no approval"}
+              {isApproved ? "approved" : "not approved"}
             </span>
             <span className="ml-2 text-xs text-muted-foreground font-mono select-all flex items-center gap-1">
               {address}

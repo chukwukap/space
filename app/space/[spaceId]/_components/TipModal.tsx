@@ -8,18 +8,9 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import {
-  useAccount,
-  useChainId,
-  useConnect,
-  useConnectors,
-  useSignTypedData,
-} from "wagmi";
+import { useAccount, useConnect, useConnectors } from "wagmi";
 
-import { storeSpendPermission } from "@/actions/spendPermission";
-import { spend } from "@/actions/utils";
 import { toast } from "sonner";
-import { Address } from "viem";
 import { TipRecipient } from "@/lib/types";
 
 interface TipModalProps {
@@ -28,8 +19,6 @@ interface TipModalProps {
   recipients: TipRecipient[];
   defaultRecipientId: number;
   onTipSuccess?: () => void;
-  userId: number;
-  spaceId: string;
 }
 
 export default function TipModal({
@@ -38,8 +27,6 @@ export default function TipModal({
   recipients,
   defaultRecipientId,
   onTipSuccess,
-  userId,
-  spaceId,
 }: TipModalProps) {
   const [amount, setAmount] = useState("");
   const [recipientId, setRecipientId] = useState(defaultRecipientId);
@@ -49,10 +36,8 @@ export default function TipModal({
   const [error, setError] = useState<string | null>(null);
 
   const account = useAccount();
-  const chainId = useChainId();
   const { connectAsync } = useConnect();
   const connectors = useConnectors();
-  const { signTypedDataAsync } = useSignTypedData();
 
   const recipient = recipients.find((r) => r.fid === recipientId);
 
@@ -69,35 +54,7 @@ export default function TipModal({
         addr = res.accounts[0];
       }
       if (!addr) throw new Error("Wallet not connected");
-      const spendPerm = getSpendPermTypedData(addr, chainId);
-      const signature = await signTypedDataAsync(spendPerm);
-      // Approve spend permission
-      await storeSpendPermission(spendPerm.message, signature, userId);
-      // Send tip on-chain
-      const amountBigInt = BigInt(Math.floor(parseFloat(amount) * 1e6)); // USDC 6 decimals
-      const spendTxHash = await spend(
-        addr,
-        recipient.walletAddress as Address,
-        amountBigInt,
-        spendPerm.message,
-      );
-      // Record tip in DB
-      const res = await fetch("/api/tips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          spaceId,
-          fromFid: userId,
-          toFid: recipientId,
-          amount,
-          tokenSymbol: "USDC",
-          txHash: spendTxHash,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to record tip");
-      }
+
       setStatus("success");
       if (onTipSuccess) onTipSuccess();
       setTimeout(() => {

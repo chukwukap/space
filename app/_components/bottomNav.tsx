@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Home, Settings } from "iconoir-react";
 import { cn } from "@/lib/utils";
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
 
 /**
  * NavItem type for bottom navigation.
@@ -40,7 +39,6 @@ function isRootPrimaryRoute(pathname: string): boolean {
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { context } = useMiniKit();
 
   // Settings replaces profile in the nav
   const NAV_ITEMS: NavItem[] = [
