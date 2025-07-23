@@ -14,7 +14,10 @@ export const REACTION_EMOJIS = {
 };
 
 export const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-export const USDC_ADDRESS_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+export const USDC_ADDRESS_BASE =
+  "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" as Address;
+export const ADMIN_SPENDER_ADDRESS =
+  "0x0b3d62df33521cdce79e87586d7c1534b00ecad7";
 export const TSPACE_ADDRESS =
   process.env.NEXT_PUBLIC_TSPACE_ADDRESS ??
   "0x0000000000000000000000000000000000000000";
@@ -59,4 +62,15 @@ export const SUPPORTED_TOKENS: SupportedToken[] = [
     defaultEnd: BigInt(now() + 31_536_000),
     defaultAllowance: parseUnits("20000", 6),
   },
+];
+
+export const PRESET_AMOUNTS = [
+  { value: 5, usd: 5 },
+  { value: 10, usd: 10 },
+  { value: 25, usd: 25 },
+  { value: 50, usd: 50 },
+  { value: 100, usd: 100 },
+  { value: 500, usd: 500 },
+  { value: 1500, usd: 1500 },
+  { value: 2000, usd: 2000 },
 ];

@@ -62,3 +62,18 @@ export function generateUsername(
   // Compose username, all lowercase, URL-safe
   return `${prefix.toLowerCase()}_${randomPart}`;
 }
+
+// Simple helper: handles Prisma Decimal, string, number, or bigint
+export function toBigInt(val: unknown): bigint {
+  if (typeof val === "bigint") return val;
+  if (typeof val === "number") return BigInt(val);
+  if (typeof val === "string") return BigInt(val);
+  if (val && typeof val.toString === "function") {
+    try {
+      return BigInt(val.toString());
+    } catch {
+      return BigInt(0);
+    }
+  }
+  return BigInt(0);
+}

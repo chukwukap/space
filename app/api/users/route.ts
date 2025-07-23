@@ -58,7 +58,11 @@ export async function GET(req: NextRequest) {
 
     const user: UserWithRelations | null = await prisma.user.findFirst({
       where: { OR: ors },
-      include: { tipsSent: true, tipsReceived: true },
+      include: {
+        tipsSent: true,
+        tipsReceived: true,
+        tippingPreferences: true,
+      },
     });
 
     // Log the user result
@@ -146,7 +150,11 @@ export async function POST(req: NextRequest) {
           address: address ?? existing.address,
           username: username ?? existing.username,
         },
-        include: { tipsSent: true, tipsReceived: true },
+        include: {
+          tipsSent: true,
+          tipsReceived: true,
+          tippingPreferences: true,
+        },
       });
       // Log the update operation
       console.log("[POST /api/user] Updated user:", user);
@@ -161,7 +169,11 @@ export async function POST(req: NextRequest) {
           displayName: sanitizeString(displayName),
           avatarUrl: sanitizeString(pfpUrl),
         },
-        include: { tipsSent: true, tipsReceived: true },
+        include: {
+          tipsSent: true,
+          tipsReceived: true,
+          tippingPreferences: true,
+        },
       });
       // Log the create operation
       console.log("[POST /api/user] Created user:", user);

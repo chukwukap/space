@@ -1,9 +1,22 @@
 import { Address } from "viem";
-import { Prisma } from "@/lib/generated/prisma";
+import { Prisma, ReactionType } from "@/lib/generated/prisma";
 
 export type UserWithRelations = Prisma.UserGetPayload<{
-  include: { tipsSent: true; tipsReceived: true };
+  include: {
+    tipsSent: true;
+    tipsReceived: true;
+    tippingPreferences: true;
+  };
 }>;
+
+export type TipPreference = {
+  amounts: {
+    [key in ReactionType]: number;
+  };
+  token: string;
+  chainId: number;
+  allowance: bigint;
+};
 
 export type SpaceWithHostParticipant = Prisma.SpaceGetPayload<{
   include: {
