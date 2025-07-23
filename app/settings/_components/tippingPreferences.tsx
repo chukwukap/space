@@ -1,68 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Minus, Plus } from "iconoir-react";
 import { ReactionType } from "@/lib/generated/prisma";
-
-// Emojis for each reaction type
-const REACTION_EMOJIS: Record<ReactionType, string> = {
-  [ReactionType.HEART]: "❤️",
-  [ReactionType.CLAP]: "👏",
-  [ReactionType.FIRE]: "🔥",
-  [ReactionType.LAUGH]: "😂",
-  [ReactionType.LIKE]: "💯",
-};
+import { updateTippingPreferences } from "@/actions/tippingPreference";
+import { useUser } from "@/app/providers/userProvider";
+import type { Address } from "viem";
+import { REACTION_EMOJIS } from "@/lib/constants";
 
 // Default tip values for each reaction (can be customized)
-const REACTION_DEFAULTS: Record<
+const DEFAULT_TIP_VALUES: Record<
   ReactionType,
-  { amount: string; delta: number }
+  { amount: string; delta: number; enabled: boolean }
 > = {
-  [ReactionType.HEART]: { amount: "0.05", delta: 0.5 },
-  [ReactionType.CLAP]: { amount: "0.03", delta: 0.3 },
-  [ReactionType.FIRE]: { amount: "0.10", delta: 1 },
-  [ReactionType.LAUGH]: { amount: "0.02", delta: 0.2 },
-  [ReactionType.LIKE]: { amount: "0.05", delta: 0.5 },
+  [ReactionType.HEART]: { amount: "0.5", delta: 0.5, enabled: true },
+  [ReactionType.CLAP]: { amount: "0.5", delta: 0.5, enabled: true },
+  [ReactionType.FIRE]: { amount: "1", delta: 1, enabled: true },
+  [ReactionType.LAUGH]: { amount: "0.5", delta: 0.5, enabled: true },
+  [ReactionType.LIKE]: { amount: "0.5", delta: 0.5, enabled: true },
 };
-
-// Add a custom tip type for direct tips
-const CUSTOM_TIP_TYPE = {
-  key: "custom",
-  label: "direct tip",
-  icon: "/icons/custom-tip.svg", // Use a unique, non-generic icon!
-  default: "10.00",
-  delta: 3,
-};
-
-type TipKey = ReactionType | "custom";
-
-interface TipType {
-  key: TipKey;
-  label: string;
-  icon: string;
-  default: string;
-  delta: number;
-}
-
-// Compose all tip types (reactions + custom tip)
-const TIP_TYPES: TipType[] = [
-  ...Object.values(ReactionType).map((rt) => ({
-    key: rt,
-    label: rt.replace(/^\w/, (c) => c.toUpperCase()),
-    icon: REACTION_EMOJIS[rt],
-    default: REACTION_DEFAULTS[rt].amount,
-    delta: REACTION_DEFAULTS[rt].delta,
-  })),
-  {
-    key: CUSTOM_TIP_TYPE.key as TipKey,
-    label: CUSTOM_TIP_TYPE.label,
-    icon: CUSTOM_TIP_TYPE.icon,
-    default: CUSTOM_TIP_TYPE.default,
-    delta: CUSTOM_TIP_TYPE.delta,
-  },
-];
 
 // Helper for increment/decrement
 function adjustAmount(val: string, delta: number) {
@@ -73,28 +31,53 @@ function adjustAmount(val: string, delta: number) {
 }
 
 export default function TippingPreferences() {
+  // Get user and tipping preferences from context
+  const { user } = useUser();
+
+  // Extract tipping preferences from user context, fallback to defaults
+  const tippingPref = user?.tippingPreferences;
+
+  // Token and chainId (static for now, should be dynamic in future)
+  const token: Address = (tippingPref?.token ||
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48") as Address; // USDC mainnet
+  const chainId: number = tippingPref?.chainId || 1;
+
+  // Compose initial state from tippingPref or defaults
+  function getInitialTipSettings() {
+    const base: Record<
+      ReactionType,
+      { enabled: boolean; amount: string; delta: number }
+    > = DEFAULT_TIP_VALUES;
+
+    return base;
+  }
+
   // State for global tipping enabled/disabled
-  const [tippingEnabled, setTippingEnabled] = useState(true);
+  const [tippingEnabled, setTippingEnabled] = useState(
+    typeof tippingPref?.tippingEnabled === "string"
+      ? tippingPref?.tippingEnabled === "true"
+      : (tippingPref?.tippingEnabled ?? true),
+  );
 
   // State for tip settings per type
-  const [tipSettings, setTipSettings] = useState(
-    TIP_TYPES.reduce(
-      (acc, t) => ({
-        ...acc,
-        [t.key]: {
-          enabled: t.key === "custom" ? true : true,
-          amount: t.default,
-        },
-      }),
-      {} as Record<TipKey, { enabled: boolean; amount: string }>,
-    ),
-  );
+  const [tipSettings, setTipSettings] = useState(getInitialTipSettings);
 
   // State for update button loading
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Toggle tip enable/disable for each type (except custom)
-  const handleTipToggle = (key: TipKey) => {
+  // Sync state with user context if it changes
+  useEffect(() => {
+    setTippingEnabled(
+      typeof tippingPref?.tippingEnabled === "string"
+        ? tippingPref?.tippingEnabled === "true"
+        : (tippingPref?.tippingEnabled ?? true),
+    );
+    setTipSettings(getInitialTipSettings());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.tippingPreferences]);
+
+  // Toggle tip enable/disable for each type
+  const handleTipToggle = (key: ReactionType) => {
     setTipSettings((prev) => ({
       ...prev,
       [key]: {
@@ -105,7 +88,7 @@ export default function TippingPreferences() {
   };
 
   // Handle tip amount change, with input sanitization
-  const handleTipAmountChange = (key: TipKey, value: string) => {
+  const handleTipAmountChange = (key: ReactionType, value: string) => {
     let sanitized = value.replace(/[^0-9.]/g, "");
     const parts = sanitized.split(".");
     if (parts.length > 2) {
@@ -125,7 +108,7 @@ export default function TippingPreferences() {
   };
 
   // Increment/decrement handlers
-  const handleAdjust = (key: TipKey, delta: number) => {
+  const handleAdjust = (key: ReactionType, delta: number) => {
     setTipSettings((prev) => ({
       ...prev,
       [key]: {
@@ -142,14 +125,41 @@ export default function TippingPreferences() {
 
   // Handle update/save action
   const handleUpdate = async () => {
+    if (!user?.id) return;
     setIsUpdating(true);
     try {
-      // TODO: Replace with actual API call to save preferences
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Compose payload for updateTippingPreferences
+      const payload = {
+        tippingEnabled,
+        heart: {
+          enabled: tipSettings.HEART.enabled,
+          amount: tipSettings.HEART.amount,
+        },
+        clap: {
+          enabled: tipSettings.CLAP.enabled,
+          amount: tipSettings.CLAP.amount,
+        },
+        fire: {
+          enabled: tipSettings.FIRE.enabled,
+          amount: tipSettings.FIRE.amount,
+        },
+        laugh: {
+          enabled: tipSettings.LAUGH.enabled,
+          amount: tipSettings.LAUGH.amount,
+        },
+        like: {
+          enabled: tipSettings.LIKE.enabled,
+          amount: tipSettings.LIKE.amount,
+        },
+        token,
+        chainId,
+      };
+      await updateTippingPreferences(payload, user.id);
       // Optionally show a toast or feedback here
     } catch (e) {
-      console.error(e);
       // Optionally handle error
+      // eslint-disable-next-line no-console
+      console.error(e);
     } finally {
       setIsUpdating(false);
     }
@@ -204,46 +214,43 @@ export default function TippingPreferences() {
           </div>
           {/* Tip rows */}
           <div className="flex flex-col gap-3">
-            {TIP_TYPES.map((tip) => (
+            {Object.values(ReactionType).map((tip) => (
               <div
-                key={tip.key}
+                key={tip}
                 className={cn(
                   "rounded-xl flex flex-col bg-background px-3 py-2 shadow-sm border border-input",
                   !tippingEnabled && "opacity-60 pointer-events-none",
-                  tip.key === "custom" && "mt-2",
                 )}
               >
                 {/* Action label and toggle */}
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    {tip.label}
-                    {tip.key !== "custom" && (
-                      <span className="ml-1 text-lg align-middle">
-                        {REACTION_EMOJIS[tip.key]}
-                      </span>
-                    )}
+                    {tip}
+                    <span className="ml-1 text-lg align-middle">
+                      {REACTION_EMOJIS[tip]}
+                    </span>
                   </div>
 
                   {
                     <label className="relative inline-flex items-center cursor-pointer ml-2">
                       <input
                         type="checkbox"
-                        checked={tipSettings[tip.key].enabled}
-                        onChange={() => handleTipToggle(tip.key)}
+                        checked={tipSettings[tip].enabled}
+                        onChange={() => handleTipToggle(tip)}
                         className="sr-only peer"
-                        aria-label={`Enable tip for ${tip.label}`}
+                        aria-label={`Enable tip for ${tip}`}
                         disabled={!tippingEnabled}
                       />
                       <div
                         className={cn(
                           "w-7 h-4 bg-background rounded-full peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary transition-all duration-200",
-                          tipSettings[tip.key].enabled && "bg-primary",
+                          tipSettings[tip].enabled && "bg-primary",
                         )}
                       ></div>
                       <div
                         className={cn(
                           "absolute left-0.5 top-0.5 w-3 h-3 bg-background rounded-full shadow transition-all duration-200",
-                          tipSettings[tip.key].enabled
+                          tipSettings[tip].enabled
                             ? "translate-x-3"
                             : "translate-x-0",
                         )}
@@ -267,14 +274,14 @@ export default function TippingPreferences() {
                       type="button"
                       className={cn(
                         "w-7 h-7 flex items-center justify-center rounded-full border border-input bg-background text-lg font-bold text-foreground active:scale-95 transition",
-                        (!tipSettings[tip.key].enabled || !tippingEnabled) &&
+                        (!tipSettings[tip].enabled || !tippingEnabled) &&
                           "opacity-50 pointer-events-none",
                       )}
                       aria-label="Decrease tip"
-                      onClick={() => handleAdjust(tip.key, -tip.delta)}
-                      disabled={
-                        !tipSettings[tip.key].enabled || !tippingEnabled
+                      onClick={() =>
+                        handleAdjust(tip, -DEFAULT_TIP_VALUES[tip].delta)
                       }
+                      disabled={!tipSettings[tip].enabled || !tippingEnabled}
                     >
                       <Minus className="w-3 h-3" />
                     </button>
@@ -285,38 +292,36 @@ export default function TippingPreferences() {
                       pattern="^\d+(\.\d{0,2})?$"
                       className={cn(
                         "w-16 text-center bg-transparent outline-none font-semibold text-[15px] px-0  mx-1",
-                        (!tipSettings[tip.key].enabled || !tippingEnabled) &&
+                        (!tipSettings[tip].enabled || !tippingEnabled) &&
                           "opacity-60",
                       )}
-                      value={tipSettings[tip.key].amount}
+                      value={tipSettings[tip].amount}
                       onChange={(e) =>
-                        handleTipAmountChange(tip.key, e.target.value)
+                        handleTipAmountChange(tip, e.target.value)
                       }
-                      disabled={
-                        !tipSettings[tip.key].enabled || !tippingEnabled
-                      }
-                      aria-label={`Tip amount for ${tip.label}`}
+                      disabled={!tipSettings[tip].enabled || !tippingEnabled}
+                      aria-label={`Tip amount for ${tip}`}
                     />
                     {/* Plus button */}
                     <button
                       type="button"
                       className={cn(
                         "w-7 h-7 flex items-center justify-center rounded-full border border-input bg-background text-lg font-bold text-foreground active:scale-95 transition",
-                        (!tipSettings[tip.key].enabled || !tippingEnabled) &&
+                        (!tipSettings[tip].enabled || !tippingEnabled) &&
                           "opacity-50 pointer-events-none",
                       )}
                       aria-label="Increase tip"
-                      onClick={() => handleAdjust(tip.key, tip.delta)}
-                      disabled={
-                        !tipSettings[tip.key].enabled || !tippingEnabled
+                      onClick={() =>
+                        handleAdjust(tip, DEFAULT_TIP_VALUES[tip].delta)
                       }
+                      disabled={!tipSettings[tip].enabled || !tippingEnabled}
                     >
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
 
                   <span className="text-sm text-muted-foreground font-semibold min-w-[48px]">
-                    ${tip.delta}
+                    ${DEFAULT_TIP_VALUES[tip].delta}
                   </span>
                 </div>
               </div>

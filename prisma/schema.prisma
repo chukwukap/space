@@ -53,19 +53,24 @@ model User {
 }
 
 model TippingPreferences {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
-  heart     Decimal  @db.Decimal(18, 6)
-  laugh     Decimal  @db.Decimal(18, 6)
-  clap      Decimal  @db.Decimal(18, 6)
-  fire      Decimal  @db.Decimal(18, 6)
-  like      Decimal  @db.Decimal(18, 6)
-  custom    Decimal  @db.Decimal(18, 6)
-  token     String
-  chainId   Int
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id])
+  heart          Decimal  @db.Decimal(18, 6)
+  laugh          Decimal  @db.Decimal(18, 6)
+  clap           Decimal  @db.Decimal(18, 6)
+  fire           Decimal  @db.Decimal(18, 6)
+  like           Decimal  @db.Decimal(18, 6)
+  enabledHeart   Boolean  @default(true)
+  enabledLaugh   Boolean  @default(true)
+  enabledClap    Boolean  @default(true)
+  enabledFire    Boolean  @default(true)
+  enabledLike    Boolean  @default(true)
+  tippingEnabled Boolean  @default(true)
+  token          String
+  chainId        Int
 }
 
 model Space {

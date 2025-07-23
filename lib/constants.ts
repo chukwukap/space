@@ -5,14 +5,14 @@ import { Address, parseUnits } from "viem";
 export const NEXT_PUBLIC_LK_SERVER_URL: string =
   process.env.NEXT_PUBLIC_LK_SERVER_URL ?? "";
 
-export const REACTION_EMOJIS = {
+// Emojis for each reaction type
+export const REACTION_EMOJIS: Record<ReactionType, string> = {
   [ReactionType.HEART]: "❤️",
   [ReactionType.CLAP]: "👏",
   [ReactionType.FIRE]: "🔥",
   [ReactionType.LAUGH]: "😂",
   [ReactionType.LIKE]: "💯",
 };
-
 export const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 export const USDC_ADDRESS_BASE =
   "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" as Address;
