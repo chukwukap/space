@@ -19,7 +19,7 @@ import { toBigInt } from "@/lib/utils";
 export default function SpendLimit() {
   const { user } = useUser();
 
-  const { isApproved, loading, approve, allowance } = useApproval({
+  const { isApproved, loading, approve, allowance, error } = useApproval({
     tokenAddress:
       (user?.tippingPreferences?.token as Address) || USDC_ADDRESS_BASE,
     spender: ADMIN_SPENDER_ADDRESS,
@@ -92,7 +92,7 @@ export default function SpendLimit() {
               {isApproved ? "approved" : "not approved"}
             </span>
             <span className="ml-2 text-xs text-muted-foreground font-mono select-all flex items-center gap-1">
-              {address}
+              {address?.slice(0, 6)}...{address?.slice(-4)}
               <button
                 onClick={handleCopy}
                 className="ml-1 p-1 rounded-full active:bg-muted transition"
@@ -109,6 +109,7 @@ export default function SpendLimit() {
               )}
             </span>
           </div>
+          {error && <div className="text-sm text-destructive">{error}</div>}
 
           {/* Spend limit input */}
           <div className="flex flex-col gap-2 mt-2">
@@ -197,7 +198,10 @@ export default function SpendLimit() {
                 ? "bg-primary text-primary-foreground cursor-not-allowed"
                 : "bg-foreground text-background active:bg-primary/80",
             )}
-            onClick={approve}
+            onClick={() => {
+              console.log("Approving", parsedAllowance);
+              approve(parsedAllowance);
+            }}
             disabled={isApproved || !parsedAllowance || loading}
             type="button"
             aria-label="Approve spend limit"

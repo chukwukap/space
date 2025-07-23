@@ -29,7 +29,7 @@ export function Providers(props: { children: ReactNode }) {
             <Toaster
               position="top-center"
               richColors
-              swipeDirections={["top"]}
+              swipeDirections={["left", "right"]}
               duration={3000}
             />
 

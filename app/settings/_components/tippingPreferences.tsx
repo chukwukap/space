@@ -8,12 +8,9 @@ import { ReactionType } from "@/lib/generated/prisma";
 import { updateTippingPreferences } from "@/actions/tippingPreference";
 import { useUser } from "@/app/providers/userProvider";
 import type { Address } from "viem";
-import {
-  REACTION_EMOJIS,
-  USDC_ADDRESS_BASE,
-  BASE_CHAIN_ID,
-} from "@/lib/constants";
+import { REACTION_EMOJIS, USDC_ADDRESS_BASE } from "@/lib/constants";
 import { toast } from "sonner";
+import { useChainId } from "wagmi";
 
 // Default tip values for each reaction (can be customized)
 const DEFAULT_TIP_VALUES: Record<
@@ -38,13 +35,13 @@ function adjustAmount(val: string, delta: number) {
 export default function TippingPreferences() {
   // Get user and tipping preferences from context
   const { user } = useUser();
+  const chainId = useChainId();
 
   // Extract tipping preferences from user context, fallback to defaults
   const tippingPref = user?.tippingPreferences;
 
   // Token and chainId (static for now, should be dynamic in future)
   const token: Address = (tippingPref?.token as Address) || USDC_ADDRESS_BASE;
-  const chainId: number = tippingPref?.chainId || BASE_CHAIN_ID;
 
   // State for global tipping enabled/disabled
   const [tippingEnabled, setTippingEnabled] = useState(
@@ -317,13 +314,12 @@ export default function TippingPreferences() {
           <button
             className={cn(
               "mt-5 w-full rounded-xl py-3 text-lg font-bold flex items-center justify-center gap-2 transition",
-              tippingEnabled
-                ? "bg-primary text-primary-foreground"
-                : "bg-foreground text-background cursor-not-allowed opacity-60",
+              "bg-primary text-primary-foreground",
               isUpdating && "opacity-70 cursor-wait",
             )}
             onClick={handleUpdate}
-            disabled={!tippingEnabled || isUpdating}
+            // Only disable if updating, not when tipping is disabled
+            disabled={isUpdating}
             type="button"
             aria-label="Update tipping preferences"
           >

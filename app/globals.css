@@ -36,6 +36,9 @@ body {
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
+    --warn: 34 100% 50%;
+    --warn-foreground: 0 0% 100%;
+
     --border: 220 16% 85%; /* slightly darker for visibility */
     --input: 220 13% 90%;
     --ring: 252 83% 60%;
@@ -72,6 +75,9 @@ body {
 
     --accent: 12 84% 61%;
     --accent-foreground: 220 47% 12%;
+
+    --warn: 34 100% 50%;
+    --warn-foreground: 0 0% 100%;
 
     --destructive: 0 65% 47%;
     --destructive-foreground: 0 0% 100%;

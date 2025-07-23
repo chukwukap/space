@@ -115,6 +115,10 @@ export default function RootLayout({
         )}
       >
         <Providers>
+          <div className="text-sm text-warn-foreground bg-warn text-center z-50">
+            Warning: This is still in development. Do not use this app to send
+            tips yet. I am still working on the tipping system.
+          </div>
           <div className="flex flex-col min-h-svh  bg-background/80 text-foreground h-svh relative">
             {/* Per-page headers are rendered within page layouts */}
             {/* Main scrollable content area with hidden scrollbars */}

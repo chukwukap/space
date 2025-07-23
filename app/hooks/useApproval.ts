@@ -6,7 +6,7 @@ import {
   useWalletClient,
   useConnect,
 } from "wagmi";
-import type { Address, Hex } from "viem";
+import { parseUnits, type Address, type Hex } from "viem";
 
 // Types for clarity and safety
 type UseApprovalOptions = {
@@ -28,7 +28,7 @@ interface UseApprovalResult {
   allowance: bigint | null;
   loading: boolean;
   error: string | null;
-  approve: () => Promise<void>;
+  approve: (amount: bigint) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -90,8 +90,14 @@ export function useApproval({
       });
       console.log("Allowance read result::", result);
       setAllowance(result);
+      console.log(
+        "Allowance approved????::",
+        result > (allowance ?? BigInt(0)),
+        allowance,
+        result,
+      );
       setStatus(
-        result >= (allowance ?? BigInt(0)) ? "approved" : "not_approved",
+        result > (allowance ?? BigInt(0)) ? "approved" : "not_approved",
       );
     } catch {
       setError("Failed to fetch allowance");
@@ -103,68 +109,72 @@ export function useApproval({
   }, [address, tokenAddress, spender, allowance, publicClient, connectWallet]);
 
   // Approve function
-  const approve = useCallback(async () => {
-    if (!address) {
-      setError("Please connect your wallet to approve.");
-      setStatus("connect_wallet");
-      connectWallet();
-      return;
-    }
-    if (!walletClient || !tokenAddress || !spender) {
-      setError("Wallet not connected or missing parameters");
-      setStatus("connect_wallet");
-      connectWallet();
-      return;
-    }
-    if (!publicClient) {
-      setError("No public client available");
-      return;
-    }
-    setLoading(true);
-    setStatus("pending");
-    setError(null);
-    try {
-      console.log("Approving", tokenAddress, spender, allowance);
-      // Approve the exact amount requested (could use MaxUint256 for infinite approval if desired)
-      if (!allowance) {
-        setError("No allowance found");
-        setStatus("error");
+  const approve = useCallback(
+    async (amount: bigint) => {
+      amount = parseUnits(amount.toString(), 6);
+      console.log("Approving", tokenAddress, spender, amount);
+      if (!address) {
+        setError("Please connect your wallet to approve.");
+        setStatus("connect_wallet");
+        connectWallet();
         return;
       }
-      const txHash = await walletClient.writeContract({
-        address: tokenAddress,
-        abi: ERC20_ABI,
-        functionName: "approve",
-        args: [spender, allowance],
-        account: address,
-      });
-      // Wait for tx confirmation
-      await publicClient.waitForTransactionReceipt({ hash: txHash as Hex });
-      // Refresh allowance after approval
-      await fetchAllowance();
-    } catch (err) {
-      // Try to extract a user-friendly error message
-      let msg = "Approval transaction failed. Please try again.";
-      if (typeof err === "object" && err !== null) {
-        if (err instanceof Error) {
-          msg = err.message;
-        }
+      if (!walletClient || !tokenAddress || !spender) {
+        setError("Wallet not connected or missing parameters");
+        setStatus("connect_wallet");
+        connectWallet();
+        return;
       }
-      setError(msg);
-      setStatus("error");
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    walletClient,
-    address,
-    tokenAddress,
-    spender,
-    allowance,
-    publicClient,
-    fetchAllowance,
-    connectWallet,
-  ]);
+      if (!publicClient) {
+        setError("No public client available");
+        return;
+      }
+      setLoading(true);
+      setStatus("pending");
+      setError(null);
+      try {
+        // Approve the exact amount requested (could use MaxUint256 for infinite approval if desired)
+        if (!amount) {
+          setError("No amount found");
+          setStatus("error");
+          return;
+        }
+        const txHash = await walletClient.writeContract({
+          address: tokenAddress,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [spender, amount],
+          account: address,
+        });
+        // Wait for tx confirmation
+        await publicClient.waitForTransactionReceipt({ hash: txHash as Hex });
+        // Refresh allowance after approval
+        await fetchAllowance();
+      } catch (err) {
+        console.error("Approval error", err);
+        // Try to extract a user-friendly error message
+        let msg = "Approval transaction failed. Please try again.";
+        if (typeof err === "object" && err !== null) {
+          if (err instanceof Error) {
+            msg = err.message;
+          }
+        }
+        setError(msg);
+        setStatus("error");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      walletClient,
+      address,
+      tokenAddress,
+      spender,
+      publicClient,
+      fetchAllowance,
+      connectWallet,
+    ],
+  );
 
   // Refresh function for manual reload
   const refresh = useCallback(async () => {
@@ -180,6 +190,7 @@ export function useApproval({
     isApproved: status === "approved",
     status,
     allowance,
+
     loading,
     error,
     approve,
