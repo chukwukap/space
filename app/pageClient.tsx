@@ -102,12 +102,15 @@ export default function LandingPageClient() {
         lowerVisible={false}
       />
       {/* Live Spaces heading */}
-      <section id="explore" className="px-6 mt-4">
-        <h2 className="text-2xl font-extrabold">Live Spaces</h2>
-        <p className="text-sm text-muted-foreground -mt-1">
-          Scroll to discover what&apos;s buzzing right now
-        </p>
-      </section>
+
+      {spaces && spaces.length > 0 && (
+        <section id="explore" className="px-6 mt-4">
+          <h2 className="text-2xl font-extrabold">Live Spaces</h2>
+          <p className="text-sm text-muted-foreground -mt-1">
+            Scroll to discover what&apos;s buzzing right now
+          </p>
+        </section>
+      )}
 
       <section className="mt-6 flex flex-col gap-4 overflow-x-auto px-6 pb-8 pt-4 snap-x snap-mandatory scrollbar-none">
         <style>{`.scrollbar-none::-webkit-scrollbar{display:none}`}</style>
