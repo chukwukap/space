@@ -87,7 +87,7 @@ export function useCurrentUser({
   // };
 
   return {
-    user: data,
+    user: data ?? null,
     userLoading: isLoading,
     userMetadata: participantMetadata,
     userError: error?.message ?? null,
