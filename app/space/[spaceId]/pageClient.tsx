@@ -2,7 +2,6 @@
 
 import { LocalUserChoices } from "@livekit/components-react";
 import React from "react";
-import "@livekit/components-styles";
 
 import { ConnectionDetails } from "@/lib/types";
 import { useUser } from "@/app/providers/userProvider";

@@ -7,7 +7,7 @@ import { REACTION_EMOJIS } from "@/lib/constants";
 import { ReactionType } from "@/lib/generated/prisma";
 import { LocalParticipant } from "livekit-client";
 
-export function useTipReaction({
+export function useBasedReaction({
   localParticipant,
   user,
   hostId,
@@ -75,7 +75,16 @@ export function useTipReaction({
         setReactionLoading(false);
       }
     },
-    [user, hostId, spaceId, addFloatingReaction],
+    [
+      user,
+      hostId,
+      spaceId,
+      addFloatingReaction,
+      address,
+      connect,
+      connectors,
+      localParticipant,
+    ],
   );
 
   return { handleSendReaction, reactionLoading };

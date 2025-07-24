@@ -1,9 +1,14 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { ReactionType } from "@/lib/generated/prisma";
 import { REACTION_EMOJIS } from "@/lib/constants";
+import { useClickOutside } from "@/app/hooks/useClickOutside";
 
+/**
+ * ReactionPicker component for Sonic Space
+ * Uses useClickOutside hook for closing when clicking outside the picker.
+ */
 export default function ReactionPicker({
   onPick,
   onClose,
@@ -13,19 +18,10 @@ export default function ReactionPicker({
   onClose: () => void;
   loading?: boolean;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        onClose();
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [onClose]);
+  // Use the custom hook for outside click detection
+  const ref = useClickOutside<HTMLDivElement>(() => {
+    onClose();
+  });
 
   return (
     <div
@@ -40,7 +36,7 @@ export default function ReactionPicker({
             className="text-2xl hover:scale-110 transition-transform relative"
             onClick={() => {
               if (loading) return;
-              onPick(type as ReactionType);
+              onPick(type as unknown as ReactionType);
               onClose();
             }}
             disabled={loading}

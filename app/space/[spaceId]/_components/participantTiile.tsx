@@ -3,7 +3,6 @@ import { Participant } from "livekit-client";
 import {
   Microphone as MicIcon,
   MicrophoneMute as MicOffIcon,
-  User as UserIcon,
   DragHandGesture,
   CheckCircle,
 } from "iconoir-react";
@@ -14,6 +13,7 @@ import {
   useRoomInfo,
   useLocalParticipant,
 } from "@livekit/components-react";
+import Image from "next/image";
 
 type ParticipantTileProps = {
   trackRef?: TrackReferenceOrPlaceholder;
@@ -47,15 +47,15 @@ export const CustomParticipantTile = forwardRef<
     try {
       return p?.metadata ? JSON.parse(p.metadata) : {};
     } catch {
-      return {} as ParticipantMetadata;
+      return {};
     }
   }, [p?.metadata]);
 
   const isHost = useMemo(() => {
     if (meta?.isHost) return true;
     // fallback to roomMeta comparison (legacy)
-    if (roomMeta.host?.identity && p?.identity) {
-      return roomMeta.host.identity.toString() === p.identity.toString();
+    if (roomMeta?.host?.identity && p?.identity) {
+      return roomMeta?.host?.identity.toString() === p.identity.toString();
     }
     return false;
   }, [meta?.isHost, roomMeta, p?.identity]);
@@ -119,10 +119,7 @@ export const CustomParticipantTile = forwardRef<
       style={{ width: 64 }}
     >
       <div
-        className={`relative flex items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold shadow-lg transition-shadow
-          ${isHost ? "border-2 border-amber-400" : ""}
-          ${p?.isLocal ? "outline outline-2 outline-cyan-400" : ""}
-        `}
+        className={`relative flex items-center justify-center rounded-full text-primary-foreground font-semibold shadow-lg transition-shadow`}
         style={{
           width: 64,
           height: 64,
@@ -133,19 +130,16 @@ export const CustomParticipantTile = forwardRef<
         aria-label={`${p?.identity}, ${roomMeta.host?.identity && p?.identity && roomMeta.host?.identity === parseInt(p?.identity) ? "Host" : "Listener"}`}
         tabIndex={0}
       >
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={p?.identity}
-            className="object-cover w-full h-full rounded-full"
-            draggable={false}
-            loading="lazy"
-          />
-        ) : (
-          <span className="relative z-10 select-none text-lg flex items-center justify-center w-full h-full">
-            <UserIcon className="w-7 h-7 text-muted-foreground" />
-          </span>
-        )}
+        <Image
+          src={avatarUrl ?? "/images/default-avatar.png"}
+          alt={p?.identity ?? "Participant"}
+          className="object-cover w-full h-full rounded-full"
+          width={64}
+          height={64}
+          draggable={false}
+          priority
+          unoptimized
+        />
 
         {/* Show mic status only for participants who have publish permission */}
         {p?.permissions?.canPublish && (

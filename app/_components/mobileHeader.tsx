@@ -110,22 +110,21 @@ export default function MobileHeader({
 
       {/* Lower part: always rigidly positioned at the top, not affected by scroll */}
       {lowerVisible && (
-        <div className="h-12 flex items-center px-4 bg-background/90 backdrop-blur border-b border-border border-t">
-          {lowerComponent ? (
-            lowerComponent
-          ) : showBack ? (
+        <div className="h-12 flex items-center justify-between px-4 bg-background/90 backdrop-blur border-b border-border">
+          {/* Always show back button on the far left if showBack is true */}
+          {showBack && (
             <button
               onClick={() => router.back()}
               aria-label="Go back"
-              className="p-2 -ml-2"
+              className="p-2"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-          ) : (
-            <span className="w-6" />
           )}
-          {/* Lower part can also have a slot for right-aligned content if needed */}
-          <div className="flex-1" />
+          {/* Render lowerComponent if present, right after the back button */}
+          {lowerComponent && (
+            <div className="flex items-center">{lowerComponent}</div>
+          )}
         </div>
       )}
     </div>

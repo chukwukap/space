@@ -1,8 +1,12 @@
 "use client";
 
-import { useTipReaction } from "@/app/hooks/useTipReaction";
+import { useBasedReaction } from "@/app/hooks/useBasedReaction";
 import { useUser } from "@/app/providers/userProvider";
-import { ConnectionDetails, ParticipantMetadata } from "@/lib/types";
+import {
+  ConnectionDetails,
+  ParticipantMetadata,
+  SpaceMetadata,
+} from "@/lib/types";
 import {
   useLocalParticipant,
   useRoomContext,
@@ -13,8 +17,7 @@ import {
   Chat,
   LayoutContextProvider,
   RoomAudioRenderer,
-  // TrackLoop removed – we render tiles directly
-  // useTracks,
+  DisconnectButton,
 } from "@livekit/components-react";
 import {
   AudioCaptureOptions,
@@ -36,12 +39,12 @@ import BottomBar from "./bottomBar";
 import { TipRecipient } from "@/lib/types";
 import { toast } from "sonner";
 
-import "@livekit/components-styles";
 import { useLowCPUOptimizer } from "@/app/hooks/usePerfomanceOptimiser";
 import { KeyboardShortcuts } from "@/lib/KeyboardShortcuts";
 import { RecordingIndicator } from "@/lib/RecordingIndicator";
-import { DebugMode } from "@/lib/Debug";
 import { CustomParticipantTile } from "./participantTiile";
+
+import MobileHeader from "@/app/_components/mobileHeader";
 
 export default function TipSpaceRoom(props: {
   userChoices: LocalUserChoices;
@@ -68,9 +71,8 @@ export default function TipSpaceRoom(props: {
 
     return {
       audioCaptureDefaults,
-      adaptiveStream: true, // optimize bandwidth for listeners
-      dynacast: true, // only send audio to those who need it
-      // No videoCaptureDefaults or publishDefaults needed for audio-only
+      adaptiveStream: true,
+      dynacast: true,
     };
   }, [props.userChoices.audioDeviceId]);
 
@@ -129,18 +131,20 @@ export default function TipSpaceRoom(props: {
 
   React.useEffect(() => {
     if (lowPowerMode) {
+      toast.warning("Low power mode enabled");
       console.warn("Low power mode enabled");
     }
   }, [lowPowerMode]);
 
   return (
-    <div className="lk-room-container">
+    <div className="border border-red-500 h-full w-full flex flex-col max-w-screen-sm mx-auto">
       <RoomContext.Provider value={room}>
-        <ConnectionStateToast room={room} />
+        <ConnectionStateToast
+          room={room}
+          className="absolute top-0 left-0 z-50"
+        />
         <KeyboardShortcuts />
         <TipSpaceRoomLayout />
-        {/* <AudioConference /> */}
-        <DebugMode />
         <RecordingIndicator />
         <RoomAudioRenderer />
       </RoomContext.Provider>
@@ -150,6 +154,17 @@ export default function TipSpaceRoom(props: {
 
 export function TipSpaceRoomLayout() {
   const room = useRoomContext();
+
+  const roomMetadata = useMemo(() => {
+    try {
+      return room.metadata
+        ? (JSON.parse(room.metadata) as SpaceMetadata)
+        : null;
+    } catch (error) {
+      console.error("[LiveKit] Failed to parse room metadata", error);
+      return null;
+    }
+  }, [room]);
 
   const [widgetState, setWidgetState] = React.useState<WidgetState>({
     showChat: false,
@@ -170,8 +185,6 @@ export function TipSpaceRoomLayout() {
 
   const [tipModalOpen, setTipModalOpen] = useState(false);
 
-  // We still render RoomAudioRenderer globally for audio playback
-
   // Compute list of speaker participants (publish-capable)
   const speakers = useMemo(() => {
     const all = [
@@ -187,7 +200,7 @@ export function TipSpaceRoomLayout() {
       try {
         localParticipant?.publishData(
           new TextEncoder().encode(JSON.stringify(message)),
-          { reliable: true },
+          // { reliable: true },
         );
       } catch (err) {
         console.error("[LiveKit] Failed to publish data", err);
@@ -222,20 +235,75 @@ export function TipSpaceRoomLayout() {
   }, [localParticipant, sendData]);
 
   // Add floating reaction helper
-  const addFloatingReaction = (emoji: string) => {
-    const id = Date.now();
-    setReactions((prev) => [
-      ...prev,
-      { id, left: Math.random() * 80 + 10, emoji },
-    ]);
-    setTimeout(
-      () => setReactions((prev) => prev.filter((r) => r.id !== id)),
-      3000,
-    );
-  };
+  const addFloatingReaction = useCallback(
+    (emoji: string) => {
+      const id = Date.now();
+      setReactions((prev) => [
+        ...prev,
+        { id, left: Math.random() * 80 + 10, emoji },
+      ]);
+      setTimeout(
+        () => setReactions((prev) => prev.filter((r) => r.id !== id)),
+        3000,
+      );
+    },
+    [setReactions],
+  );
 
-  // Listen for incoming hand raise & invite messages
-  useHandRaiseListener(room, addFloatingReaction);
+  // Listen for incoming hand raise, hand lower, & invite messages
+  useEffect(() => {
+    const handleData = (payload: Uint8Array) => {
+      try {
+        const msg = JSON.parse(new TextDecoder().decode(payload));
+        switch (msg.type) {
+          case "handRaise":
+            addFloatingReaction("✋");
+            break;
+          case "inviteSpeak":
+            // If this message targets us, enable mic
+            if (
+              room.localParticipant &&
+              msg.sid === room.localParticipant.sid
+            ) {
+              room.localParticipant
+                .setMicrophoneEnabled(true)
+                .catch(console.error);
+              // Clear handRaised flag
+              try {
+                const meta = room.localParticipant.metadata
+                  ? JSON.parse(room.localParticipant.metadata)
+                  : {};
+                delete meta.handRaised;
+                room.localParticipant.setMetadata(JSON.stringify(meta));
+              } catch {}
+            }
+            break;
+          case "handLower":
+            if (
+              room.localParticipant &&
+              msg.sid === room.localParticipant.sid
+            ) {
+              try {
+                const meta = room.localParticipant.metadata
+                  ? JSON.parse(room.localParticipant.metadata)
+                  : {};
+                delete meta.handRaised;
+                room.localParticipant.setMetadata(JSON.stringify(meta));
+              } catch {}
+            }
+            break;
+          default:
+            break;
+        }
+      } catch (err) {
+        console.error("[LiveKit] Failed to handle data", err);
+      }
+    };
+    room.on(RoomEvent.DataReceived, handleData);
+    return () => {
+      room.off(RoomEvent.DataReceived, handleData);
+    };
+  }, [room, addFloatingReaction]);
 
   // Update listeners whenever room roster changes
   useEffect(() => {
@@ -244,7 +312,7 @@ export function TipSpaceRoomLayout() {
       const all = [
         ...Array.from(room.remoteParticipants.values()),
         room.localParticipant,
-      ].filter(Boolean) as Participant[];
+      ].filter(Boolean);
       setListeners(all.filter((p) => !p.isMicrophoneEnabled));
     };
     recompute();
@@ -258,11 +326,13 @@ export function TipSpaceRoomLayout() {
 
   // Recipients: host + speakers
   // Build host recipient and speaker recipients, then filter out any without a wallet address
-  // const hostRecipient = {
-  //   id: roomMetadata.host.fid,
-  //   name: roomMetadata.host.displayName || roomMetadata.host.username || "Host",
-  //   walletAddress: roomMetadata.host.address,
-  // };
+  const hostRecipient = {
+    id: roomMetadata?.host.fid,
+    fid: roomMetadata?.host.fid,
+    name:
+      roomMetadata?.host.displayName || roomMetadata?.host.username || "Host",
+    walletAddress: roomMetadata?.host.address,
+  };
 
   const speakerRecipients: TipRecipient[] = room.activeSpeakers.map((s) => {
     const speakerMetadata: ParticipantMetadata = s.metadata
@@ -273,6 +343,7 @@ export function TipSpaceRoomLayout() {
     const walletAddress = speakerMetadata?.address;
 
     return {
+      id: speakerMetadata?.fid ?? null,
       fid: speakerMetadata?.fid ?? null,
       name,
       walletAddress,
@@ -281,14 +352,13 @@ export function TipSpaceRoomLayout() {
 
   // Only include recipients with a non-null, non-undefined walletAddress and fid
   const recipients: TipRecipient[] = [
-    // roomMetadata.host,
+    hostRecipient,
     ...speakerRecipients,
-  ].filter((r): r is TipRecipient => !!r.fid);
+  ].filter((r): r is TipRecipient => !!r.fid && !!r.walletAddress);
 
-  const { handleSendReaction, reactionLoading } = useTipReaction({
+  const { handleSendReaction, reactionLoading } = useBasedReaction({
     user: user,
-    // hostId: roomMetadata.host.fid.toString(),
-    hostId: "1",
+    hostId: roomMetadata?.host.fid?.toString() ?? "",
     spaceId: room.name,
     localParticipant,
     addFloatingReaction,
@@ -297,6 +367,14 @@ export function TipSpaceRoomLayout() {
   return (
     <LayoutContextProvider onWidgetChange={setWidgetState}>
       <div className="flex flex-col">
+        <MobileHeader
+          showBack={true}
+          lowerComponent={
+            <DisconnectButton className="text-sm text-destructive font-medium ">
+              {"Leave"}
+            </DisconnectButton>
+          }
+        />
         {/* Room Title */}
         <h1
           className="px-6 text-lg font-bold leading-snug mt-4"
@@ -330,7 +408,7 @@ export function TipSpaceRoomLayout() {
         <BottomBar
           roomName={room.name}
           onOpenReactionPicker={() => setPickerOpen(true)}
-          onTipClick={() => setTipModalOpen(true)}
+          onBasedTipClick={() => setTipModalOpen(true)}
           onInviteClick={() => {
             console.log("invite");
           }}
@@ -362,103 +440,3 @@ export function TipSpaceRoomLayout() {
     </LayoutContextProvider>
   );
 }
-
-// Listen for data messages to surface hand raise notifications for hosts.
-// We keep this logic outside the component body to prevent hook rule violations.
-
-export function useHandRaiseListener(
-  room: Room,
-  addFloatingReaction: (emoji: string) => void,
-) {
-  useEffect(() => {
-    const handleData = (payload: Uint8Array) => {
-      try {
-        const msg = JSON.parse(new TextDecoder().decode(payload));
-        switch (msg.type) {
-          case "handRaise":
-            addFloatingReaction("✋");
-            break;
-          case "inviteSpeak":
-            // If this message targets us, enable mic
-            if (
-              room.localParticipant &&
-              msg.sid === room.localParticipant.sid
-            ) {
-              room.localParticipant
-                .setMicrophoneEnabled(true)
-                .catch(console.error);
-              // Clear handRaised flag
-              try {
-                const meta = room.localParticipant.metadata
-                  ? JSON.parse(room.localParticipant.metadata)
-                  : {};
-                delete meta.handRaised;
-                room.localParticipant.setMetadata(JSON.stringify(meta));
-              } catch {}
-            }
-            break;
-          case "handLower":
-            break;
-          default:
-            break;
-        }
-      } catch (err) {
-        console.error("[LiveKit] Failed to handle data", err);
-      }
-    };
-
-    room.on(RoomEvent.DataReceived, handleData);
-    return () => {
-      room.off(RoomEvent.DataReceived, handleData);
-    };
-  }, [room, addFloatingReaction]);
-}
-
-// useEffect(() => {
-//   const handleData = (payload: Uint8Array) => {
-//     try {
-//       const msg = JSON.parse(new TextDecoder().decode(payload));
-//       switch (msg.type) {
-//         case "inviteSpeak":
-//           // Listener granted permission to speak -> unmute if the message is for us
-//           if (room.localParticipant && msg.sid === room.localParticipant.sid) {
-//             room.localParticipant.setMicrophoneEnabled(true);
-//           }
-//           break;
-//         case "reaction":
-//           if (msg.reactionType) {
-//             const emoji = REACTION_EMOJIS[msg.reactionType as ReactionType];
-//             if (emoji) addFloatingReaction(emoji);
-//           }
-//           break;
-//         case "muteRequest":
-//           if (room.localParticipant && msg.sid === room.localParticipant.sid) {
-//             room.localParticipant.setMicrophoneEnabled(false);
-//           }
-//           break;
-//         case "demoteSpeaker":
-//           if (room.localParticipant && msg.sid === room.localParticipant.sid) {
-//             room.localParticipant.setMicrophoneEnabled(false);
-//             // Clear handRaised and other speaker metadata to move back to listener view
-//             try {
-//               const meta = room.localParticipant.metadata
-//                 ? JSON.parse(room.localParticipant.metadata)
-//                 : {};
-//               delete meta.handRaised;
-//               room.localParticipant.setMetadata(JSON.stringify(meta));
-//             } catch {}
-//           }
-//           break;
-//         default:
-//           break;
-//       }
-//     } catch (err) {
-//       console.error("[LiveKit] Failed to handle data", err);
-//     }
-//   };
-
-//   room.on(RoomEvent.DataReceived, handleData);
-//   return () => {
-//     room.off(RoomEvent.DataReceived, handleData);
-//   };
-// }, [room]);

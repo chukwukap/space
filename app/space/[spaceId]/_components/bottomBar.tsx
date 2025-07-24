@@ -4,13 +4,10 @@ import {
   User as UsersIcon,
   ShareAndroid as ShareIcon,
   DragHandGesture,
+  Square3dFromCenter,
 } from "iconoir-react";
 import { cn } from "@/lib/utils";
-import {
-  DisconnectButton,
-  LeaveIcon,
-  TrackToggle,
-} from "@livekit/components-react";
+import { TrackToggle } from "@livekit/components-react";
 
 import {
   useLocalParticipantPermissions,
@@ -24,7 +21,7 @@ interface Props {
   roomName: string;
   onOpenReactionPicker: () => void;
   /** Opens tipping (reaction picker) */
-  onTipClick: () => void;
+  onBasedTipClick: () => void;
   /** Callback fired when the user taps the “Invite” button. */
   onInviteClick: () => void;
   /** Listener requests to speak (hand raise) */
@@ -34,7 +31,7 @@ interface Props {
 export default function BottomBar({
   roomName,
   onOpenReactionPicker,
-  onTipClick,
+  onBasedTipClick,
   onInviteClick,
   onRaiseHand,
 }: Props) {
@@ -90,7 +87,11 @@ export default function BottomBar({
         />
       )}
 
-      <BarButton label="Tip" icon={HeartIcon} onClick={onTipClick} />
+      <BarButton
+        label="Based Tip"
+        icon={Square3dFromCenter}
+        onClick={onBasedTipClick}
+      />
 
       <BarButton
         label="Reactions"
@@ -118,11 +119,6 @@ export default function BottomBar({
       />
 
       <BarButton label="Invite" icon={UsersIcon} onClick={onInviteClick} />
-
-      <DisconnectButton>
-        <LeaveIcon />
-        {"Leave"}
-      </DisconnectButton>
     </footer>
   );
 }
