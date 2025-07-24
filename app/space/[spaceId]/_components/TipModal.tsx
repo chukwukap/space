@@ -9,10 +9,10 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { useAccount, useConnect, useConnectors } from "wagmi";
-
 import { toast } from "sonner";
 import { TipRecipient } from "@/lib/types";
 
+// TipModalProps defines the props for the TipModal component
 interface TipModalProps {
   open: boolean;
   onClose: () => void;
@@ -41,6 +41,7 @@ export default function TipModal({
 
   const recipient = recipients.find((r) => r.fid === recipientId);
 
+  // Handles the tip action
   const handleTip = async () => {
     setStatus("loading");
     setError(null);
@@ -55,13 +56,15 @@ export default function TipModal({
       }
       if (!addr) throw new Error("Wallet not connected");
 
+      // TODO: Integrate actual tipping logic here
+
       setStatus("success");
       if (onTipSuccess) onTipSuccess();
       setTimeout(() => {
         setStatus("idle");
         setAmount("");
         onClose();
-      }, 1500); // 1.5 seconds
+      }, 1500);
     } catch (err: unknown) {
       setStatus("error");
       if (err instanceof Error) {
@@ -78,47 +81,95 @@ export default function TipModal({
     <Drawer open={open} onOpenChange={onClose}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>Send a Tip</DrawerTitle>
+          <DrawerTitle>
+            <span className="font-sora text-xl flex items-center gap-2">
+              <span className="inline-block w-7 h-7 rounded-full aurora-bg shadow-md mr-1" />
+              Send a Tip
+            </span>
+          </DrawerTitle>
           <DrawerDescription>
-            Show your appreciation! Enter an amount and select a recipient.
+            <span className="font-sora text-base text-muted-foreground">
+              Show your appreciation! Enter an amount and select a recipient.
+            </span>
           </DrawerDescription>
         </DrawerHeader>
-        <div className="px-4 py-2 space-y-4">
+        <div className="px-4 py-2 space-y-5">
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Amount (USDC)
+            <label className="block text-sm font-semibold mb-1 font-sora">
+              Amount <span className="text-primary font-bold">(USDC)</span>
             </label>
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              className="w-full border rounded px-3 py-2"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              disabled={status === "loading"}
-              placeholder="0.00"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                inputMode="decimal"
+                className="w-full border border-primary/30 rounded-xl px-4 py-3 font-sora text-lg bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary transition"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                disabled={status === "loading"}
+                placeholder="0.00"
+                autoFocus
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-primary font-bold pointer-events-none font-sora">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 22 22"
+                  className="inline-block mr-1"
+                  fill="none"
+                >
+                  <circle cx="11" cy="11" r="11" fill="#5B8CFF" />
+                  <text
+                    x="11"
+                    y="15"
+                    textAnchor="middle"
+                    fontSize="10"
+                    fill="#fff"
+                    fontFamily="Sora, sans-serif"
+                  >
+                    $
+                  </text>
+                </svg>
+              </span>
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Recipient</label>
-            <select
-              className="w-full border rounded px-3 py-2"
-              value={recipientId}
-              onChange={(e) => setRecipientId(Number(e.target.value))}
-              disabled={status === "loading"}
-            >
-              {recipients.map((r) => (
-                <option key={r.fid} value={r.fid}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
+            <label className="block text-sm font-semibold mb-1 font-sora">
+              Recipient
+            </label>
+            <div className="relative">
+              <select
+                className="w-full border border-primary/30 rounded-xl px-4 py-3 font-sora text-base bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary transition"
+                value={recipientId}
+                onChange={(e) => setRecipientId(Number(e.target.value))}
+                disabled={status === "loading"}
+              >
+                {recipients.map((r) => (
+                  <option key={r.fid} value={r.fid}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path
+                    d="M5 7l4 4 4-4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+            </div>
           </div>
           {status === "error" && (
-            <div className="text-red-600 text-sm">{error}</div>
+            <div className="text-destructive text-sm font-sora">{error}</div>
           )}
           {status === "success" && (
-            <div className="text-green-600 text-sm">Tip sent successfully!</div>
+            <div className="text-green-600 text-sm font-sora">
+              Tip sent successfully!
+            </div>
           )}
         </div>
         <DrawerFooter>
@@ -126,6 +177,7 @@ export default function TipModal({
             variant="ghost"
             onClick={onClose}
             disabled={status === "loading"}
+            className="font-sora"
           >
             Cancel
           </Button>
@@ -137,8 +189,20 @@ export default function TipModal({
               parseFloat(amount) <= 0 ||
               !recipientId
             }
+            className="font-sora bg-gradient-to-r from-primary to-secondary text-white rounded-xl shadow-lg px-6 py-3 text-lg"
           >
-            {status === "loading" ? "Sending..." : `Tip ${amount || ""} USDC`}
+            {status === "loading" ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin inline-block w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+                Sending...
+              </span>
+            ) : (
+              <>
+                <span className="font-bold">Tip</span>
+                <span className="ml-1">{amount || ""}</span>
+                <span className="ml-1 text-primary">USDC</span>
+              </>
+            )}
           </Button>
         </DrawerFooter>
       </DrawerContent>
