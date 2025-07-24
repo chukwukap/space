@@ -33,8 +33,11 @@ export default function PageClientImpl(props: {
 
   const isHost = React.useMemo(() => {
     if (typeof window === "undefined") return false;
+    if (userMetadata?.isHost !== null && userMetadata?.isHost !== undefined)
+      return userMetadata.isHost;
+
     return new URLSearchParams(window.location.search).get("host") === "1";
-  }, []);
+  }, [userMetadata]);
 
   const handlePreJoinSubmit = React.useCallback(async () => {
     const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);

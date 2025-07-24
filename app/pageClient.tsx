@@ -12,7 +12,7 @@ import { ThemeToggle } from "./_components/themeToggle";
 
 import { Room } from "livekit-server-sdk";
 import { SpaceMetadata } from "@/lib/types";
-import { EmptyPage } from "iconoir-react";
+import { MicrophoneMuteSolid } from "iconoir-react";
 
 /**
  * Space type extends Room with additional metadata fields.
@@ -58,14 +58,14 @@ export default function LandingPageClient() {
     error,
     isLoading,
   } = useSWR<Room[]>("/api/spaces", fetcher, {
-    refreshInterval: 1000 * 60 * 10, //  10min
+    refreshInterval: 1000 * 60 * 0.1, //  0.1min = 6s
   });
 
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
         <MobileHeader
-          title="Spaces"
+          title="Home"
           showBack={false}
           right={<ThemeToggle />}
           lowerVisible={false}
@@ -81,7 +81,7 @@ export default function LandingPageClient() {
     return (
       <div className="flex flex-col min-h-screen">
         <MobileHeader
-          title="Spaces"
+          title="Home"
           showBack={false}
           right={<ThemeToggle />}
           lowerVisible={false}
@@ -96,7 +96,7 @@ export default function LandingPageClient() {
   return (
     <div className="flex flex-col min-h-screen">
       <MobileHeader
-        title="Spaces"
+        title="Home"
         showBack={false}
         right={<ThemeToggle />}
         lowerVisible={false}
@@ -123,7 +123,7 @@ export default function LandingPageClient() {
           ))
         ) : (
           <div className="w-full flex flex-col items-center justify-center py-12 text-center">
-            <EmptyPage className="w-12 h-12 text-muted-foreground" />
+            <MicrophoneMuteSolid className="w-12 h-12 text-muted-foreground" />
             <h4
               className="text-lg font-semibold mb-1"
               style={{ fontFamily: "Sora, sans-serif" }}
@@ -145,6 +145,8 @@ function SpaceCard({ space, onClick }: { space: Room; onClick: () => void }) {
   const metadata: SpaceMetadata = space.metadata
     ? JSON.parse(space.metadata)
     : null;
+  // console.log(metadata);
+  // console.log(space);
   if (!metadata) {
     return null;
   }
@@ -154,10 +156,9 @@ function SpaceCard({ space, onClick }: { space: Room; onClick: () => void }) {
       className="w-full cursor-pointer rounded-xl glass-card p-4 flex items-center gap-4"
       onClick={onClick}
     >
-      {/* Host avatar placeholder */}
       <div className="w-12 h-12 rounded-full overflow-hidden bg-muted shrink-0">
         <Image
-          src={metadata?.host?.pfpUrl || "/icon.png"}
+          src={metadata?.host?.pfpUrl ?? "/icon.png"}
           alt="host"
           width={48}
           height={48}
@@ -172,7 +173,7 @@ function SpaceCard({ space, onClick }: { space: Room; onClick: () => void }) {
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
           <Microphone className="w-3 h-3 text-destructive" />
-          <span>{space.numParticipants} listening</span>
+          <span>{space.numParticipants ?? 1} listening</span>
           {space.activeRecording && (
             <span className="ml-2 px-1.5 py-0.5 bg-primary/20 text-primary rounded">
               REC

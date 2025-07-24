@@ -66,7 +66,6 @@ export default function TipSpaceRoom(props: {
       ...AudioPresets.musicHighQualityStereo, // stereo, 48kHz, 128kbps
       echoCancellation: true,
       noiseSuppression: true,
-      autoGainControl: true,
     };
 
     return {
@@ -158,7 +157,7 @@ export function TipSpaceRoomLayout() {
   const roomMetadata = useMemo(() => {
     try {
       return room.metadata
-        ? (JSON.parse(room.metadata) as SpaceMetadata)
+        ? (JSON.parse(room.metadata ?? "{}") as SpaceMetadata)
         : null;
     } catch (error) {
       console.error("[LiveKit] Failed to parse room metadata", error);
@@ -212,7 +211,7 @@ export function TipSpaceRoomLayout() {
   /**
    * Toggle local participant hand raise and broadcast.
    */
-  const handleRaiseHand = useCallback(() => {
+  const handleRaiseHandToggle = useCallback(() => {
     if (!localParticipant) return;
 
     try {
@@ -257,7 +256,7 @@ export function TipSpaceRoomLayout() {
         const msg = JSON.parse(new TextDecoder().decode(payload));
         switch (msg.type) {
           case "handRaise":
-            addFloatingReaction("✋");
+            // addFloatingReaction("✋");
             break;
           case "inviteSpeak":
             // If this message targets us, enable mic
@@ -380,8 +379,7 @@ export function TipSpaceRoomLayout() {
           className="px-6 text-lg font-bold leading-snug mt-4"
           data-testid="space-title"
         >
-          {/* {roomMetadata.title || "Untitled Space"} */}
-          Test Title
+          {roomMetadata?.title || "Untitled Space"}
         </h1>
         <div className="flex flex-col gap-6 bg-background">
           {/* Host & Speakers horizontal list */}
@@ -412,7 +410,7 @@ export function TipSpaceRoomLayout() {
           onInviteClick={() => {
             console.log("invite");
           }}
-          onRaiseHand={handleRaiseHand}
+          onRaiseHandToggle={handleRaiseHandToggle}
         />
         {widgetState.showChat && <Chat />}
         {/* Floating reactions overlay */}

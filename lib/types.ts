@@ -36,7 +36,7 @@ export type ParticipantMetadata = {
   pfpUrl: string;
   identity: number;
   clientFid: number | null;
-  isHost: boolean;
+  isHost: boolean | null;
   handRaised?: boolean; // Indicates if participant has raised their hand
 };
 

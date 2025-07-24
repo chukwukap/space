@@ -25,7 +25,7 @@ interface Props {
   /** Callback fired when the user taps the “Invite” button. */
   onInviteClick: () => void;
   /** Listener requests to speak (hand raise) */
-  onRaiseHand: () => void;
+  onRaiseHandToggle: () => void;
 }
 
 export default function BottomBar({
@@ -33,7 +33,7 @@ export default function BottomBar({
   onOpenReactionPicker,
   onBasedTipClick,
   onInviteClick,
-  onRaiseHand,
+  onRaiseHandToggle,
 }: Props) {
   const [, setIsChatOpen] = React.useState(false);
   const layoutContext = useMaybeLayoutContext();
@@ -83,7 +83,7 @@ export default function BottomBar({
         <BarButton
           label="Request to speak"
           icon={DragHandGesture}
-          onClick={onRaiseHand}
+          onClick={onRaiseHandToggle}
         />
       )}
 
