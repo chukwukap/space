@@ -179,17 +179,6 @@ export function TipSpaceRoomLayout(props: { title?: string }) {
     return all.filter((p) => p.permissions?.canPublish);
   }, [room]);
 
-  const host = useMemo(() => {
-    const metadata = speakers.find((s) => s.metadata)?.metadata;
-    if (!metadata) return null;
-    try {
-      return JSON.parse(metadata) as ParticipantMetadata;
-    } catch (error) {
-      console.error("[LiveKit] Failed to parse host metadata", error);
-      return null;
-    }
-  }, [speakers]);
-
   // Helper – send data messages to room
   const sendData = useCallback(
     (message: Record<string, unknown>) => {
@@ -346,7 +335,7 @@ export function TipSpaceRoomLayout(props: { title?: string }) {
 
   const { handleSendReaction, reactionLoading } = useBasedReaction({
     user: user,
-    hostId: host?.fid?.toString() ?? "",
+    hostId: user?.fid?.toString() ?? "",
     spaceId: room.name,
     localParticipant,
     addFloatingReaction,
