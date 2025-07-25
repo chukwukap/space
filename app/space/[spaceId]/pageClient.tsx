@@ -3,7 +3,7 @@
 import { LocalUserChoices } from "@livekit/components-react";
 import React from "react";
 
-import { ConnectionDetails } from "@/lib/types";
+import { ConnectionDetails, ParticipantMetadata } from "@/lib/types";
 import { useUser } from "@/app/providers/userProvider";
 
 import TipSpaceRoom from "./_components/TipSpaceRoom";
@@ -15,6 +15,8 @@ const CONN_DETAILS_ENDPOINT =
 export default function PageClientImpl(props: {
   roomName: string;
   region?: string;
+  title?: string;
+  host?: boolean;
   hq: boolean;
 }) {
   const { userMetadata } = useUser();
@@ -35,8 +37,7 @@ export default function PageClientImpl(props: {
     if (typeof window === "undefined") return false;
     if (userMetadata?.isHost !== null && userMetadata?.isHost !== undefined)
       return userMetadata.isHost;
-
-    return new URLSearchParams(window.location.search).get("host") === "1";
+    return new URLSearchParams(window.location.search).get("host") === "true";
   }, [userMetadata]);
 
   const handlePreJoinSubmit = React.useCallback(async () => {
@@ -46,17 +47,26 @@ export default function PageClientImpl(props: {
       "participantName",
       userMetadata?.username || "Guest",
     );
-    url.searchParams.append("metadata", JSON.stringify(userMetadata)); // required
-    if (isHost) {
-      url.searchParams.append("host", "1");
+
+    // Always create a copy of userMetadata for safe mutation
+    let metadataToSend: ParticipantMetadata | undefined = undefined;
+    if (userMetadata) {
+      metadataToSend = { ...userMetadata };
+      // If host, title, and record are defined, we are creating a new space
+      if (isHost && props.title) {
+        metadataToSend.spaceTitle = decodeURIComponent(props.title);
+      }
     }
+
+    url.searchParams.append("metadata", JSON.stringify(metadataToSend ?? {})); // required
+
     if (props.region) {
       url.searchParams.append("region", props.region);
     }
     const connectionDetailsResp = await fetch(url.toString());
     const connectionDetailsData = await connectionDetailsResp.json();
     setConnectionDetails(connectionDetailsData);
-  }, [props.roomName, props.region, userMetadata, isHost]);
+  }, [props.roomName, props.region, userMetadata, isHost, props.title]);
 
   return (
     <>
@@ -74,6 +84,7 @@ export default function PageClientImpl(props: {
           <TipSpaceRoom
             userChoices={preJoinChoices}
             connectionDetails={connectionDetails}
+            title={props.title}
             options={{ hq: props.hq }}
           />
         )}

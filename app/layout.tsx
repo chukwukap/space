@@ -4,8 +4,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { BottomNav } from "./_components/bottomNav";
-import CreateSpaceButton from "./_components/createSpaceButton";
-
+import NewSpaceDrawer from "./_components/newSpaceDrawer";
 // import { BottomNav } from "./components/bottomNav";
 
 // Font configuration for Spaces: five standout Google Fonts for a polished, modern app experience.
@@ -138,7 +137,7 @@ export default function RootLayout({
             </main>
             {/* Sticky, auto-hiding bottom navigation bar */}
             <BottomNav />
-            <CreateSpaceButton />
+            <NewSpaceDrawer />
           </div>
         </Providers>
       </body>

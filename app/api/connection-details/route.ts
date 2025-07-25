@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const participantName = request.nextUrl.searchParams.get("participantName");
     const metadata = request.nextUrl.searchParams.get("metadata") ?? "";
     const region = request.nextUrl.searchParams.get("region");
-    const isHost = request.nextUrl.searchParams.get("host") === "1";
+    const isHost = request.nextUrl.searchParams.get("host") === "true";
     if (!LIVEKIT_URL) {
       throw new Error("LIVEKIT_URL is not defined");
     }

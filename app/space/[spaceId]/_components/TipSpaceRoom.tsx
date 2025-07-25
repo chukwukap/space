@@ -2,11 +2,7 @@
 
 import { useBasedReaction } from "@/app/hooks/useBasedReaction";
 import { useUser } from "@/app/providers/userProvider";
-import {
-  ConnectionDetails,
-  ParticipantMetadata,
-  SpaceMetadata,
-} from "@/lib/types";
+import { ConnectionDetails, ParticipantMetadata } from "@/lib/types";
 import {
   useLocalParticipant,
   useRoomContext,
@@ -49,6 +45,7 @@ import MobileHeader from "@/app/_components/mobileHeader";
 export default function TipSpaceRoom(props: {
   userChoices: LocalUserChoices;
   connectionDetails: ConnectionDetails;
+  title?: string;
   options: {
     hq: boolean;
   };
@@ -143,7 +140,7 @@ export default function TipSpaceRoom(props: {
           className="absolute top-0 left-0 z-50"
         />
         <KeyboardShortcuts />
-        <TipSpaceRoomLayout />
+        <TipSpaceRoomLayout title={props.title} />
         <RecordingIndicator />
         <RoomAudioRenderer />
       </RoomContext.Provider>
@@ -151,19 +148,8 @@ export default function TipSpaceRoom(props: {
   );
 }
 
-export function TipSpaceRoomLayout() {
+export function TipSpaceRoomLayout(props: { title?: string }) {
   const room = useRoomContext();
-
-  const roomMetadata = useMemo(() => {
-    try {
-      return room.metadata
-        ? (JSON.parse(room.metadata ?? "{}") as SpaceMetadata)
-        : null;
-    } catch (error) {
-      console.error("[LiveKit] Failed to parse room metadata", error);
-      return null;
-    }
-  }, [room]);
 
   const [widgetState, setWidgetState] = React.useState<WidgetState>({
     showChat: false,
@@ -192,6 +178,17 @@ export function TipSpaceRoomLayout() {
     ].filter(Boolean) as Participant[];
     return all.filter((p) => p.permissions?.canPublish);
   }, [room]);
+
+  const host = useMemo(() => {
+    const metadata = speakers.find((s) => s.metadata)?.metadata;
+    if (!metadata) return null;
+    try {
+      return JSON.parse(metadata) as ParticipantMetadata;
+    } catch (error) {
+      console.error("[LiveKit] Failed to parse host metadata", error);
+      return null;
+    }
+  }, [speakers]);
 
   // Helper – send data messages to room
   const sendData = useCallback(
@@ -325,13 +322,6 @@ export function TipSpaceRoomLayout() {
 
   // Recipients: host + speakers
   // Build host recipient and speaker recipients, then filter out any without a wallet address
-  const hostRecipient = {
-    id: roomMetadata?.host.fid,
-    fid: roomMetadata?.host.fid,
-    name:
-      roomMetadata?.host.displayName || roomMetadata?.host.username || "Host",
-    walletAddress: roomMetadata?.host.address,
-  };
 
   const speakerRecipients: TipRecipient[] = room.activeSpeakers.map((s) => {
     const speakerMetadata: ParticipantMetadata = s.metadata
@@ -350,14 +340,13 @@ export function TipSpaceRoomLayout() {
   });
 
   // Only include recipients with a non-null, non-undefined walletAddress and fid
-  const recipients: TipRecipient[] = [
-    hostRecipient,
-    ...speakerRecipients,
-  ].filter((r): r is TipRecipient => !!r.fid && !!r.walletAddress);
+  const recipients: TipRecipient[] = [...speakerRecipients].filter(
+    (r): r is TipRecipient => !!r.fid && !!r.walletAddress,
+  );
 
   const { handleSendReaction, reactionLoading } = useBasedReaction({
     user: user,
-    hostId: roomMetadata?.host.fid?.toString() ?? "",
+    hostId: host?.fid?.toString() ?? "",
     spaceId: room.name,
     localParticipant,
     addFloatingReaction,
@@ -379,7 +368,7 @@ export function TipSpaceRoomLayout() {
           className="px-6 text-lg font-bold leading-snug mt-4"
           data-testid="space-title"
         >
-          {roomMetadata?.title || "Untitled Space"}
+          {props.title || "Untitled Space"}
         </h1>
         <div className="flex flex-col gap-6 bg-background">
           {/* Host & Speakers horizontal list */}
