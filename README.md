@@ -1,7 +1,7 @@
-# 🎙️ Sonic Space
+# 🎙️ TipSpace
 
 **Talk. Earn. Own it.**  
-Sonic Space lets you host live audio shows inside Farcaster, turn applause into crypto tips, and grow an audience you truly own.
+TipSpace lets you host live audio shows inside Farcaster, turn applause into crypto tips, and grow an audience you truly own.
 
 ---
 
@@ -13,22 +13,22 @@ Sonic Space lets you host live audio shows inside Farcaster, turn applause into 
 
 ## Oneliner
 
-**Sonic Space is the live audio playground for Farcaster—where creators and communities connect, tip, and thrive in real time.**
+**TipSpace is the live audio playground for Farcaster—where creators and communities connect, tip, and thrive in real time.**
 
 ---
 
 ## Vision
 
-A world where **every voice is its own economy**. Sonic Space is building the sound layer for web-native communities: borderless, permissionless, and powered by the wallets we already carry.
+A world where **every voice is its own economy**. TipSpace is building the sound layer for web-native communities: borderless, permissionless, and powered by the wallets we already carry.
 
 ---
 
 ## The Story
 
 Creators have always owned the conversation—until the platform steps between and skims the value.  
-Sonic Space makes the middleman vanish. Your voice goes straight to your community; their love flows straight to your wallet. No gatekeepers, no ads, no algorithm rolling the dice on your reach.
+TipSpace makes the middleman vanish. Your voice goes straight to your community; their love flows straight to your wallet. No gatekeepers, no ads, no algorithm rolling the dice on your reach.
 
-> “In my first Sonic Space I made more in 30 minutes than a month of ad revenue.” – **@0xPodcast**
+> “In my first TipSpace I made more in 30 minutes than a month of ad revenue.” – **@0xPodcast**
 
 ---
 
@@ -83,7 +83,7 @@ Sonic Space makes the middleman vanish. Your voice goes straight to your communi
 
 ## User Flow
 
-1. **Start a Sonic Space** — title + tap = live.
+1. **Start a TipSpace** — title + tap = live.
 2. **Invite speakers** from the drawer.
 3. **Audience reacts** — micro-tips roll in.
 4. **Send a direct tip** — at any time, listeners can send the host a custom amount, instantly.
@@ -94,7 +94,7 @@ Sonic Space makes the middleman vanish. Your voice goes straight to your communi
 
 ## How It Works in 30 Seconds
 
-1. Sonic Space launches a live audio room.
+1. TipSpace launches a live audio room.
 2. A Farcaster Frame appears in everyone’s feed with _Join_ & _Tip_ buttons.
 3. Listeners drop emojis; every emoji is a tiny crypto tip.
 4. Super-fans send larger tips, still inside the Frame.
@@ -118,7 +118,7 @@ Yes—toggle _Record Space_ before you go live. Replays keep earning.
 USDC today, more ERC-20s soon.
 
 **Can I send a custom tip to the host?**  
-Absolutely! At any time during a Sonic Space, you can send the host any amount you wish—no need to wait for a reaction or special moment. Just tap, send, and show your love.
+Absolutely! At any time during a TipSpace, you can send the host any amount you wish—no need to wait for a reaction or special moment. Just tap, send, and show your love.
 
 ---
 

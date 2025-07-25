@@ -11,14 +11,25 @@ import { Button } from "@/components/ui/button";
 import { useAccount, useConnect, useConnectors } from "wagmi";
 import { toast } from "sonner";
 import { TipRecipient } from "@/lib/types";
+import { sendTipAction } from "@/actions/tip";
 
-// TipModalProps defines the props for the TipModal component
+/**
+ * TipModalProps defines the props for the TipModal component.
+ * - userFid: tipper's Farcaster fid
+ * - spaceId: string, e.g. LiveKit room id
+ * - tokenAddress: string, ERC-20 token address (USDC)
+ * - tipperWalletAddress: tipper's wallet address
+ */
 interface TipModalProps {
   open: boolean;
   onClose: () => void;
   recipients: TipRecipient[];
   defaultRecipientId: number;
   onTipSuccess?: () => void;
+  userFid: number;
+  spaceId: string;
+  tokenAddress: string;
+  tipperWalletAddress: string;
 }
 
 export default function TipModal({
@@ -27,6 +38,10 @@ export default function TipModal({
   recipients,
   defaultRecipientId,
   onTipSuccess,
+  userFid,
+  spaceId,
+  tokenAddress,
+  tipperWalletAddress,
 }: TipModalProps) {
   const [amount, setAmount] = useState("");
   const [recipientId, setRecipientId] = useState(defaultRecipientId);
@@ -41,7 +56,10 @@ export default function TipModal({
 
   const recipient = recipients.find((r) => r.fid === recipientId);
 
-  // Handles the tip action
+  /**
+   * Handles the tip action, integrating the server action for tipping.
+   * Security: Ensures the connected wallet matches the tipperWalletAddress.
+   */
   const handleTip = async () => {
     setStatus("loading");
     setError(null);
@@ -56,15 +74,35 @@ export default function TipModal({
       }
       if (!addr) throw new Error("Wallet not connected");
 
-      // TODO: Integrate actual tipping logic here
+      if (addr.toLowerCase() !== tipperWalletAddress.toLowerCase()) {
+        throw new Error("Connected wallet does not match your profile wallet.");
+      }
 
-      setStatus("success");
-      if (onTipSuccess) onTipSuccess();
-      setTimeout(() => {
-        setStatus("idle");
-        setAmount("");
-        onClose();
-      }, 1500);
+      // Call the server action to send the tip
+      const res = await sendTipAction({
+        fromFid: userFid,
+        toFid: recipient.fid,
+        amount,
+        spaceId,
+        tokenAddress,
+        tipperAddress: tipperWalletAddress,
+        tippeeAddress: recipient.walletAddress,
+      });
+
+      if (res.ok) {
+        setStatus("success");
+        toast.success("Tip sent successfully!");
+        if (onTipSuccess) onTipSuccess();
+        setTimeout(() => {
+          setStatus("idle");
+          setAmount("");
+          onClose();
+        }, 1500);
+      } else {
+        setStatus("error");
+        setError(res.error || "Failed to send tip.");
+        toast.error(res.error || "Failed to send tip.");
+      }
     } catch (err: unknown) {
       setStatus("error");
       if (err instanceof Error) {
