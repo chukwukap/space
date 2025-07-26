@@ -10,7 +10,7 @@ import MobileHeader from "../_components/mobileHeader";
 
 /**
  * SettingsPage
- * - Mobile-first settings page for Sonic Space
+ * - Mobile-first settings page for TipSpace
  * - Swipeable/tabs UI for switching between Spend Limit and Tipping Preferences
  * - Uses shadcn Tabs for a smooth, touch-friendly experience
  */
@@ -37,7 +37,7 @@ export default function SettingsPage() {
             <span className="font-semibold text-[15px]">@{user?.username}</span>
           </div>
           <div className="text-[13px] text-muted-foreground mt-1">
-            Welcome to your Sonic Space settings. Personalize your tipping and
+            Welcome to your TipSpace settings. Personalize your tipping and
             spending experience!
           </div>
         </div>

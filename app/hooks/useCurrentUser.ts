@@ -62,7 +62,7 @@ export function useCurrentUser({
 
   const key = hasParams ? `/api/users?${search}` : null;
 
-  const { data, error, isLoading, mutate } = useSWR<UserWithRelations | null>(
+  const { error, isLoading, mutate } = useSWR<UserWithRelations | null>(
     key,
     fetcher,
     {

@@ -41,6 +41,7 @@ import { RecordingIndicator } from "@/lib/RecordingIndicator";
 import { CustomParticipantTile } from "./participantTiile";
 
 import MobileHeader from "@/app/_components/mobileHeader";
+import { USDC_ADDRESS_BASE } from "@/lib/constants";
 
 export default function TipSpaceRoom(props: {
   userChoices: LocalUserChoices;
@@ -402,6 +403,10 @@ export function TipSpaceRoomLayout(props: { title?: string }) {
             setTipModalOpen(false);
             if (toast) toast.success("Tip sent!");
           }}
+          userFid={user?.fid ?? 0}
+          spaceId={room.name}
+          tokenAddress={USDC_ADDRESS_BASE}
+          tipperWalletAddress={user?.address ?? ""}
         />
         {pickerOpen && (
           <ReactionPicker

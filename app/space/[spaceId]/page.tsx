@@ -9,7 +9,6 @@ export default async function SpacePage({
     hq?: string;
     region?: string;
     title?: string;
-    record?: string;
     host?: string;
   }>;
 }) {
@@ -18,7 +17,6 @@ export default async function SpacePage({
 
   const hq = _searchParams.hq === "true" ? true : false;
   const title = _searchParams.title;
-  const record = _searchParams.record === "true" ? true : false;
   const host = _searchParams.host === "true" ? true : false;
 
   return (
@@ -27,7 +25,6 @@ export default async function SpacePage({
       region={_searchParams.region}
       hq={hq}
       title={title}
-      record={record}
       host={host}
     />
   );

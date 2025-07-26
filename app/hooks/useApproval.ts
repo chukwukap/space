@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { ERC20_ABI } from "@/lib/abi/ERC20";
+
 import {
   useAccount,
   usePublicClient,
   useWalletClient,
   useConnect,
 } from "wagmi";
-import { parseUnits, type Address, type Hex } from "viem";
+import { erc20Abi, parseUnits, type Address, type Hex } from "viem";
 
 // Types for clarity and safety
 type UseApprovalOptions = {
@@ -84,7 +84,7 @@ export function useApproval({
     try {
       const result = await publicClient.readContract({
         address: tokenAddress,
-        abi: ERC20_ABI,
+        abi: erc20Abi,
         functionName: "allowance",
         args: [address, spender],
       });
@@ -141,7 +141,7 @@ export function useApproval({
         }
         const txHash = await walletClient.writeContract({
           address: tokenAddress,
-          abi: ERC20_ABI,
+          abi: erc20Abi,
           functionName: "approve",
           args: [spender, amount],
           account: address,

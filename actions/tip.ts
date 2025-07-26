@@ -1,10 +1,9 @@
 "use server";
 
 import { z } from "zod";
-import { ERC20Abi } from "@/lib/abi/ERC20";
 import { getAddress } from "viem/utils";
 import { getPublicClient, getSpenderWalletClient } from "@/lib/wallet";
-import { Address, parseUnits } from "viem";
+import { Address, erc20Abi, parseUnits } from "viem";
 import prisma from "@/lib/prisma";
 
 // --- Zod schema for input validation ---
@@ -80,7 +79,7 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
     try {
       decimals = (await publicClient.readContract({
         address: tokenAddress as Address,
-        abi: ERC20Abi,
+        abi: erc20Abi,
         functionName: "decimals",
       })) as number;
     } catch {
@@ -89,7 +88,7 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
     try {
       tokenSymbol = (await publicClient.readContract({
         address: tokenAddress as Address,
-        abi: ERC20Abi,
+        abi: erc20Abi,
         functionName: "symbol",
       })) as string;
     } catch {
@@ -102,7 +101,7 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
     //    We use transferFrom(tipper, spender, amount)
     const tx1 = await spenderWallet.writeContract({
       address: tokenAddress as Address,
-      abi: ERC20Abi,
+      abi: erc20Abi,
       functionName: "transferFrom",
       args: [
         tipperAddress as Address,
@@ -115,7 +114,7 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
     // 2. Transfer from spenderAddress to tippee
     const tx2 = await spenderWallet.writeContract({
       address: tokenAddress as Address,
-      abi: ERC20Abi,
+      abi: erc20Abi,
       functionName: "transfer",
       args: [tippeeAddress as Address, amountInUnits],
     });
