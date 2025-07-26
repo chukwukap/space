@@ -47,7 +47,7 @@ export default function NewSpaceDrawer() {
       return;
     }
     // Generate a unique room name (client-side, e.g. using timestamp + fid)
-    const roomName = `sonicspace-${user.fid}-${Date.now()}`;
+    const roomName = `Tipspace-${user.fid}-${Date.now()}`;
     // Compose the path with all required parameters
     const path = `/space/${roomName}?host=true&title=${encodeURIComponent(title)}`;
     router.push(path);
