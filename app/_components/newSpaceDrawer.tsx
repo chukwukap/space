@@ -30,12 +30,20 @@ export default function NewSpaceDrawer() {
     return null;
   }
 
+  // Handles creation of a new space
   async function handleCreateSpace() {
     if (!title.trim()) return;
 
     const roomName = `Tipspace-${Date.now()}`;
     const path = `/space/${roomName}?host=true&title=${encodeURIComponent(title)}`;
     router.push(path);
+  }
+
+  // Handles Enter key to create space
+  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && title.trim()) {
+      handleCreateSpace();
+    }
   }
 
   return (
@@ -62,6 +70,7 @@ export default function NewSpaceDrawer() {
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={handleInputKeyDown}
               placeholder="What are we talking about?"
               maxLength={64}
               autoFocus
