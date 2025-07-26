@@ -184,7 +184,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     // Log error for debugging
-    console.error("Error in /api/connection-details:", error);
+    console.error(
+      "[connection-details] Error in /api/connection-details:",
+      error,
+    );
     if (error instanceof Error) {
       return new NextResponse(error.message, { status: 500 });
     }
