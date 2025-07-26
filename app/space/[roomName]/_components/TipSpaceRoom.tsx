@@ -26,7 +26,7 @@ import {
   RoomOptions,
 } from "livekit-client";
 import { useRouter } from "next/navigation";
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 
 import ReactionPicker from "./ReactionPicker";
 import ReactionOverlay from "./ReactionOverlay";
@@ -135,7 +135,7 @@ export default function TipSpaceRoom(props: {
   }, [lowPowerMode]);
 
   return (
-    <div className="border border-red-500 h-full w-full flex flex-col max-w-screen-sm mx-auto">
+    <div className="h-full w-full flex flex-col max-w-screen-sm mx-auto">
       <RoomContext.Provider value={room}>
         <ConnectionStateToast
           room={room}
@@ -163,19 +163,9 @@ export function TipSpaceRoomLayout() {
 
   const { localParticipant } = useLocalParticipant();
 
-  const localParticipantMetadata = useMemo(() => {
-    try {
-      return localParticipant?.metadata
-        ? JSON.parse(localParticipant.metadata)
-        : null;
-    } catch (err) {
-      console.error(
-        "[LiveKit] Failed to parse local participant metadata",
-        err,
-      );
-      return null;
-    }
-  }, [localParticipant]);
+  const localParticipantMetadata = localParticipant?.metadata
+    ? (JSON.parse(localParticipant.metadata ?? "{}") as ParticipantMetadata)
+    : null;
 
   const [reactions, setReactions] = useState<
     Array<{ id: number; left: number; emoji: string }>
@@ -347,7 +337,7 @@ export function TipSpaceRoomLayout() {
           className="px-6 text-lg font-bold leading-snug mt-4"
           data-testid="space-title"
         >
-          {localParticipantMetadata?.spaceTitle || "Untitled Space"}
+          {localParticipantMetadata?.title || "Untitled Space"}
         </h1>
         <div className="flex flex-col gap-6 bg-background">
           {/* Host & Speakers horizontal list */}
