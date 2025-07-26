@@ -25,7 +25,7 @@ function safeJson(obj: unknown): unknown {
 }
 
 /**
- * GET /api/spaces
+ * GET /api/room
  * Query param: ?rooms=room1,room2,room3
  * Returns a list of RoomWithMetadata objects for the given room names (if any), or all rooms if not specified.
  * SECURITY: Only exposes non-sensitive room data and metadata.
@@ -130,9 +130,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     // Log error for observability, but do not expose details to the user
-    console.error("[GET /api/spaces] Error:", error);
+    console.error("[GET /api/room] Error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch spaces" },
+      { error: "Failed to fetch rooms" },
       { status: 500 },
     );
   }

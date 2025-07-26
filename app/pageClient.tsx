@@ -54,7 +54,7 @@ export default function LandingPageClient() {
     data: spaces,
     error,
     isLoading,
-  } = useSWR<RoomWithMetadata[]>("/api/spaces", fetcher, {
+  } = useSWR<RoomWithMetadata[]>("/api/room", fetcher, {
     refreshInterval: 1000 * 60 * 0.1, //  0.1min = 6s
   });
 

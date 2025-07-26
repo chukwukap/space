@@ -1,8 +1,12 @@
 "use client";
 
-import { useBasedReaction } from "@/app/hooks/useBasedReaction";
 import { useUser } from "@/app/providers/userProvider";
-import { ConnectionDetails, ParticipantMetadata } from "@/lib/types";
+import {
+  ConnectionDetails,
+  ParticipantMetadata,
+  PendingRequest,
+  TipRecipient,
+} from "@/lib/types";
 import {
   useLocalParticipant,
   useRoomContext,
@@ -28,12 +32,8 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useState, useCallback, useEffect } from "react";
 
-import ReactionPicker from "./ReactionPicker";
-import ReactionOverlay from "./ReactionOverlay";
 import TipModal from "./TipModal";
-
 import BottomBar from "./bottomBar";
-import { TipRecipient } from "@/lib/types";
 import { toast } from "sonner";
 
 import { useLowCPUOptimizer } from "@/app/hooks/usePerfomanceOptimiser";
@@ -43,6 +43,13 @@ import { CustomParticipantTile } from "./participantTiile";
 
 import MobileHeader from "@/app/_components/mobileHeader";
 import { USDC_ADDRESS_BASE } from "@/lib/constants";
+import PendingRequestToSpeak from "./pendingRequestToSpeak";
+
+/**
+ * ReactionMap: { [participantSid]: { emoji: string, timestamp: number } }
+ * Used to track which participant is currently showing which reaction.
+ */
+type ReactionMap = Record<string, { emoji: string; timestamp: number }>;
 
 export default function TipSpaceRoom(props: {
   userChoices: LocalUserChoices;
@@ -52,21 +59,14 @@ export default function TipSpaceRoom(props: {
     hq: boolean;
   };
 }) {
-  // LiveKit RoomOptions for a Twitter Space-like experience:
-  // - High quality stereo audio for music/voice
-  // - No video, adaptive stream for bandwidth, dynacast for efficiency
-  // - No E2EE for simplicity (can be added later if needed)
-  // - No video simulcast layers (audio only)
-  // - Use echo cancellation, noise suppression, and auto gain for clarity
-
+  // Room setup
   const roomOptions = React.useMemo((): RoomOptions => {
     const audioCaptureDefaults: AudioCaptureOptions = {
       deviceId: props.userChoices.audioDeviceId ?? undefined,
-      ...AudioPresets.musicHighQualityStereo, // stereo, 48kHz, 128kbps
+      ...AudioPresets.musicHighQualityStereo,
       echoCancellation: true,
       noiseSuppression: true,
     };
-
     return {
       audioCaptureDefaults,
       adaptiveStream: true,
@@ -75,12 +75,10 @@ export default function TipSpaceRoom(props: {
   }, [props.userChoices.audioDeviceId]);
 
   const room = React.useMemo(() => new Room(roomOptions), [roomOptions]);
-
-  const connectOptions = React.useMemo((): RoomConnectOptions => {
-    return {
-      autoSubscribe: true,
-    };
-  }, []);
+  const connectOptions = React.useMemo(
+    (): RoomConnectOptions => ({ autoSubscribe: true }),
+    [],
+  );
 
   const router = useRouter();
   const handleOnLeave = React.useCallback(() => router.push("/"), [router]);
@@ -104,10 +102,8 @@ export default function TipSpaceRoom(props: {
 
     const perms = room.localParticipant.permissions;
     if (perms?.canPublish) {
-      // For hosts/speakers default mic on
       room.localParticipant.setMicrophoneEnabled(true).catch(handleError);
     } else {
-      // Ensure tracks remain disabled for listeners
       room.localParticipant.setCameraEnabled(false).catch(handleError);
       room.localParticipant.setMicrophoneEnabled(false).catch(handleError);
     }
@@ -153,7 +149,7 @@ export default function TipSpaceRoom(props: {
 export function TipSpaceRoomLayout() {
   const room = useRoomContext();
 
-  const [widgetState, setWidgetState] = React.useState<WidgetState>({
+  const [widgetState, setWidgetState] = useState<WidgetState>({
     showChat: false,
     unreadMessages: 0,
   });
@@ -167,22 +163,28 @@ export function TipSpaceRoomLayout() {
     ? (JSON.parse(localParticipant.metadata ?? "{}") as ParticipantMetadata)
     : null;
 
-  const [reactions, setReactions] = useState<
-    Array<{ id: number; left: number; emoji: string }>
-  >([]);
+  // --- New ReactionMap state for current reactions ---
+  const [reactionMap, setReactionMap] = useState<ReactionMap>({});
 
-  // Reaction picker open state
-  const [pickerOpen, setPickerOpen] = useState(false);
-
+  // Tip modal open state
   const [tipModalOpen, setTipModalOpen] = useState(false);
 
-  // Helper – send data messages to room
+  // Pending "request to speak" requests (host only)
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+
+  // Track if local user has requested to speak (for UI)
+  const [hasRequested, setHasRequested] = useState(false);
+
+  /**
+   * Helper – send data messages to room using LiveKit's reliable data channel.
+   * All messages are stringified and encoded for security and compatibility.
+   */
   const sendData = useCallback(
     (message: Record<string, unknown>) => {
       try {
         localParticipant?.publishData(
           new TextEncoder().encode(JSON.stringify(message)),
-          // { reliable: true },
+          { reliable: true },
         );
       } catch (err) {
         console.error("[LiveKit] Failed to publish data", err);
@@ -192,89 +194,115 @@ export function TipSpaceRoomLayout() {
   );
 
   /**
-   * Toggle local participant hand raise and broadcast.
+   * Request to speak: send a data message to hosts/moderators.
    */
-  const handleRaiseHandToggle = useCallback(() => {
+  const requestToSpeak = useCallback(() => {
     if (!localParticipant) return;
-
     try {
-      const currentMeta = localParticipant.metadata
-        ? JSON.parse(localParticipant.metadata)
-        : {};
-
-      const raised = !currentMeta?.handRaised;
-      const newMeta = { ...currentMeta, handRaised: raised };
-      localParticipant.setMetadata(JSON.stringify(newMeta));
-
-      // Broadcast data message for hosts
       sendData({
-        type: raised ? "handRaise" : "handLower",
+        type: "requestToSpeak",
         sid: localParticipant.sid,
+        user: {
+          name: localParticipant.name,
+          metadata: localParticipant.metadata,
+        },
+        timestamp: Date.now(),
       });
+      setHasRequested(true);
+      toast.success("Request to speak sent");
     } catch (error) {
-      console.error("[HandRaise] toggle error", error);
+      console.error("[RequestToSpeak] error", error);
+      toast.error("Failed to send request");
     }
   }, [localParticipant, sendData]);
 
-  // Add floating reaction helper
-  const addFloatingReaction = useCallback(
-    (emoji: string) => {
-      const id = Date.now();
-      setReactions((prev) => [
-        ...prev,
-        { id, left: Math.random() * 80 + 10, emoji },
-      ]);
-      setTimeout(
-        () => setReactions((prev) => prev.filter((r) => r.id !== id)),
-        3000,
-      );
+  /**
+   * Host/mod: Approve a request to speak by calling the backend API.
+   */
+  const onApprove = useCallback(
+    async (participantSid: string) => {
+      const isHost = localParticipantMetadata?.isHost;
+      if (!isHost) {
+        toast.error("Only hosts can approve requests");
+        return;
+      }
+      try {
+        const res = await fetch("/api/room/invite", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            roomName: room.name,
+            identity: participantSid,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to invite participant");
+        }
+
+        setPendingRequests((prev) =>
+          prev.filter((req) => req.sid !== participantSid),
+        );
+        toast.success("Invite sent");
+      } catch (error) {
+        console.error("[InviteToSpeak] error", error);
+        toast.error("Failed to send invite");
+      }
     },
-    [setReactions],
+    [localParticipantMetadata, room.name],
   );
 
-  // Listen for incoming hand raise, hand lower, & invite messages
+  /**
+   * Listen for incoming data messages: requestToSpeak, inviteToSpeak, and reactions.
+   * Handles both host and participant logic.
+   */
   useEffect(() => {
     const handleData = (payload: Uint8Array) => {
       try {
         const msg = JSON.parse(new TextDecoder().decode(payload));
+        if (!msg?.type) return;
         switch (msg.type) {
-          case "handRaise":
-            // addFloatingReaction("✋");
-            break;
-          case "inviteSpeak":
-            // If this message targets us, enable mic
-            if (
-              room.localParticipant &&
-              msg.sid === room.localParticipant.sid
-            ) {
-              room.localParticipant
-                .setMicrophoneEnabled(true)
-                .catch(console.error);
-              // Clear handRaised flag
-              try {
-                const meta = room.localParticipant.metadata
-                  ? JSON.parse(room.localParticipant.metadata)
-                  : {};
-                delete meta.handRaised;
-                room.localParticipant.setMetadata(JSON.stringify(meta));
-              } catch {}
+          case "requestToSpeak":
+            if (localParticipantMetadata?.isHost) {
+              setPendingRequests((prev) => {
+                if (prev.some((r) => r.sid === msg.sid)) return prev;
+                return [
+                  ...prev,
+                  {
+                    sid: msg.sid,
+                    user: msg.user,
+                    timestamp: msg.timestamp,
+                  },
+                ];
+              });
+              toast("New request to speak");
             }
             break;
-          case "handLower":
-            if (
-              room.localParticipant &&
-              msg.sid === room.localParticipant.sid
-            ) {
-              try {
-                const meta = room.localParticipant.metadata
-                  ? JSON.parse(room.localParticipant.metadata)
-                  : {};
-                delete meta.handRaised;
-                room.localParticipant.setMetadata(JSON.stringify(meta));
-              } catch {}
+          case "reaction":
+            // Update ReactionMap for this participant
+            if (msg.sid && msg.emoji) {
+              setReactionMap((prev) => ({
+                ...prev,
+                [msg.sid]: { emoji: msg.emoji, timestamp: msg.timestamp },
+              }));
+              // Remove the reaction after 3 seconds for ephemeral effect
+              setTimeout(() => {
+                setReactionMap((prev) => {
+                  // Only remove if the timestamp matches (avoid race)
+                  if (prev[msg.sid]?.timestamp === msg.timestamp) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { [msg.sid]: _, ...rest } = prev;
+                    return rest;
+                  }
+                  return prev;
+                });
+              }, 3000);
             }
             break;
           default:
+            // Ignore unknown message types for security.
             break;
         }
       } catch (err) {
@@ -285,11 +313,9 @@ export function TipSpaceRoomLayout() {
     return () => {
       room.off(RoomEvent.DataReceived, handleData);
     };
-  }, [room, addFloatingReaction]);
+  }, [room, localParticipant, localParticipantMetadata]);
 
   // Recipients: host + speakers
-  // Build host recipient and speaker recipients, then filter out any without a wallet address
-
   const speakerRecipients: TipRecipient[] = room.activeSpeakers.map((s) => {
     const speakerMetadata: ParticipantMetadata = s.metadata
       ? JSON.parse(s.metadata)
@@ -308,18 +334,32 @@ export function TipSpaceRoomLayout() {
     };
   });
 
-  // Only include recipients with a non-null, non-undefined walletAddress and fid
   const recipients: TipRecipient[] = [...speakerRecipients].filter(
     (r): r is TipRecipient => !!r.fid && !!r.walletAddress,
   );
 
-  const { handleSendReaction, reactionLoading } = useBasedReaction({
-    user: user,
-    hostId: user?.fid?.toString() ?? "",
-    spaceId: room.name,
-    localParticipant,
-    addFloatingReaction,
-  });
+  // --- Reaction sending logic: broadcast to room via LiveKit data channel ---
+  const handleSendReaction = useCallback(
+    (emoji: string) => {
+      if (!localParticipant) return;
+      try {
+        localParticipant.publishData(
+          new TextEncoder().encode(
+            JSON.stringify({
+              type: "reaction",
+              sid: localParticipant.sid,
+              emoji,
+              timestamp: Date.now(),
+            }),
+          ),
+          { reliable: true },
+        );
+      } catch (err) {
+        console.error("[LiveKit] Failed to publish reaction", err);
+      }
+    },
+    [localParticipant],
+  );
 
   return (
     <LayoutContextProvider onWidgetChange={setWidgetState}>
@@ -346,22 +386,32 @@ export function TipSpaceRoomLayout() {
             data-testid="speakers-row"
           >
             {sortedParticipants.map((sp) => (
-              <CustomParticipantTile key={sp.sid} participant={sp} />
+              <CustomParticipantTile
+                key={sp.sid}
+                participant={sp}
+                // Pass current reaction for this participant, if any
+                reaction={reactionMap[sp.sid]?.emoji}
+              />
             ))}
           </div>
         </div>
+
+        <PendingRequestToSpeak
+          requests={pendingRequests}
+          onApprove={onApprove}
+          onReject={() => {
+            toast.warning("Rejecting requests is not implemented");
+          }}
+        />
+
         <BottomBar
           roomName={room.name}
-          onOpenReactionPicker={() => setPickerOpen(true)}
           onBasedTipClick={() => setTipModalOpen(true)}
-          onInviteClick={() => {
-            console.log("invite");
-          }}
-          onRaiseHandToggle={handleRaiseHandToggle}
+          hasRequested={hasRequested}
+          requestToSpeak={requestToSpeak}
+          onSendReaction={handleSendReaction}
         />
         {widgetState.showChat && <Chat />}
-        {/* Floating reactions overlay */}
-        <ReactionOverlay reactions={reactions} />
         <TipModal
           open={tipModalOpen}
           onClose={() => setTipModalOpen(false)}
@@ -376,15 +426,6 @@ export function TipSpaceRoomLayout() {
           tokenAddress={USDC_ADDRESS_BASE}
           tipperWalletAddress={user?.address ?? ""}
         />
-        {pickerOpen && (
-          <ReactionPicker
-            onPick={(t) => handleSendReaction(t)}
-            onClose={() => {
-              setPickerOpen(false);
-            }}
-            loading={reactionLoading}
-          />
-        )}
       </div>
     </LayoutContextProvider>
   );

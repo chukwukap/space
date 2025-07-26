@@ -35,6 +35,7 @@ export type ParticipantMetadata = {
   isHost?: boolean;
   title?: string;
   identity?: string;
+  handRaised?: boolean;
 };
 export type SpaceWithHostParticipant = Prisma.SpaceGetPayload<{
   include: {
@@ -46,6 +47,12 @@ export type SpaceWithHostParticipant = Prisma.SpaceGetPayload<{
     host: true;
   };
 }>;
+
+export type PendingRequest = {
+  sid: string;
+  user: { name: string; metadata: string };
+  timestamp: number;
+};
 export type RoomWithMetadata = Room & {
   metadata: SpaceWithHostParticipant;
 };
