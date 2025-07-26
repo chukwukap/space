@@ -1,4 +1,4 @@
-import { useMemo, forwardRef, useContext } from "react";
+import { useMemo, forwardRef, useContext, useState } from "react";
 import { Participant } from "livekit-client";
 import {
   Microphone as MicIcon,
@@ -30,13 +30,29 @@ export const CustomParticipantTile = forwardRef<
   const contextTrackRef = useContext(TrackRefContext);
   const combinedTrackRef = trackRef ?? contextTrackRef;
   const roomInfo = useRoomInfo();
-
-  const participantMetadata: ParticipantMetadata | null = useMemo(() => {
+  const [metadata] = useState<ParticipantMetadata | null>(() => {
     try {
-      return JSON.parse(participant?.metadata ?? "{}");
+      return JSON.parse(participant?.metadata ?? "{}") as ParticipantMetadata;
     } catch {
       return null;
     }
+  });
+
+  console.log("[CustomParticipantTile] metadata", metadata);
+  console.log("[CustomParticipantTile] participant", participant);
+  console.log("[CustomParticipantTile] combinedTrackRef", combinedTrackRef);
+
+  // Parse participant metadata using the safe utility
+  const participantMetadata: ParticipantMetadata | null = useMemo(() => {
+    let meta: ParticipantMetadata | null = null;
+
+    try {
+      meta = JSON.parse(participant?.metadata ?? "{}") as ParticipantMetadata;
+    } catch {
+      return null;
+    }
+
+    return meta;
   }, [participant]);
 
   const p: Participant | undefined =
@@ -45,18 +61,19 @@ export const CustomParticipantTile = forwardRef<
   // Determine if the local user (viewer) is the host
   const { localParticipant } = useLocalParticipant();
 
+  // Use the safe JSON utility for local participant metadata as well
   const isLocalHost = useMemo(() => {
     if (!localParticipant) return false;
-    try {
-      const localMeta = localParticipant.metadata
-        ? JSON.parse(localParticipant.metadata)
-        : {};
-      return !!localMeta.isHost;
-    } catch {
-      return false;
-    }
+    const localMeta = JSON.parse(
+      localParticipant.metadata ?? "{}",
+    ) as ParticipantMetadata;
+    return !!localMeta?.isHost;
   }, [localParticipant]);
 
+  /**
+   * Handler to invite a participant to speak.
+   * Only available to the host.
+   */
   const inviteToSpeak = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isLocalHost || !p || !localParticipant) return;
@@ -80,6 +97,7 @@ export const CustomParticipantTile = forwardRef<
         }),
       });
     } catch (err) {
+      // Security: Do not leak sensitive error details to the UI
       console.error("[InviteToSpeak] failed", err);
     }
   };

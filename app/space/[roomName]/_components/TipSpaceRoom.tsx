@@ -14,6 +14,8 @@ import {
   LayoutContextProvider,
   RoomAudioRenderer,
   DisconnectButton,
+  useSortedParticipants,
+  useParticipants,
 } from "@livekit/components-react";
 import {
   AudioCaptureOptions,
@@ -22,7 +24,6 @@ import {
   RoomConnectOptions,
   RoomEvent,
   RoomOptions,
-  Participant,
 } from "livekit-client";
 import { useRouter } from "next/navigation";
 import React, { useState, useCallback, useEffect, useMemo } from "react";
@@ -157,6 +158,9 @@ export function TipSpaceRoomLayout() {
     unreadMessages: 0,
   });
   const { user } = useUser();
+  const participants = useParticipants();
+  const sortedParticipants = useSortedParticipants(participants);
+
   const { localParticipant } = useLocalParticipant();
 
   const localParticipantMetadata = useMemo(() => {
@@ -173,31 +177,14 @@ export function TipSpaceRoomLayout() {
     }
   }, [localParticipant]);
 
-  console.log(
-    "[TipSpaceRoomLayout] localParticipantMetadata",
-    localParticipantMetadata,
-  );
-
   const [reactions, setReactions] = useState<
     Array<{ id: number; left: number; emoji: string }>
   >([]);
-
-  // Listeners list (participants without microphone enabled)
-  const [listeners, setListeners] = useState<Participant[]>([]);
 
   // Reaction picker open state
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const [tipModalOpen, setTipModalOpen] = useState(false);
-
-  // Compute list of speaker participants (publish-capable)
-  const speakers = useMemo(() => {
-    const all = [
-      ...Array.from(room.remoteParticipants.values()),
-      room.localParticipant,
-    ].filter(Boolean) as Participant[];
-    return all.filter((p) => p.permissions?.canPublish);
-  }, [room]);
 
   // Helper – send data messages to room
   const sendData = useCallback(
@@ -310,25 +297,6 @@ export function TipSpaceRoomLayout() {
     };
   }, [room, addFloatingReaction]);
 
-  // Update listeners whenever room roster changes
-  useEffect(() => {
-    if (!room) return;
-    const recompute = () => {
-      const all = [
-        ...Array.from(room.remoteParticipants.values()),
-        room.localParticipant,
-      ].filter(Boolean);
-      setListeners(all.filter((p) => !p.isMicrophoneEnabled));
-    };
-    recompute();
-    room.on(RoomEvent.ParticipantConnected, recompute);
-    room.on(RoomEvent.ParticipantDisconnected, recompute);
-    return () => {
-      room.off(RoomEvent.ParticipantConnected, recompute);
-      room.off(RoomEvent.ParticipantDisconnected, recompute);
-    };
-  }, [room]);
-
   // Recipients: host + speakers
   // Build host recipient and speaker recipients, then filter out any without a wallet address
 
@@ -387,21 +355,10 @@ export function TipSpaceRoomLayout() {
             className="w-full overflow-x-auto px-4 flex gap-4 items-center"
             data-testid="speakers-row"
           >
-            {speakers.map((sp) => (
+            {sortedParticipants.map((sp) => (
               <CustomParticipantTile key={sp.sid} participant={sp} />
             ))}
           </div>
-          {/* Listeners grid */}
-          {listeners.length > 0 && (
-            <div
-              className="grid grid-cols-4 sm:grid-cols-6 gap-4 px-4"
-              data-testid="listeners-grid"
-            >
-              {listeners.map((lp) => (
-                <CustomParticipantTile key={lp.sid} participant={lp} />
-              ))}
-            </div>
-          )}
         </div>
         <BottomBar
           roomName={room.name}
