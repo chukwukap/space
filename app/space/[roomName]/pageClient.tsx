@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { LocalUserChoices } from "@livekit/components-react";
 import { useUser } from "@/app/providers/userProvider";
-import { ConnectionDetails, ParticipantMetadata } from "@/lib/types";
+import { ConnectionDetails, FCContext, ParticipantMetadata } from "@/lib/types";
 import TipSpaceRoom from "./_components/TipSpaceRoom";
 import { Button } from "@/components/ui/button";
 
@@ -15,35 +15,28 @@ import { Button } from "@/components/ui/button";
 
 // Helper: Build a valid ParticipantMetadata object, filling required fields
 function buildParticipantMetadata(
-  userMetadata: ParticipantMetadata | null,
+  farcasterContext: FCContext | null,
   isHost: boolean,
   title?: string,
-): ParticipantMetadata {
-  // Fallbacks for required fields
+): ParticipantMetadata | null {
+  if (!farcasterContext) return null;
   return {
-    fid: typeof userMetadata?.fid === "number" ? userMetadata.fid : 0, // TODO: fix this
-    address: userMetadata?.address || "",
-    displayName: userMetadata?.displayName || "Guest",
-    username: userMetadata?.username || "Guest",
-    pfpUrl: userMetadata?.pfpUrl || "",
-    identity:
-      typeof userMetadata?.identity === "number" ? userMetadata.identity : 0,
-    clientFid: userMetadata?.clientFid ?? null,
-    isHost: isHost ? true : false,
-    handRaised: userMetadata?.handRaised,
-    spaceTitle: isHost && title ? decodeURIComponent(title) : undefined,
-    spaceName: userMetadata?.spaceName,
+    fcContext: farcasterContext,
+    isHost,
+    title,
+    // TODO: add identity on the backend
   };
 }
 
 export default function PageClientImpl(props: {
   roomName: string;
   region?: string;
+  hq: boolean;
+  // these two are only used for host
   title?: string;
   host?: boolean;
-  hq: boolean;
 }) {
-  const { userMetadata } = useUser();
+  const { farcasterContext } = useUser();
 
   // State for connection details and loading/error
   const [connectionDetails, setConnectionDetails] =
@@ -51,28 +44,17 @@ export default function PageClientImpl(props: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Determine if user is host (from props, userMetadata, or URL)
-  const isHost = useMemo(() => {
-    // check metadata first incase this is a returning user
-    if (userMetadata?.isHost !== null && userMetadata?.isHost !== undefined)
-      return userMetadata.isHost;
-    // check url params for host
-    if (typeof window !== "undefined") {
-      return new URLSearchParams(window.location.search).get("host") === "true";
-    }
-    // check props for host
-    if (props.host !== undefined) return props.host;
-    return false;
-  }, [props.host, userMetadata]);
-
   // Prepare pre-join choices for LiveKit
   const preJoinChoices = useMemo(() => {
     return {
-      username: userMetadata?.username || userMetadata?.displayName || "Guest",
+      username:
+        farcasterContext?.farcasterUser?.username ||
+        farcasterContext?.farcasterUser?.displayName ||
+        "Guest",
       videoEnabled: false,
       audioEnabled: true,
     } as LocalUserChoices;
-  }, [userMetadata]);
+  }, [farcasterContext]);
 
   // Handles join/host action, fetches connection details securely
   const handlePreJoin = useCallback(async () => {
@@ -83,16 +65,22 @@ export default function PageClientImpl(props: {
       url.searchParams.append("roomName", props.roomName);
       url.searchParams.append(
         "participantName",
-        userMetadata?.username || userMetadata?.displayName || "Guest",
+        farcasterContext?.farcasterUser?.username ||
+          farcasterContext?.farcasterUser?.displayName?.replace(/ /g, "_") ||
+          "Guest",
       );
       url.searchParams.append(
         "metadata",
         JSON.stringify(
-          buildParticipantMetadata(userMetadata, isHost, props.title),
+          buildParticipantMetadata(
+            farcasterContext,
+            props.host ?? false,
+            props.title,
+          ),
         ),
       );
       if (props.region) url.searchParams.append("region", props.region);
-      if (isHost) url.searchParams.append("host", "true");
+      if (props.host) url.searchParams.append("host", "true");
 
       const resp = await fetch(url.toString());
       if (!resp.ok) {
@@ -109,14 +97,14 @@ export default function PageClientImpl(props: {
     } finally {
       setLoading(false);
     }
-  }, [props.roomName, props.region, userMetadata, isHost, props.title]);
+  }, [props.roomName, props.region, farcasterContext, props.host, props.title]);
 
   // Auto-join if user is host and all required info is present
   useEffect(() => {
     if (
-      isHost &&
+      props.host &&
       props.title &&
-      userMetadata &&
+      farcasterContext &&
       !connectionDetails &&
       !loading &&
       !error
@@ -124,7 +112,7 @@ export default function PageClientImpl(props: {
       handlePreJoin();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, props.title, userMetadata]);
+  }, [props.host, props.title, farcasterContext]);
 
   // UI: Show join/host, loading, error, or the room
   return (
@@ -132,7 +120,7 @@ export default function PageClientImpl(props: {
       {!connectionDetails ? (
         <div className="flex flex-col items-center justify-center h-full">
           <h1 className="text-2xl font-bold">
-            {isHost ? "Host a Space" : "Join Space"}
+            {props.host ? "Host a Space" : "Join Space"}
           </h1>
           <p className="text-sm text-muted-foreground mb-2">
             {props.title ? decodeURIComponent(props.title) : props.roomName}
@@ -149,10 +137,10 @@ export default function PageClientImpl(props: {
             aria-busy={loading}
           >
             {loading
-              ? isHost
+              ? props.host
                 ? "Creating..."
                 : "Joining..."
-              : isHost
+              : props.host
                 ? "Host Space"
                 : "Join Space"}
           </Button>

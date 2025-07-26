@@ -337,12 +337,14 @@ export function TipSpaceRoomLayout() {
       ? JSON.parse(s.metadata)
       : null;
 
-    const name = speakerMetadata?.displayName || `Speaker ${s.name}`;
-    const walletAddress = speakerMetadata?.address;
+    const name =
+      speakerMetadata?.fcContext.farcasterUser.displayName ||
+      `Speaker ${s.name}`;
+    const walletAddress = speakerMetadata?.fcContext.farcasterUser.address;
 
     return {
-      id: speakerMetadata?.fid ?? null,
-      fid: speakerMetadata?.fid ?? null,
+      id: speakerMetadata?.fcContext.farcasterUser.fid ?? null,
+      fid: speakerMetadata?.fcContext.farcasterUser.fid ?? null,
       name,
       walletAddress,
     };

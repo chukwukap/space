@@ -1,5 +1,7 @@
 import { Address } from "viem";
 import { Prisma, ReactionType } from "@/lib/generated/prisma";
+import { Context } from "@farcaster/frame-sdk";
+import { Room } from "livekit-server-sdk";
 
 export type UserWithRelations = Prisma.UserGetPayload<{
   include: {
@@ -18,38 +20,35 @@ export type TipPreference = {
   allowance: bigint;
 };
 
+export type FCContext = {
+  farcasterUser: Context.UserContext & {
+    address: string;
+  };
+  farcasterClient: {
+    clientFid: number;
+    added: boolean;
+  };
+};
+
+export type ParticipantMetadata = {
+  fcContext: FCContext;
+  isHost?: boolean;
+  title?: string;
+  identity?: string;
+};
 export type SpaceWithHostParticipant = Prisma.SpaceGetPayload<{
   include: {
     participants: {
-      where: { role: "HOST" };
+      take: 5;
+      where: { role: { in: ["HOST", "SPEAKER"] } };
       include: { user: true };
     };
     host: true;
   };
 }>;
-
-export type ParticipantMetadata = {
-  fid: number;
-  address: string;
-  displayName: string;
-  username: string;
-  pfpUrl: string;
-  identity: number;
-  clientFid: number | null;
-  isHost: boolean | null;
-  handRaised?: boolean; // Indicates if participant has raised their hand
-  spaceTitle?: string; // Title of the space
-  spaceName?: string; // Name of the space
+export type RoomWithMetadata = Room & {
+  metadata: SpaceWithHostParticipant;
 };
-
-export interface SpaceMetadata {
-  clientFid: number | null;
-  title: string;
-  host: ParticipantMetadata;
-  recording: boolean;
-  ended: boolean;
-}
-
 export interface SpendPermission {
   account: Address;
   spender: Address;

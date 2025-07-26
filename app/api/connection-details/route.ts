@@ -65,17 +65,17 @@ export async function GET(request: NextRequest) {
 
     // Security: Only allow known users to join or create spaces
     let user;
-    if (parsedMetadata.fid) {
+    if (parsedMetadata.fcContext.farcasterUser.fid) {
       user = await prisma.user.findUnique({
-        where: { fid: parsedMetadata.fid },
+        where: { fid: parsedMetadata.fcContext.farcasterUser.fid },
       });
-    } else if (parsedMetadata.address) {
+    } else if (parsedMetadata.fcContext.farcasterUser.address) {
       user = await prisma.user.findFirst({
-        where: { address: parsedMetadata.address },
+        where: { address: parsedMetadata.fcContext.farcasterUser.address },
       });
-    } else if (parsedMetadata.username) {
+    } else if (parsedMetadata.fcContext.farcasterUser.username) {
       user = await prisma.user.findFirst({
-        where: { username: parsedMetadata.username },
+        where: { username: parsedMetadata.fcContext.farcasterUser.username },
       });
     }
     if (!user) {
@@ -83,14 +83,17 @@ export async function GET(request: NextRequest) {
     }
 
     let space;
+    let effectiveIsHost = isHost; // This will be used for token and metadata
+
     if (isHost) {
-      // Host: Create the space if it doesn't exist, else return error
+      // Host: Create the space if it doesn't exist, else do not overwrite host
       space = await prisma.space.findUnique({
         where: { livekitName: roomName },
       });
+
       if (!space) {
         // Require title in metadata for space creation
-        if (!parsedMetadata.spaceTitle) {
+        if (!parsedMetadata.title) {
           return new NextResponse("Missing space title in metadata", {
             status: 400,
           });
@@ -99,30 +102,72 @@ export async function GET(request: NextRequest) {
         space = await prisma.space.create({
           data: {
             livekitName: roomName,
-            title: parsedMetadata.spaceTitle,
+            title: parsedMetadata.title,
             hostId: user.id,
             hostAddress: user.address ?? "",
             status: "LIVE",
           },
         });
-      }
-      // Ensure host is a participant in the space
-      await prisma.participant.upsert({
-        where: {
-          spaceId_fid: {
+
+        // Ensure host is a participant in the space
+        await prisma.participant.upsert({
+          where: {
+            spaceId_fid: {
+              spaceId: space.id,
+              fid: user.fid!,
+            },
+          },
+          update: {
+            role: Role.HOST,
+          },
+          create: {
             spaceId: space.id,
             fid: user.fid!,
+            role: Role.HOST,
           },
-        },
-        update: {
-          role: Role.HOST,
-        },
-        create: {
-          spaceId: space.id,
-          fid: user.fid!,
-          role: Role.HOST,
-        },
-      });
+        });
+      } else {
+        // Space already exists, do NOT overwrite host for security
+        // Check if the current user is the host
+        if (space.hostId === user.id) {
+          // User is the host, ensure participant role is HOST
+          await prisma.participant.upsert({
+            where: {
+              spaceId_fid: {
+                spaceId: space.id,
+                fid: user.fid!,
+              },
+            },
+            update: {
+              role: Role.HOST,
+            },
+            create: {
+              spaceId: space.id,
+              fid: user.fid!,
+              role: Role.HOST,
+            },
+          });
+          effectiveIsHost = true;
+        } else {
+          // User is NOT the host, do not allow host privileges
+          // Ensure user is a participant (add if not present) as LISTENER
+          await prisma.participant.upsert({
+            where: {
+              spaceId_fid: {
+                spaceId: space.id,
+                fid: user.fid!,
+              },
+            },
+            update: {},
+            create: {
+              spaceId: space.id,
+              fid: user.fid!,
+              role: Role.LISTENER,
+            },
+          });
+          effectiveIsHost = false;
+        }
+      }
     } else {
       // Not host: Just fetch the space
       space = await prisma.space.findUnique({
@@ -146,12 +191,14 @@ export async function GET(request: NextRequest) {
           role: Role.LISTENER,
         },
       });
+      effectiveIsHost = false;
     }
 
     // Always include the space title in the metadata for token generation
+    // Use effectiveIsHost to reflect the actual host status
     const metadataWithTitle = {
       ...parsedMetadata,
-      isHost,
+      isHost: effectiveIsHost,
       title: space.title,
     };
 
@@ -166,7 +213,7 @@ export async function GET(request: NextRequest) {
         metadata: JSON.stringify(metadataWithTitle),
       },
       roomName,
-      isHost,
+      effectiveIsHost,
     );
 
     // Return connection details

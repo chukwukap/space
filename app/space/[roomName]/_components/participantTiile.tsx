@@ -6,7 +6,7 @@ import {
   DragHandGesture,
   CheckCircle,
 } from "iconoir-react";
-import { ParticipantMetadata, SpaceMetadata } from "@/lib/types";
+import { ParticipantMetadata } from "@/lib/types";
 import {
   TrackRefContext,
   TrackReferenceOrPlaceholder,
@@ -18,7 +18,6 @@ import Image from "next/image";
 type ParticipantTileProps = {
   trackRef?: TrackReferenceOrPlaceholder;
   participant?: Participant;
-  pfpUrl?: string;
 };
 
 /**
@@ -27,48 +26,21 @@ type ParticipantTileProps = {
 export const CustomParticipantTile = forwardRef<
   HTMLDivElement,
   ParticipantTileProps
->(function CustomParticipantTile({ trackRef, participant, pfpUrl }, ref) {
+>(function CustomParticipantTile({ trackRef, participant }, ref) {
   const contextTrackRef = useContext(TrackRefContext);
   const combinedTrackRef = trackRef ?? contextTrackRef;
   const roomInfo = useRoomInfo();
 
-  const roomMeta: SpaceMetadata = useMemo(() => {
+  const participantMetadata: ParticipantMetadata | null = useMemo(() => {
     try {
       return JSON.parse(roomInfo?.metadata ?? "{}");
     } catch {
-      return {};
+      return null;
     }
   }, [roomInfo]);
 
   const p: Participant | undefined =
     participant ?? combinedTrackRef?.participant;
-
-  const meta: ParticipantMetadata = useMemo(() => {
-    try {
-      return p?.metadata ? JSON.parse(p.metadata) : {};
-    } catch {
-      return {};
-    }
-  }, [p?.metadata]);
-
-  const isHost = useMemo(() => {
-    if (meta?.isHost) return true;
-    // fallback to roomMeta comparison (legacy)
-    if (roomMeta?.host?.identity && p?.identity) {
-      return roomMeta?.host?.identity.toString() === p.identity.toString();
-    }
-    return false;
-  }, [meta?.isHost, roomMeta, p?.identity]);
-
-  const avatarUrl = useMemo(() => {
-    if (pfpUrl) return pfpUrl;
-    if (!meta?.pfpUrl) return undefined;
-    try {
-      return meta.pfpUrl;
-    } catch {
-      return undefined;
-    }
-  }, [pfpUrl, meta]);
 
   // Determine if the local user (viewer) is the host
   const { localParticipant } = useLocalParticipant();
@@ -127,11 +99,14 @@ export const CustomParticipantTile = forwardRef<
           minHeight: 64,
           position: "relative",
         }}
-        aria-label={`${p?.identity}, ${roomMeta.host?.identity && p?.identity && roomMeta.host?.identity === parseInt(p?.identity) ? "Host" : "Listener"}`}
+        aria-label={`${p?.identity}, ${participantMetadata?.isHost && p?.identity && participantMetadata.isHost ? "Host" : "Listener"}`}
         tabIndex={0}
       >
         <Image
-          src={avatarUrl ?? "/images/default-avatar.png"}
+          src={
+            participantMetadata?.fcContext.farcasterUser.pfpUrl ??
+            "/images/default-avatar.png"
+          }
           alt={p?.identity ?? "Participant"}
           className="object-cover w-full h-full rounded-full"
           width={64}
@@ -178,7 +153,7 @@ export const CustomParticipantTile = forwardRef<
         )}
 
         {/* Accept request button for host */}
-        {isLocalHost && meta?.handRaised && !p?.isLocal && (
+        {isLocalHost && participantMetadata?.isHost && !p?.isLocal && (
           <button
             onClick={inviteToSpeak}
             className="absolute -bottom-2 left-1 bg-background rounded-full shadow p-0.5"
@@ -189,7 +164,7 @@ export const CustomParticipantTile = forwardRef<
         )}
 
         {/* Hand raise indicator */}
-        {meta?.handRaised && (
+        {participantMetadata?.isHost && (
           <span
             className="absolute -top-2 -left-2 bg-background rounded-full shadow p-0.5"
             title="Hand raised"
@@ -204,7 +179,11 @@ export const CustomParticipantTile = forwardRef<
             p?.isSpeaking ? "bg-secondary" : "bg-muted-foreground"
           }`}
         />
-        {isHost ? "Host" : p?.permissions?.canPublish ? "Speaker" : "Listener"}
+        {participantMetadata?.isHost
+          ? "Host"
+          : p?.permissions?.canPublish
+            ? "Speaker"
+            : "Listener"}
       </span>
     </div>
   );

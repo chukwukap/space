@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Mic } from "lucide-react";
-import { useUser } from "../providers/userProvider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -22,33 +21,19 @@ import { Label } from "@/components/ui/label";
 export default function NewSpaceDrawer() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, userMetadata } = useUser();
   const [title, setTitle] = useState("");
 
   // Hide button if on a space details page (/space/[room])
   const isSpaceDetails = /^\/space\/[^/]+/.test(pathname);
 
   if (isSpaceDetails) {
-    // Do not render the button in a live room
     return null;
   }
 
-  /**
-   * Handles the creation of a new Sonic Space.
-   * Instead of calling an API, encode all variables into the URL and navigate.
-   */
   async function handleCreateSpace() {
     if (!title.trim()) return;
 
-    if (!userMetadata) return;
-
-    // If user is missing fid, refresh user and prompt
-    if (!user?.fid) {
-      return;
-    }
-    // Generate a unique room name (client-side, e.g. using timestamp + fid)
-    const roomName = `Tipspace-${user.fid}-${Date.now()}`;
-    // Compose the path with all required parameters
+    const roomName = `Tipspace-${Date.now()}`;
     const path = `/space/${roomName}?host=true&title=${encodeURIComponent(title)}`;
     router.push(path);
   }
