@@ -424,7 +424,7 @@ export function TipSpaceRoomLayout() {
             setTipModalOpen(false);
             if (toast) toast.success("Tip sent!");
           }}
-          userFid={user?.fid ?? 0}
+          userFid={user?.fid ?? null}
           spaceId={room.name}
           tokenAddress={USDC_ADDRESS_BASE}
           tipperWalletAddress={user?.address ?? ""}

@@ -1,6 +1,5 @@
 import useSWR from "swr";
 import { FCContext, UserWithRelations } from "@/lib/types";
-import { Context } from "@farcaster/frame-sdk";
 import { Address } from "viem";
 import { useMemo } from "react";
 
@@ -24,18 +23,20 @@ function buildUserQuery({
   context,
   address,
 }: {
-  context: Context.FrameContext | null;
+  context: FCContext | null;
   address: Address | null;
 }): string | null {
   // If no context and no address, return null
-  if (!context?.user && !address) return null;
+  if (!context?.farcasterUser && !address) return null;
 
   // Compose params as expected by backend
   const params: Record<string, string> = {};
 
   // Only add if present
-  if (context?.user?.fid) params.fid = String(context.user.fid);
-  if (context?.user?.username) params.username = context.user.username;
+  if (context?.farcasterUser?.fid)
+    params.fid = String(context.farcasterUser.fid);
+  if (context?.farcasterUser?.username)
+    params.username = context.farcasterUser.username;
   if (address) params.address = address;
 
   // If no params, return null
@@ -53,20 +54,20 @@ export function useCurrentUser({
   context,
   address,
 }: {
-  context: Context.FrameContext | null;
+  context: FCContext | null;
   address: Address | null;
 }) {
   // Memoize farcaster context for downstream consumers
   const farcasterContext: FCContext | null = useMemo(() => {
-    if (!context?.user) return null;
+    if (!context?.farcasterUser) return null;
     return {
       farcasterUser: {
-        ...context.user,
+        ...context.farcasterUser,
         address: address ?? "",
       },
       farcasterClient: {
-        clientFid: context.user.fid,
-        added: context.client.added,
+        clientFid: context.farcasterUser.fid,
+        added: context.farcasterClient.added,
       },
     };
   }, [context, address]);
@@ -88,7 +89,10 @@ export function useCurrentUser({
   };
 
   // Build query string as expected by backend
-  const search = buildUserQuery({ context, address });
+  const search = buildUserQuery({
+    context: farcasterContext ?? mockFarcasterContext,
+    address: address ?? null,
+  });
 
   // Only call API if we have at least one valid param
   const key = search ? `/api/users?${search}` : null;

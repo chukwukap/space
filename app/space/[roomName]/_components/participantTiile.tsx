@@ -33,11 +33,11 @@ export const CustomParticipantTile = forwardRef<
 
   const participantMetadata: ParticipantMetadata | null = useMemo(() => {
     try {
-      return JSON.parse(roomInfo?.metadata ?? "{}");
+      return JSON.parse(participant?.metadata ?? "{}");
     } catch {
       return null;
     }
-  }, [roomInfo]);
+  }, [participant]);
 
   const p: Participant | undefined =
     participant ?? combinedTrackRef?.participant;
@@ -104,7 +104,7 @@ export const CustomParticipantTile = forwardRef<
       >
         <Image
           src={
-            participantMetadata?.fcContext.farcasterUser.pfpUrl ??
+            participantMetadata?.fcContext?.farcasterUser?.pfpUrl ??
             "/images/default-avatar.png"
           }
           alt={p?.identity ?? "Participant"}

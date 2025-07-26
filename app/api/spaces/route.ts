@@ -5,6 +5,26 @@ import type { RoomWithMetadata } from "@/lib/types";
 import type { Room } from "livekit-server-sdk";
 
 /**
+ * Safely serializes an object to JSON, converting BigInt values to strings.
+ * This prevents JSON.stringify from throwing on BigInt values.
+ * @param obj - The object to serialize
+ * @returns A JSON-safe object
+ */
+function safeJson(obj: unknown): unknown {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === "bigint") return obj.toString();
+  if (Array.isArray(obj)) return obj.map(safeJson);
+  if (typeof obj === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      out[k] = safeJson(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
+/**
  * GET /api/spaces
  * Query param: ?rooms=room1,room2,room3
  * Returns a list of RoomWithMetadata objects for the given room names (if any), or all rooms if not specified.
@@ -98,9 +118,15 @@ export async function GET(request: NextRequest) {
       .filter((r): r is RoomWithMetadata => r !== null);
 
     // Only return non-sensitive data (RoomWithMetadata object is already safe)
-    return NextResponse.json(roomsWithMetadata, {
+    // SECURITY: Ensure no BigInt values are present in the response
+    const safeRoomsWithMetadata = safeJson(roomsWithMetadata);
+
+    return new NextResponse(JSON.stringify(safeRoomsWithMetadata), {
       status: 200,
-      headers: { "Cache-Control": "no-store" },
+      headers: {
+        "Cache-Control": "no-store",
+        "Content-Type": "application/json",
+      },
     });
   } catch (error) {
     // Log error for observability, but do not expose details to the user

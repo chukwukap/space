@@ -26,7 +26,7 @@ interface TipModalProps {
   recipients: TipRecipient[];
   defaultRecipientId: number;
   onTipSuccess?: () => void;
-  userFid: number;
+  userFid: number | null;
   spaceId: string;
   tokenAddress: string;
   tipperWalletAddress: string;
@@ -78,6 +78,7 @@ export default function TipModal({
         throw new Error("Connected wallet does not match your profile wallet.");
       }
 
+      if (!userFid) throw new Error("[TipModal] User FID not found");
       // Call the server action to send the tip
       const res = await sendTipAction({
         fromFid: userFid,
