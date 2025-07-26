@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { FCContext, UserWithRelations } from "@/lib/types";
 import { Address } from "viem";
 import { useMemo } from "react";
+import { Context } from "@farcaster/frame-sdk";
 
 /**
  * Fetcher for SWR that throws on error and returns JSON.
@@ -54,20 +55,20 @@ export function useCurrentUser({
   context,
   address,
 }: {
-  context: FCContext | null;
+  context: Context.FrameContext | null;
   address: Address | null;
 }) {
   // Memoize farcaster context for downstream consumers
   const farcasterContext: FCContext | null = useMemo(() => {
-    if (!context?.farcasterUser) return null;
+    if (!context?.user) return null;
     return {
       farcasterUser: {
-        ...context.farcasterUser,
+        ...context.user,
         address: address ?? "",
       },
       farcasterClient: {
-        clientFid: context.farcasterUser.fid,
-        added: context.farcasterClient.added,
+        clientFid: context.user.fid,
+        added: context.client.added,
       },
     };
   }, [context, address]);
