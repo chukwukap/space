@@ -141,7 +141,7 @@ export default function TipSpaceRoom(props: {
           className="absolute top-0 left-0 z-50"
         />
         <KeyboardShortcuts />
-        <TipSpaceRoomLayout title={props.title} />
+        <TipSpaceRoomLayout />
         <RecordingIndicator />
         <RoomAudioRenderer />
       </RoomContext.Provider>
@@ -149,7 +149,7 @@ export default function TipSpaceRoom(props: {
   );
 }
 
-export function TipSpaceRoomLayout(props: { title?: string }) {
+export function TipSpaceRoomLayout() {
   const room = useRoomContext();
 
   const [widgetState, setWidgetState] = React.useState<WidgetState>({
@@ -158,6 +158,25 @@ export function TipSpaceRoomLayout(props: { title?: string }) {
   });
   const { user } = useUser();
   const { localParticipant } = useLocalParticipant();
+
+  const localParticipantMetadata = useMemo(() => {
+    try {
+      return localParticipant?.metadata
+        ? JSON.parse(localParticipant.metadata)
+        : null;
+    } catch (err) {
+      console.error(
+        "[LiveKit] Failed to parse local participant metadata",
+        err,
+      );
+      return null;
+    }
+  }, [localParticipant]);
+
+  console.log(
+    "[TipSpaceRoomLayout] localParticipantMetadata",
+    localParticipantMetadata,
+  );
 
   const [reactions, setReactions] = useState<
     Array<{ id: number; left: number; emoji: string }>
@@ -358,7 +377,7 @@ export function TipSpaceRoomLayout(props: { title?: string }) {
           className="px-6 text-lg font-bold leading-snug mt-4"
           data-testid="space-title"
         >
-          {props.title || "Untitled Space"}
+          {localParticipantMetadata?.spaceTitle || "Untitled Space"}
         </h1>
         <div className="flex flex-col gap-6 bg-background">
           {/* Host & Speakers horizontal list */}
