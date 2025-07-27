@@ -111,6 +111,49 @@ export default function TipModal({
 
   // --- Recipient Select UI ---
   function RecipientSelect() {
+    const [dropdownTop, setDropdownTop] = useState<number | null>(null);
+    const [dropdownMaxHeight, setDropdownMaxHeight] = useState<number>(224); // default 56*4
+
+    // Dynamically position dropdown so it never gets cut off by the bottom of the drawer
+    useEffect(() => {
+      if (!showRecipientList || !dropdownRef.current) return;
+
+      // Find the bounding rect of the dropdown trigger
+      const triggerRect = dropdownRef.current.getBoundingClientRect();
+      // Find the bounding rect of the drawer content
+      const drawerContent = dropdownRef.current.closest(".glass-card");
+      let drawerRect: DOMRect | null = null;
+      if (drawerContent) {
+        drawerRect = (drawerContent as HTMLElement).getBoundingClientRect();
+      }
+
+      if (drawerRect) {
+        // Calculate available space below the trigger inside the drawer
+        const spaceBelow = drawerRect.bottom - triggerRect.bottom - 16; // 16px padding
+        // Calculate available space above the trigger inside the drawer
+        const spaceAbove = triggerRect.top - drawerRect.top - 16; // 16px padding
+
+        // Prefer dropdown below, but if not enough space, show above
+        let maxHeight = Math.max(spaceBelow, 120); // minimum 120px
+        let top: number | null = null;
+        if (spaceBelow >= 180 || spaceBelow > spaceAbove) {
+          // Show below
+          top = 0;
+          maxHeight = Math.max(Math.min(spaceBelow, 320), 120);
+        } else {
+          // Show above
+          top = -(
+            Math.max(Math.min(spaceAbove, 320), 120) +
+            triggerRect.height +
+            8
+          );
+          maxHeight = Math.max(Math.min(spaceAbove, 320), 120);
+        }
+        setDropdownTop(top ?? null);
+        setDropdownMaxHeight(maxHeight);
+      }
+    }, [showRecipientList]);
+
     if (recipients.length === 0) {
       return (
         <div className="text-sm text-primary flex items-center gap-2 py-2">
@@ -144,7 +187,7 @@ export default function TipModal({
               {recipient?.name?.[0] ?? <User className="w-5 h-5" />}
             </div>
           )}
-          <span className="flex-1 truncate text-left font-semibold">
+          <span className="flex-1 truncate text-left ">
             {recipient?.name ?? "Select recipient"}
           </span>
           <NavArrowDown
@@ -157,8 +200,15 @@ export default function TipModal({
         </button>
         {showRecipientList && (
           <div
-            className="absolute z-30 mt-2 w-full bg-background border border-primary/20 rounded-lg shadow-lg max-h-56 overflow-y-auto animate-fade-in"
-            style={{ left: 0 }}
+            className="absolute z-30 mt-2 w-full bg-background border border-primary/20 rounded-lg shadow-lg animate-fade-in"
+            style={{
+              left: 0,
+              top: dropdownTop !== null ? dropdownTop : undefined,
+              bottom: dropdownTop !== null ? undefined : undefined,
+              maxHeight: dropdownMaxHeight,
+              overflowY: "auto",
+              overscrollBehavior: "contain",
+            }}
           >
             {recipients.map((r) => (
               <button
@@ -167,7 +217,7 @@ export default function TipModal({
                 className={cn(
                   "flex items-center gap-3 w-full px-3 py-2 font-sora text-base transition focus:bg-primary/10",
                   recipient?.fid === r.fid
-                    ? "bg-primary/10 font-bold"
+                    ? "bg-primary/10"
                     : "hover:bg-primary/5",
                 )}
                 onClick={() => {
@@ -185,7 +235,7 @@ export default function TipModal({
                     className="w-7 h-7 rounded-full"
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-lg">
                     {r.name?.[0] ?? <User className="w-5 h-5" />}
                   </div>
                 )}
