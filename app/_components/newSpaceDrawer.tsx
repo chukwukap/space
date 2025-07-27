@@ -58,34 +58,36 @@ export default function NewSpaceDrawer() {
           </button>
         </DrawerTrigger>
 
-        <DrawerContent className="glass-card px-0 pb-10 text-foreground max-w-sm">
+        <DrawerContent className="glass-card px-0 pb-10 text-foreground">
           <DrawerHeader className="text-center mb-4">
             <DrawerTitle className="text-2xl font-semibold">
               Create TipSpace
             </DrawerTitle>
           </DrawerHeader>
 
-          <div className="flex flex-col gap-3">
-            <Label>Space title</Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={handleInputKeyDown}
-              placeholder="What are we talking about?"
-              maxLength={64}
-              autoFocus
-              spellCheck
-              aria-label="Space title"
-            />
-          </div>
+          <div className="px-4 pb-4 flex flex-col gap-4 ">
+            <div className="flex flex-col gap-3">
+              <Label>Space title</Label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={handleInputKeyDown}
+                placeholder="What are we talking about?"
+                maxLength={64}
+                autoFocus
+                spellCheck
+                aria-label="Space title"
+              />
+            </div>
 
-          <Button
-            className="w-full"
-            onClick={handleCreateSpace}
-            disabled={!title.trim()}
-          >
-            Create TipSpace
-          </Button>
+            <Button
+              className="w-full"
+              onClick={handleCreateSpace}
+              disabled={!title.trim()}
+            >
+              Create TipSpace
+            </Button>
+          </div>
         </DrawerContent>
       </Drawer>
     </>
