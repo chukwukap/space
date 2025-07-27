@@ -144,6 +144,10 @@ export const CustomParticipantTile = forwardRef<
     }
   };
 
+  if (!participantMetadata) {
+    return null;
+  }
+
   return (
     <div
       ref={ref}
@@ -168,19 +172,18 @@ export const CustomParticipantTile = forwardRef<
         }`}
         tabIndex={0}
       >
-        <Image
-          src={
-            participantMetadata?.fcContext?.farcasterUser?.pfpUrl ??
-            "/images/default-avatar.png"
-          }
-          alt={p?.identity ?? "Participant"}
-          className="object-cover w-full h-full rounded-full"
-          width={64}
-          height={64}
-          draggable={false}
-          priority
-          unoptimized
-        />
+        {participantMetadata?.fcContext?.farcasterUser?.pfpUrl && (
+          <Image
+            src={participantMetadata?.fcContext?.farcasterUser?.pfpUrl}
+            alt={p?.identity ?? "Participant"}
+            className="object-cover w-full h-full rounded-full"
+            width={64}
+            height={64}
+            draggable={false}
+            priority
+            unoptimized
+          />
+        )}
 
         {/* Show mic status only for participants who have publish permission */}
         {p?.permissions?.canPublish && (
