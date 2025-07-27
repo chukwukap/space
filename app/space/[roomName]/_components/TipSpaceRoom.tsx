@@ -399,12 +399,6 @@ export function TipSpaceRoomLayout() {
           className="flex flex-col items-start px-6 pt-3 pb-2 border-b border-muted/40 bg-background"
           style={{ minHeight: 56 }}
         >
-          <span
-            className="text-xs text-muted-foreground font-medium tracking-wide mb-1"
-            aria-label="space label"
-          >
-            Tipspace
-          </span>
           <h1
             className="text-xl font-bold leading-tight truncate max-w-full"
             data-testid="space-title"
