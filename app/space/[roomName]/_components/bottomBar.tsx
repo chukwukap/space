@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   ShareAndroid as ShareIcon,
   Square3dFromCenter,
   MicrophoneMuteSolid,
   CheckCircle,
+  Emoji as EmojiIcon,
 } from "iconoir-react";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { REACTION_EMOJIS } from "@/lib/constants";
+import { useClickOutside } from "@/app/hooks/useClickOutside";
 
 /**
  * Props for the BottomBar component.
@@ -38,9 +40,10 @@ interface Props {
 /**
  * BottomBar
  *
- * The persistent bottom bar for the TipSpace room.
+ * The persistent bottom bar for the Sonic Space room.
+ * - Floats above the bottom edge with rounded corners.
  * - Shows mic toggle or "Request to Speak" depending on permissions.
- * - Provides quick access to tipping, reactions, sharing, and quick emoji bar.
+ * - Provides quick access to tipping, reactions, sharing, and emoji picker.
  * - Security: Only exposes mic toggle if user has publish permissions.
  * - Mobile-first, creative UI, Sora font, no hover effects.
  */
@@ -111,64 +114,110 @@ export default function BottomBar({
     REACTION_EMOJIS.CLAP,
   ];
 
+  // Emoji picker state and ref for click outside
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const emojiPickerRef = useClickOutside<HTMLDivElement>(() =>
+    setEmojiOpen(false),
+  );
+
   return (
     <footer
       className={cn(
-        "w-full bg-card/60 backdrop-blur flex flex-col items-center px-4 py-2 z-50 fixed bottom-0 left-0 right-0",
+        "w-full flex flex-col items-center z-50 fixed left-0 right-0 pointer-events-none",
       )}
-      style={{ fontFamily: "Sora, sans-serif" }}
+      style={{ fontFamily: "Sora, sans-serif", bottom: 0 }}
     >
-      <div className="flex w-full justify-around items-center">
-        {canPublishMic ? (
-          <TrackToggle
-            source={Track.Source.Microphone}
-            showIcon={true}
-            onChange={microphoneOnChange}
-            onDeviceError={(error) => {
-              // Security: Log device errors for diagnostics, do not leak to UI
-              console.error("[MicDeviceError]", error);
-            }}
-          />
-        ) : hasRequested ? (
-          <BarButton
-            label="Request sent"
-            icon={CheckCircle}
-            onClick={requestToSpeak}
-          />
-        ) : (
-          <BarButton
-            label="Request to speak"
-            icon={MicrophoneMuteSolid}
-            onClick={requestToSpeak}
-          />
+      <div
+        className={cn(
+          "pointer-events-auto bg-card/80 backdrop-blur-lg flex flex-col items-center px-4 py-3 rounded-2xl shadow-xl",
+          "mx-auto",
         )}
+        style={{
+          maxWidth: 420,
+          marginBottom: 24,
+          borderRadius: 24,
+          boxShadow: "0 8px 32px 0 rgba(0,0,0,0.18)",
+        }}
+      >
+        <div className="flex w-full justify-around items-center gap-2">
+          {canPublishMic ? (
+            <TrackToggle
+              source={Track.Source.Microphone}
+              showIcon={true}
+              onChange={microphoneOnChange}
+              onDeviceError={(error) => {
+                // Security: Log device errors for diagnostics, do not leak to UI
+                console.error("[MicDeviceError]", error);
+              }}
+            />
+          ) : hasRequested ? (
+            <BarButton
+              label="Request sent"
+              icon={CheckCircle}
+              onClick={requestToSpeak}
+            />
+          ) : (
+            <BarButton
+              label="Request to speak"
+              icon={MicrophoneMuteSolid}
+              onClick={requestToSpeak}
+            />
+          )}
 
-        <BarButton
-          label="Based Tip"
-          icon={Square3dFromCenter}
-          onClick={onBasedTipClick}
-        />
+          <BarButton
+            label="Based Tip"
+            icon={Square3dFromCenter}
+            onClick={onBasedTipClick}
+          />
 
-        <BarButton label="Share" icon={ShareIcon} onClick={handleShare} />
-      </div>
-      {/* Quick emoji bar (mobile-first, no hover) */}
-      <div className="flex gap-2 mt-2">
-        {quickReactions.map((emoji) => (
+          <BarButton label="Share" icon={ShareIcon} onClick={handleShare} />
+
+          {/* Emoji picker trigger */}
           <button
-            key={emoji}
-            className="rounded-full bg-muted px-2 py-1 text-xl shadow transition active:scale-95"
+            className="flex flex-col items-center text-foreground active:opacity-80 disabled:opacity-50"
+            aria-label="Open emoji reactions"
+            type="button"
+            style={{ fontFamily: "Sora, sans-serif" }}
+            onClick={() => setEmojiOpen((v) => !v)}
+          >
+            <EmojiIcon className="w-6 h-6" />
+            <span className="text-[10px] mt-1">Reactions</span>
+          </button>
+        </div>
+        {/* Emoji picker popover */}
+        {emojiOpen && (
+          <div
+            ref={emojiPickerRef}
+            className="absolute left-1/2 -translate-x-1/2 bottom-[70px] bg-card/95 rounded-xl shadow-lg flex gap-2 px-4 py-3 z-50"
             style={{
               fontFamily: "Sora, sans-serif",
-              border: "none",
-              outline: "none",
+              minWidth: 220,
+              justifyContent: "center",
+              alignItems: "center",
+              pointerEvents: "auto",
             }}
-            onClick={() => onSendReaction(emoji)}
-            aria-label={`Send ${emoji} reaction`}
-            type="button"
           >
-            {emoji}
-          </button>
-        ))}
+            {quickReactions.map((emoji) => (
+              <button
+                key={emoji}
+                className="rounded-full bg-muted px-2 py-1 text-xl shadow transition active:scale-95"
+                style={{
+                  fontFamily: "Sora, sans-serif",
+                  border: "none",
+                  outline: "none",
+                }}
+                onClick={() => {
+                  onSendReaction(emoji);
+                  setEmojiOpen(false);
+                }}
+                aria-label={`Send ${emoji} reaction`}
+                type="button"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </footer>
   );
