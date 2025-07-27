@@ -61,7 +61,7 @@ export default function NewSpaceDrawer() {
         <DrawerContent className="glass-card px-0 pb-10 text-foreground">
           <DrawerHeader className="text-center mb-4">
             <DrawerTitle className="text-2xl font-semibold">
-              Create TipSpace
+              Create Tipspace
             </DrawerTitle>
           </DrawerHeader>
 
@@ -85,7 +85,7 @@ export default function NewSpaceDrawer() {
               onClick={handleCreateSpace}
               disabled={!title.trim()}
             >
-              Create TipSpace
+              Create Tipspace
             </Button>
           </div>
         </DrawerContent>
