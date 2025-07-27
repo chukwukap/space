@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Drawer,
   DrawerContent,
@@ -15,8 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-// Iconoir icons
-import { NavArrowDown, Check, User } from "iconoir-react";
+import { NavArrowDown, Check, User, Xmark } from "iconoir-react";
 
 /**
  * TipModalProps defines the props for the TipModal component.
@@ -92,7 +91,7 @@ export default function TipModal({
           setStatus("idle");
           setAmount(0);
           onClose();
-        }, 1500);
+        }, 1200);
       } else {
         setStatus("error");
         setError(res.error || "Failed to send tip.");
@@ -114,7 +113,7 @@ export default function TipModal({
   function RecipientSelect() {
     if (recipients.length === 0) {
       return (
-        <div className="text-sm text-primary flex items-center gap-2">
+        <div className="text-sm text-primary flex items-center gap-2 py-2">
           <User className="w-5 h-5 opacity-60" />
           No recipients found.
         </div>
@@ -125,8 +124,7 @@ export default function TipModal({
         <button
           type="button"
           className={cn(
-            "w-full flex items-center gap-3 border border-primary/30 rounded-xl px-4 py-3 font-sora text-base bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary transition",
-            "active:ring-2 active:ring-primary",
+            "w-full flex items-center gap-3 border border-primary/30 rounded-lg px-3 py-2 font-sora text-base bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary transition",
             showRecipientList ? "ring-2 ring-primary" : "",
           )}
           aria-label="Select recipient"
@@ -159,7 +157,7 @@ export default function TipModal({
         </button>
         {showRecipientList && (
           <div
-            className="absolute z-30 mt-2 w-full bg-background border border-primary/20 rounded-xl shadow-lg max-h-60 overflow-y-auto animate-fade-in"
+            className="absolute z-30 mt-2 w-full bg-background border border-primary/20 rounded-lg shadow-lg max-h-56 overflow-y-auto animate-fade-in"
             style={{ left: 0 }}
           >
             {recipients.map((r) => (
@@ -167,7 +165,7 @@ export default function TipModal({
                 key={r.fid}
                 type="button"
                 className={cn(
-                  "flex items-center gap-3 w-full px-4 py-3 font-sora text-base transition focus:bg-primary/10",
+                  "flex items-center gap-3 w-full px-3 py-2 font-sora text-base transition focus:bg-primary/10",
                   recipient?.fid === r.fid
                     ? "bg-primary/10 font-bold"
                     : "hover:bg-primary/5",
@@ -205,19 +203,19 @@ export default function TipModal({
 
   return (
     <Drawer open={open} onOpenChange={onClose}>
-      <DrawerContent className="glass-card">
-        <div className="flex flex-col h-full max-w-lg mx-auto w-full">
-          <DrawerHeader className="justify-center text-center">
-            <DrawerTitle className="text-2xl font-bold text-primary text-center">
+      <DrawerContent className="glass-card px-0 py-0">
+        <div className="flex flex-col h-full max-w-[420px] mx-auto w-full px-2 py-3">
+          <DrawerHeader className="justify-center text-center px-0 py-2">
+            <DrawerTitle className="text-lg font-bold text-primary text-center font-sora">
               Send a Tip
             </DrawerTitle>
-            <DrawerDescription className="text-sm text-muted-foreground text-center">
-              Show your appreciation! Enter an amount and select a recipient.
+            <DrawerDescription className="text-xs text-muted-foreground text-center font-sora">
+              Show your appreciation to a speaker.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="px-4 py-2 space-y-5">
-            <div className="flex flex-col gap-2">
-              <Label>Amount</Label>
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1">
+              <Label className="mb-1 font-sora text-sm">Amount</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="text"
@@ -231,6 +229,8 @@ export default function TipModal({
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
                   aria-label="Tip amount"
+                  disabled={status === "loading"}
+                  style={{ fontFamily: "Sora, sans-serif" }}
                 />
                 <Image
                   src="/tokens/usdc.png"
@@ -241,23 +241,29 @@ export default function TipModal({
                 />
               </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label>Recipient</Label>
+            <div className="flex flex-col gap-1">
+              <Label className="mb-1 font-sora text-sm">Recipient</Label>
               <RecipientSelect />
             </div>
-            <div className="text-destructive text-sm font-sora">{error}</div>
+            {error && (
+              <div className="text-destructive text-xs font-sora flex items-center gap-2">
+                <Xmark className="w-4 h-4" />
+                {error}
+              </div>
+            )}
             {status === "success" && (
-              <div className="text-green-600 text-sm font-sora flex items-center gap-2">
+              <div className="text-green-600 text-xs font-sora flex items-center gap-2">
                 <Check className="w-4 h-4" />
-                Tip sent successfully!
+                Tip sent!
               </div>
             )}
           </div>
-          <DrawerFooter>
+          <DrawerFooter className="flex flex-row gap-2 mt-2 px-0">
             <Button
               variant="ghost"
               onClick={onClose}
               disabled={status === "loading"}
+              className="flex-1 text-sm"
             >
               Cancel
             </Button>
@@ -266,7 +272,17 @@ export default function TipModal({
               disabled={
                 status === "loading" || !amount || amount <= 0 || !recipient
               }
-              className="text-sm"
+              className="flex-1 text-sm font-bold min-w-0 px-2"
+              style={{
+                maxWidth: "100%",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.25rem",
+              }}
             >
               {status === "loading" ? (
                 <span className="flex items-center gap-2">
@@ -275,8 +291,21 @@ export default function TipModal({
                 </span>
               ) : (
                 <>
-                  <span className="font-medium">Tip</span>
-                  <span className="">{recipient?.name}</span>
+                  <span>Tip</span>
+                  {recipient?.name && (
+                    <span
+                      className="truncate max-w-[7.5rem] text-ellipsis"
+                      style={{
+                        display: "inline-block",
+                        verticalAlign: "bottom",
+                        overflow: "hidden",
+                        whiteSpace: "nowrap",
+                        maxWidth: "7.5rem",
+                      }}
+                    >
+                      {recipient.name}
+                    </span>
+                  )}
                 </>
               )}
             </Button>
