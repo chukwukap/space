@@ -160,3 +160,29 @@ body {
       0 0 24px hsl(var(--secondary) / 0.3);
   }
 }
+
+/* --- LiveKit (lk-) component styles --- */
+.lk-spinner {
+  @apply inline-block align-middle;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: middle;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.lk-toast-connection-state {
+  @apply px-4 py-2 rounded-lg font-medium text-center shadow-lg;
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  /* color and background handled by component, do not override */
+  z-index: 9999;
+  min-width: 120px;
+  max-width: 90vw;
+  margin: 0 auto;
+  pointer-events: auto;
+}

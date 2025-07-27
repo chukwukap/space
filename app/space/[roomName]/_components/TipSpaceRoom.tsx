@@ -391,33 +391,30 @@ export function TipSpaceRoomLayout() {
 
   return (
     <LayoutContextProvider onWidgetChange={setWidgetState}>
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-2">
         <MobileHeader
           showBack={true}
           lowerComponent={
-            <DisconnectButton className="text-sm text-destructive font-medium ">
+            <DisconnectButton className="text-sm text-destructive font-medium">
               {"Leave"}
             </DisconnectButton>
           }
         />
         {/* Room Title Area */}
-        <section
-          className="flex flex-col items-start px-6 pt-3 pb-2 border-b border-muted/40 bg-background"
-          style={{ minHeight: 56 }}
-        >
+        <section className=" bg-background mt-5 mx-2">
           <h1
             className="text-xl font-bold leading-tight truncate max-w-full"
             data-testid="space-title"
             style={{ fontFamily: "Sora, sans-serif" }}
-            title={localParticipantMetadata?.title || "Untitled Space"}
+            title={localParticipantMetadata?.title ?? ""}
           >
-            {localParticipantMetadata?.title || "Untitled Space"}
+            {localParticipantMetadata?.title ?? ""}
           </h1>
         </section>
-        <div className="flex flex-col gap-6 bg-background">
+        <div className="flex flex-col gap-6 mx-2">
           {/* Host & Speakers horizontal list */}
           <div
-            className="w-full overflow-x-auto px-4 flex gap-4 items-center"
+            className="w-full px-4 flex gap-4 items-center"
             data-testid="speakers-row"
           >
             {sortedParticipants.map((sp) => (
