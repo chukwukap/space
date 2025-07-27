@@ -80,14 +80,11 @@ export default function TipSpaceRoom(props: {
     [],
   );
 
-  const router = useRouter();
-  const handleOnLeave = React.useCallback(() => router.push("/"), [router]);
   const handleError = React.useCallback((error: Error) => {
     console.error(error);
   }, []);
 
   React.useEffect(() => {
-    room.on(RoomEvent.Disconnected, handleOnLeave);
     room.on(RoomEvent.MediaDevicesError, handleError);
 
     room
@@ -109,7 +106,6 @@ export default function TipSpaceRoom(props: {
     }
 
     return () => {
-      room.off(RoomEvent.Disconnected, handleOnLeave);
       room.off(RoomEvent.MediaDevicesError, handleError);
     };
   }, [
@@ -117,7 +113,6 @@ export default function TipSpaceRoom(props: {
     props.connectionDetails,
     props.userChoices,
     connectOptions,
-    handleOnLeave,
     handleError,
   ]);
 
@@ -360,6 +355,33 @@ export function TipSpaceRoomLayout() {
     },
     [localParticipant],
   );
+
+  const router = useRouter();
+
+  const handleOnLeave = React.useCallback(async () => {
+    if (localParticipantMetadata?.isHost) {
+      try {
+        // Call backend to rug the space
+        await fetch("/api/room/rug", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roomName: room.name }),
+        });
+      } catch (err) {
+        // Log for audit, but do not leak to UI
+        console.error("[RugSpace] failed", err);
+      }
+    }
+    router.push("/");
+  }, [router, localParticipantMetadata, room.name]);
+
+  React.useEffect(() => {
+    room.on(RoomEvent.Disconnected, handleOnLeave);
+
+    return () => {
+      room.off(RoomEvent.Disconnected, handleOnLeave);
+    };
+  }, [room, handleOnLeave]);
 
   return (
     <LayoutContextProvider onWidgetChange={setWidgetState}>
