@@ -7,11 +7,11 @@ import {
   useConnect,
 } from "wagmi";
 import { erc20Abi, parseUnits, type Address, type Hex } from "viem";
+import { ADMIN_SPENDER_ADDRESS } from "@/lib/constants";
 
 // Types for clarity and safety
 type UseApprovalOptions = {
-  tokenAddress: Address;
-  spender: Address;
+  tokenAddress: Address | undefined;
 };
 
 type ApprovalStatus =
@@ -43,7 +43,6 @@ interface UseApprovalResult {
  */
 export function useApproval({
   tokenAddress,
-  spender,
 }: UseApprovalOptions): UseApprovalResult {
   const { address } = useAccount();
   const publicClient = usePublicClient();
@@ -65,7 +64,7 @@ export function useApproval({
 
   // Helper: fetch current allowance
   const fetchAllowance = useCallback(async () => {
-    console.log("Fetching allowance", address, tokenAddress, spender);
+    console.log("Fetching allowance", address, tokenAddress);
 
     if (!address) {
       setAllowance(null);
@@ -74,7 +73,7 @@ export function useApproval({
       // connectWallet();
       return;
     }
-    if (!tokenAddress || !spender || !publicClient) {
+    if (!tokenAddress || !ADMIN_SPENDER_ADDRESS || !publicClient) {
       setAllowance(null);
       setStatus("unknown");
       return;
@@ -86,7 +85,7 @@ export function useApproval({
         address: tokenAddress,
         abi: erc20Abi,
         functionName: "allowance",
-        args: [address, spender],
+        args: [address, ADMIN_SPENDER_ADDRESS],
       });
       console.log("Allowance read result::", result);
       setAllowance(result);
@@ -106,20 +105,20 @@ export function useApproval({
     } finally {
       setLoading(false);
     }
-  }, [address, tokenAddress, spender, allowance, publicClient]);
+  }, [address, tokenAddress, allowance, publicClient]);
 
   // Approve function
   const approve = useCallback(
     async (amount: bigint) => {
       amount = parseUnits(amount.toString(), 6);
-      console.log("Approving", tokenAddress, spender, amount);
+      console.log("Approving", tokenAddress, ADMIN_SPENDER_ADDRESS, amount);
       if (!address) {
         setError("Please connect your wallet to approve.");
         setStatus("connect_wallet");
         connectWallet();
         return;
       }
-      if (!walletClient || !tokenAddress || !spender) {
+      if (!walletClient || !tokenAddress || !ADMIN_SPENDER_ADDRESS) {
         setError("Wallet not connected or missing parameters");
         setStatus("connect_wallet");
         connectWallet();
@@ -143,7 +142,7 @@ export function useApproval({
           address: tokenAddress,
           abi: erc20Abi,
           functionName: "approve",
-          args: [spender, amount],
+          args: [ADMIN_SPENDER_ADDRESS, amount],
           account: address,
         });
         // Wait for tx confirmation
@@ -169,7 +168,6 @@ export function useApproval({
       walletClient,
       address,
       tokenAddress,
-      spender,
       publicClient,
       fetchAllowance,
       connectWallet,
@@ -184,7 +182,7 @@ export function useApproval({
   // Auto-fetch allowance on mount and when dependencies change
   useEffect(() => {
     fetchAllowance();
-  }, [address, tokenAddress, spender, allowance, publicClient, fetchAllowance]);
+  }, [address, tokenAddress, allowance, publicClient, fetchAllowance]);
 
   return {
     isApproved: status === "approved",

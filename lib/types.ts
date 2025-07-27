@@ -126,7 +126,7 @@ export type SpendPermissionWithSignature = {
 export type TipRecipient = {
   fid: number;
   name: string;
-  walletAddress: string | null;
+  pfpUrl?: string;
 };
 
 export type Tip = {

@@ -30,7 +30,7 @@ import {
   RoomOptions,
 } from "livekit-client";
 import { useRouter } from "next/navigation";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 
 import TipModal from "./TipModal";
 import BottomBar from "./bottomBar";
@@ -42,7 +42,6 @@ import { RecordingIndicator } from "@/lib/RecordingIndicator";
 import { CustomParticipantTile } from "./participantTiile";
 
 import MobileHeader from "@/app/_components/mobileHeader";
-import { USDC_ADDRESS_BASE } from "@/lib/constants";
 import PendingRequestToSpeak from "./pendingRequestToSpeak";
 
 /**
@@ -311,26 +310,22 @@ export function TipSpaceRoomLayout() {
   }, [room, localParticipant, localParticipantMetadata]);
 
   // Recipients: host + speakers
-  const speakerRecipients: TipRecipient[] = room.activeSpeakers.map((s) => {
-    const speakerMetadata: ParticipantMetadata = s.metadata
-      ? JSON.parse(s.metadata)
-      : null;
-
-    const name =
-      speakerMetadata?.fcContext.farcasterUser.displayName ||
-      `Speaker ${s.name}`;
-    const walletAddress = speakerMetadata?.fcContext.farcasterUser.address;
-
-    return {
-      id: speakerMetadata?.fcContext.farcasterUser.fid ?? null,
-      fid: speakerMetadata?.fcContext.farcasterUser.fid ?? null,
-      name,
-      walletAddress,
-    };
-  });
-
-  const recipients: TipRecipient[] = [...speakerRecipients].filter(
-    (r): r is TipRecipient => !!r.fid && !!r.walletAddress,
+  const recipients: TipRecipient[] = useMemo(
+    () =>
+      sortedParticipants.map((s) => {
+        const speakerMetadata: ParticipantMetadata = JSON.parse(
+          s.metadata ?? "{}",
+        ) as ParticipantMetadata;
+        const name =
+          speakerMetadata?.fcContext?.farcasterUser.displayName ||
+          `Speaker ${s.name}`;
+        return {
+          fid: speakerMetadata?.fcContext?.farcasterUser.fid ?? null,
+          name,
+          pfpUrl: speakerMetadata?.fcContext?.farcasterUser.pfpUrl,
+        };
+      }),
+    [sortedParticipants],
   );
 
   // --- Reaction sending logic: broadcast to room via LiveKit data channel ---
@@ -445,15 +440,12 @@ export function TipSpaceRoomLayout() {
           open={tipModalOpen}
           onClose={() => setTipModalOpen(false)}
           recipients={recipients}
-          defaultRecipientId={1}
+          senderFid={user?.fid ?? undefined}
           onTipSuccess={() => {
             setTipModalOpen(false);
             if (toast) toast.success("Tip sent!");
           }}
-          userFid={user?.fid ?? null}
           spaceId={room.name}
-          tokenAddress={USDC_ADDRESS_BASE}
-          tipperWalletAddress={user?.address ?? ""}
         />
       </div>
     </LayoutContextProvider>

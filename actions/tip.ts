@@ -8,18 +8,12 @@ import prisma from "@/lib/prisma";
 
 // --- Zod schema for input validation ---
 const tipSchema = z.object({
-  fromFid: z.number().int().positive(),
-  toFid: z.number().int().positive(),
-  amount: z
-    .string()
-    .refine((val) => Number(val) > 0, "Amount must be positive"),
+  senderFid: z.number().int().positive(),
+  recipientFid: z.number().int().positive(),
+  amount: z.number().refine((val) => val > 0, "Amount must be positive"),
   spaceId: z.string().min(1),
-  tokenAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/), // ERC-20 token address
-  tipperAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-  tippeeAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
 });
 
-// --- Main server action ---
 /**
  * Handles the full ERC-20 tip flow:
  * 1. Transfers tokens from tipper to SPENDER_ADDRESS (using transferFrom, tipper must have approved SPENDER_ADDRESS)
@@ -32,39 +26,51 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.message };
   }
-  const {
-    fromFid,
-    toFid,
-    amount,
-    spaceId,
-    tokenAddress,
-    tipperAddress,
-    tippeeAddress,
-  } = parsed.data;
+  const { senderFid, recipientFid, amount, spaceId } = parsed.data;
 
   // Security: Check for self-tipping
-  if (fromFid === toFid) {
+  if (senderFid === recipientFid) {
     return { ok: false, error: "You cannot tip yourself." };
   }
 
-  // Security: Check for valid addresses
-  let spenderAddress: string;
-  try {
-    getAddress(tipperAddress);
-    getAddress(tippeeAddress);
-    getAddress(tokenAddress);
-    // Get spender address from wallet util
-    const spenderWallet = await getSpenderWalletClient();
-    spenderAddress = spenderWallet.account.address as string;
-    getAddress(spenderAddress);
-  } catch {
-    return { ok: false, error: "Invalid address provided." };
+  // Fetch users by fid from the database, including their addresses and tipping preferences
+  const [fromUser, toUser] = await Promise.all([
+    prisma.user.findUnique({
+      where: { fid: senderFid },
+      include: { tippingPreferences: true },
+    }),
+    prisma.user.findUnique({
+      where: { fid: recipientFid },
+      include: { tippingPreferences: true },
+    }),
+  ]);
+
+  if (!fromUser || !toUser) {
+    return { ok: false, error: "User not found." };
   }
 
   // Security: Check for minimum tip amount (e.g. 0.01)
   if (Number(amount) < 0.01) {
     return { ok: false, error: "Minimum tip is 0.01." };
   }
+
+  // Security: Check for valid addresses
+  if (
+    !fromUser.address ||
+    !toUser.address ||
+    !fromUser.tippingPreferences ||
+    !fromUser.tippingPreferences.token ||
+    !fromUser.tippingPreferences.chainId
+  ) {
+    return {
+      ok: false,
+      error: "Sender or recipient is missing wallet or tipping preferences.",
+    };
+  }
+
+  // Use the sender's tipping preferences for token and chain
+  const tokenAddress = fromUser.tippingPreferences.token;
+  const chainId = fromUser.tippingPreferences.chainId;
 
   // --- Blockchain interaction ---
   const publicClient = await getPublicClient();
@@ -94,7 +100,8 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
     } catch {
       tokenSymbol = "TOKEN";
     }
-    const amountInUnits = parseUnits(amount, decimals);
+    // parseUnits expects string, so convert amount to string
+    const amountInUnits = parseUnits(amount.toString(), decimals);
 
     // 1. Transfer ERC-20 from tipper to spenderAddress
     //    (tipper has already approved spenderAddress to spend)
@@ -104,8 +111,8 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
       abi: erc20Abi,
       functionName: "transferFrom",
       args: [
-        tipperAddress as Address,
-        spenderAddress as Address,
+        fromUser.address as Address,
+        spenderWallet.account.address as Address,
         amountInUnits,
       ],
     });
@@ -116,7 +123,7 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
       address: tokenAddress as Address,
       abi: erc20Abi,
       functionName: "transfer",
-      args: [tippeeAddress as Address, amountInUnits],
+      args: [toUser.address as Address, amountInUnits],
     });
     await publicClient.waitForTransactionReceipt({ hash: tx2 });
     txHash2 = tx2;
@@ -131,21 +138,12 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
 
   // --- Persist to DB ---
   try {
-    // Find or create the tipper and tippee users by fid
-    const [fromUser, toUser] = await Promise.all([
-      prisma.user.findUnique({ where: { fid: fromFid } }),
-      prisma.user.findUnique({ where: { fid: toFid } }),
-    ]);
-    if (!fromUser || !toUser) {
-      return { ok: false, error: "User not found." };
-    }
-
     // Create the tip record
     const tip = await prisma.tip.create({
       data: {
         spaceId,
-        fromFid,
-        toFid,
+        fromFid: senderFid,
+        toFid: recipientFid,
         amount: amount,
         tokenSymbol,
         txHash: txHash2!, // The final transfer to tippee

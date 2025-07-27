@@ -3,16 +3,12 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import {
-  ADMIN_SPENDER_ADDRESS,
-  PRESET_AMOUNTS,
-  USDC_ADDRESS_BASE,
-} from "@/lib/constants";
+import { PRESET_AMOUNTS } from "@/lib/constants";
 import { Copy } from "iconoir-react";
 import { useAccount } from "wagmi";
 import { useUser } from "@/app/providers/userProvider";
 import { useApproval } from "@/app/hooks/useApproval";
-import { Address } from "viem";
+import { Address, formatUnits } from "viem";
 import { toBigInt } from "@/lib/utils";
 // Sora font is already set in globals.css
 
@@ -20,9 +16,7 @@ export default function SpendLimit() {
   const { user } = useUser();
 
   const { isApproved, loading, approve, allowance, error } = useApproval({
-    tokenAddress:
-      (user?.tippingPreferences?.token as Address) || USDC_ADDRESS_BASE,
-    spender: ADMIN_SPENDER_ADDRESS,
+    tokenAddress: user?.tippingPreferences?.token as Address,
   });
 
   const [amount, setAmount] = useState<bigint>(allowance ?? BigInt(0));
@@ -69,7 +63,7 @@ export default function SpendLimit() {
       <div className="w-full px-4 mt-4">
         <div className="rounded-xl glass-card px-4 py-4 flex flex-col gap-3">
           <div className="text-[14px] text-foreground font-medium">
-            Approve a spending limit for TipSpace on farcaster. When it runs
+            Approve a spending limit for Tipspace on farcaster. When it runs
             out, top it up or revoke it anytime.
           </div>
 
@@ -89,7 +83,9 @@ export default function SpendLimit() {
                   isApproved ? "bg-primary" : "bg-destructive",
                 )}
               />
-              {isApproved ? "approved" : "not approved"}
+              {isApproved
+                ? `approved ${allowance ? formatUnits(allowance, 6) : "0"} `
+                : "not approved"}
             </span>
             <span className="ml-2 text-xs text-muted-foreground font-mono select-all flex items-center gap-1">
               {address?.slice(0, 6)}...{address?.slice(-4)}
