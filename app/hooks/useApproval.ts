@@ -71,7 +71,7 @@ export function useApproval({
       setAllowance(null);
       setStatus("connect_wallet");
       setError("Please connect your wallet to continue.");
-      connectWallet();
+      // connectWallet();
       return;
     }
     if (!tokenAddress || !spender || !publicClient) {
@@ -106,7 +106,7 @@ export function useApproval({
     } finally {
       setLoading(false);
     }
-  }, [address, tokenAddress, spender, allowance, publicClient, connectWallet]);
+  }, [address, tokenAddress, spender, allowance, publicClient]);
 
   // Approve function
   const approve = useCallback(
