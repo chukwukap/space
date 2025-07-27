@@ -394,13 +394,26 @@ export function TipSpaceRoomLayout() {
             </DisconnectButton>
           }
         />
-        {/* Room Title */}
-        <h1
-          className="px-6 text-lg font-bold leading-snug mt-4"
-          data-testid="space-title"
+        {/* Room Title Area */}
+        <section
+          className="flex flex-col items-start px-6 pt-3 pb-2 border-b border-muted/40 bg-background"
+          style={{ minHeight: 56 }}
         >
-          {localParticipantMetadata?.title || "Untitled Space"}
-        </h1>
+          <span
+            className="text-xs text-muted-foreground font-medium tracking-wide mb-1"
+            aria-label="space label"
+          >
+            Tipspace
+          </span>
+          <h1
+            className="text-xl font-bold leading-tight truncate max-w-full"
+            data-testid="space-title"
+            style={{ fontFamily: "Sora, sans-serif" }}
+            title={localParticipantMetadata?.title || "Untitled Space"}
+          >
+            {localParticipantMetadata?.title || "Untitled Space"}
+          </h1>
+        </section>
         <div className="flex flex-col gap-6 bg-background">
           {/* Host & Speakers horizontal list */}
           <div
