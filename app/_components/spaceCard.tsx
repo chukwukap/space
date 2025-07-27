@@ -1,20 +1,14 @@
-// Card for each space in the list
-// Card for each space in the list, now with rich UI/UX using full RoomWithMetadata & SpaceWithHostParticipant
+// Mobile-first, ultra-polished Sonic SpaceCard
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { RoomWithMetadata } from "@/lib/types";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Crown, User as UserIcon } from "lucide-react";
 
 /**
- * SpaceCard displays a rich, interactive card for a live space.
- * It leverages all available metadata for a visually appealing and informative UI.
- * Security: Only non-sensitive data is displayed.
+ * SpaceCard: mobile-first, touch-optimized, visually delightful.
+ * - No hover effects, big tap targets, compact info, Sora font.
+ * - Custom, playful badge and iconography.
+ * - Speaker avatars overlap, badge floats, all content fits in a thumb zone.
  */
 export function SpaceCard({
   space,
@@ -31,7 +25,7 @@ export function SpaceCard({
   const hostDisplayName = host?.displayName || host?.username || "Host";
   const hostAvatar = host?.avatarUrl || "/icon.png";
 
-  // Show up to 5 speakers/hosts (excluding the main host)
+  // Show up to 4 speakers/hosts (excluding the main host)
   const speakerAvatars = participants
     .filter((p) => p.user?.id !== host?.id)
     .slice(0, 4)
@@ -44,95 +38,108 @@ export function SpaceCard({
   return (
     <motion.div
       whileTap={{ scale: 0.97 }}
-      className="w-full cursor-pointer rounded-2xl glass-card p-5 flex items-center gap-5 shadow-lg border border-primary/10 hover:border-primary/30 transition-all"
+      className="w-full rounded-2xl bg-white/80 dark:bg-zinc-900/80 p-3 flex items-center gap-3 shadow-md border border-primary/10 active:scale-[0.98] transition-all"
       onClick={onClick}
       tabIndex={0}
       aria-label={`Join space: ${title}`}
       role="button"
+      style={{
+        minHeight: 80,
+        fontFamily: "Sora, sans-serif",
+        WebkitTapHighlightColor: "transparent",
+      }}
     >
       {/* Host Avatar with Crown */}
-      <div className="relative w-14 h-14 rounded-full overflow-hidden bg-muted shrink-0 border-2 border-primary shadow">
+      <div className="relative w-12 h-12 rounded-full overflow-hidden bg-muted shrink-0 border-2 border-primary shadow">
         <Image
           src={hostAvatar}
           alt={`${hostDisplayName} avatar`}
-          width={56}
-          height={56}
+          width={48}
+          height={48}
           className="object-cover w-full h-full"
           priority
         />
-        <span className="absolute -bottom-1 -right-1 bg-primary rounded-full p-1 shadow">
-          <Crown className="w-4 h-4 text-yellow-400" />
+        <span className="absolute -bottom-1 -right-1 bg-gradient-to-tr from-yellow-300 to-yellow-500 rounded-full p-1 shadow-md border-2 border-white dark:border-zinc-900">
+          <Crown className="w-4 h-4 text-yellow-700" />
         </span>
       </div>
 
       {/* Main Content: Title, Host, Meta */}
-      <div className="flex-1 min-w-0 flex flex-col gap-1">
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
         {/* Space Title */}
         <h3
-          className="font-bold text-lg leading-tight line-clamp-2"
+          className="font-bold text-base leading-tight line-clamp-1 text-zinc-900 dark:text-zinc-100"
           style={{ fontFamily: "Sora, sans-serif" }}
         >
           {title}
         </h3>
         {/* Host Info */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <UserIcon className="w-4 h-4" />
+        <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-300">
+          <UserIcon className="w-3 h-3" />
           <span className="font-medium">{hostDisplayName}</span>
           {host?.username && (
             <span className="text-primary/70 ml-1">@{host.username}</span>
           )}
         </div>
         {/* Meta: Participants, Recording, etc */}
-        <div className="flex items-center gap-3 mt-1">
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="flex items-center gap-1 text-xs text-zinc-400 dark:text-zinc-300">
             <svg
-              className="w-3 h-3 text-destructive"
+              className="w-3 h-3 text-rose-500"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
               <path d="M12 1a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm6 9.5a1 1 0 0 1 2 0V12c0 4.418-3.134 8-7 8s-7-3.582-7-8v-1.5a1 1 0 1 1 2 0V12c0 3.314 2.239 6 5 6s5-2.686 5-6v-1.5z" />
             </svg>
-            <span>{participantCount} listening</span>
+            <span>{participantCount}</span>
           </span>
           {isRecording && (
-            <span className="flex items-center gap-1 text-xs text-amber-600 font-semibold bg-amber-100 px-2 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-xs text-amber-600 font-semibold bg-amber-100/80 px-2 py-0.5 rounded-full">
               <svg className="w-2 h-2 fill-current mr-1" viewBox="0 0 8 8">
                 <circle cx="4" cy="4" r="4" />
               </svg>
-              Recording
+              REC
             </span>
           )}
         </div>
         {/* Speaker Avatars */}
         {speakerAvatars.length > 0 && (
-          <div className="flex items-center gap-1 mt-2">
-            <TooltipProvider>
-              {speakerAvatars.map((sp, idx) => (
-                <Tooltip key={sp.id || idx}>
-                  <TooltipTrigger asChild>
-                    <div className="w-7 h-7 rounded-full overflow-hidden border-2 border-white -ml-2 first:ml-0 shadow">
-                      <Image
-                        src={sp.avatarUrl || "/icon.png"}
-                        alt={sp.displayName}
-                        width={28}
-                        height={28}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">{sp.displayName}</TooltipContent>
-                </Tooltip>
-              ))}
-            </TooltipProvider>
-            <span className="ml-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-0.5 mt-1">
+            {speakerAvatars.map((sp, idx) => (
+              <div
+                key={sp.id || idx}
+                className={`w-6 h-6 rounded-full overflow-hidden border-2 border-white dark:border-zinc-900 shadow -ml-2 first:ml-0`}
+                style={{
+                  zIndex: 10 - idx,
+                  boxShadow: "0 1px 4px 0 rgba(0,0,0,0.08)",
+                }}
+              >
+                <Image
+                  src={sp.avatarUrl || "/icon.png"}
+                  alt={sp.displayName}
+                  width={24}
+                  height={24}
+                  className="object-cover w-full h-full"
+                />
+              </div>
+            ))}
+            <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-300">
               {speakerAvatars.length === 1 ? "Speaker" : "Speakers"}
             </span>
           </div>
         )}
       </div>
 
-      {/* Join badge */}
-      <span className="text-base font-semibold px-4 py-2 rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow hover:scale-105 transition-transform shrink-0">
+      {/* Join badge: big, thumb-friendly, floating right */}
+      <span
+        className="text-sm font-bold px-3 py-2 rounded-full bg-gradient-to-br from-fuchsia-500 to-indigo-500 text-white shadow-lg active:scale-95 transition-transform shrink-0"
+        style={{
+          fontFamily: "Sora, sans-serif",
+          minWidth: 60,
+          textAlign: "center",
+          letterSpacing: "0.01em",
+        }}
+      >
         Join
       </span>
     </motion.div>

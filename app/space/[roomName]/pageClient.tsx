@@ -142,7 +142,7 @@ export default function PageClientImpl(props: {
                 : "Joining..."
               : props.host
                 ? "Host Space"
-                : "Join Space"}
+                : "Start Listening"}
           </Button>
         </div>
       ) : (

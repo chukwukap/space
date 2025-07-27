@@ -58,7 +58,7 @@ export default function NewSpaceDrawer() {
           </button>
         </DrawerTrigger>
 
-        <DrawerContent className="glass-card px-0 pb-10 text-foreground">
+        <DrawerContent className="glass-card px-0 pb-10 text-foreground max-w-sm">
           <DrawerHeader className="text-center mb-4">
             <DrawerTitle className="text-2xl font-semibold">
               Create TipSpace

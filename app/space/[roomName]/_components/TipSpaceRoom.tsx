@@ -352,7 +352,7 @@ export function TipSpaceRoomLayout() {
               timestamp: Date.now(),
             }),
           ),
-          { reliable: true },
+          // { reliable: true },
         );
       } catch (err) {
         console.error("[LiveKit] Failed to publish reaction", err);
