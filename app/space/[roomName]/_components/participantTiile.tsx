@@ -144,9 +144,7 @@ export const CustomParticipantTile = forwardRef<
     }
   };
 
-  if (!participantMetadata) {
-    return null;
-  }
+  if (!p) return null;
 
   return (
     <div
