@@ -310,23 +310,34 @@ export function TipSpaceRoomLayout() {
   }, [room, localParticipant, localParticipantMetadata]);
 
   // Recipients: host + speakers
-  const recipients: TipRecipient[] = useMemo(
-    () =>
-      sortedParticipants.map((s) => {
+  const recipients: TipRecipient[] = useMemo(() => {
+    const recipients = sortedParticipants
+      .map((s) => {
         const speakerMetadata: ParticipantMetadata = JSON.parse(
           s.metadata ?? "{}",
         ) as ParticipantMetadata;
         const name =
           speakerMetadata?.fcContext?.farcasterUser.displayName ||
           `Speaker ${s.name}`;
+        console.log("[TipSpaceRoomLayout] s", s);
+        console.log(
+          "[TipSpaceRoomLayout] speakerMetadata",
+          speakerMetadata,
+          s.metadata,
+        );
         return {
           fid: speakerMetadata?.fcContext?.farcasterUser.fid ?? null,
           name,
           pfpUrl: speakerMetadata?.fcContext?.farcasterUser.pfpUrl,
         };
-      }),
-    [sortedParticipants],
-  );
+      })
+      .filter(
+        (r) => r.fid,
+        // r.fid !== localParticipantMetadata?.fcContext?.farcasterUser.fid,
+      );
+    console.log("[TipSpaceRoomLayout] recipients", recipients);
+    return recipients;
+  }, [sortedParticipants]);
 
   // --- Reaction sending logic: broadcast to room via LiveKit data channel ---
   const handleSendReaction = useCallback(

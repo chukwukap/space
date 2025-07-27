@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Drawer,
   DrawerContent,
@@ -15,12 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+// Iconoir icons
+import { NavArrowDown, Check, User } from "iconoir-react";
 
 /**
  * TipModalProps defines the props for the TipModal component.
@@ -48,11 +44,27 @@ export default function TipModal({
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
-  console.log("[TipModal] recipients", recipients, senderFid);
   const [error, setError] = useState<string | null>(null);
   const [recipient, setRecipient] = useState<TipRecipient | null>(
     recipients.length > 0 ? recipients[0] : null,
   );
+  const [showRecipientList, setShowRecipientList] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showRecipientList) return;
+    function handleClick(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setShowRecipientList(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showRecipientList]);
 
   /**
    * Handles the tip action, integrating the server action for tipping.
@@ -98,6 +110,99 @@ export default function TipModal({
     }
   };
 
+  // --- Recipient Select UI ---
+  function RecipientSelect() {
+    if (recipients.length === 0) {
+      return (
+        <div className="text-sm text-primary flex items-center gap-2">
+          <User className="w-5 h-5 opacity-60" />
+          No recipients found.
+        </div>
+      );
+    }
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          className={cn(
+            "w-full flex items-center gap-3 border border-primary/30 rounded-xl px-4 py-3 font-sora text-base bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary transition",
+            "active:ring-2 active:ring-primary",
+            showRecipientList ? "ring-2 ring-primary" : "",
+          )}
+          aria-label="Select recipient"
+          onClick={() => setShowRecipientList((v) => !v)}
+          disabled={status === "loading"}
+        >
+          {recipient?.pfpUrl ? (
+            <Image
+              src={recipient.pfpUrl}
+              alt={recipient.name}
+              width={28}
+              height={28}
+              className="w-7 h-7 rounded-full"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+              {recipient?.name?.[0] ?? <User className="w-5 h-5" />}
+            </div>
+          )}
+          <span className="flex-1 truncate text-left font-semibold">
+            {recipient?.name ?? "Select recipient"}
+          </span>
+          <NavArrowDown
+            className={cn(
+              "w-5 h-5 ml-auto transition-transform text-primary",
+              showRecipientList ? "rotate-180" : "",
+            )}
+            aria-hidden
+          />
+        </button>
+        {showRecipientList && (
+          <div
+            className="absolute z-30 mt-2 w-full bg-background border border-primary/20 rounded-xl shadow-lg max-h-60 overflow-y-auto animate-fade-in"
+            style={{ left: 0 }}
+          >
+            {recipients.map((r) => (
+              <button
+                key={r.fid}
+                type="button"
+                className={cn(
+                  "flex items-center gap-3 w-full px-4 py-3 font-sora text-base transition focus:bg-primary/10",
+                  recipient?.fid === r.fid
+                    ? "bg-primary/10 font-bold"
+                    : "hover:bg-primary/5",
+                )}
+                onClick={() => {
+                  setRecipient(r);
+                  setShowRecipientList(false);
+                }}
+                disabled={status === "loading"}
+              >
+                {r.pfpUrl ? (
+                  <Image
+                    src={r.pfpUrl}
+                    alt={r.name}
+                    width={28}
+                    height={28}
+                    className="w-7 h-7 rounded-full"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                    {r.name?.[0] ?? <User className="w-5 h-5" />}
+                  </div>
+                )}
+                <span className="flex-1 truncate text-left">{r.name}</span>
+                {recipient?.fid === r.fid && (
+                  <Check className="w-5 h-5 text-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <Drawer open={open} onOpenChange={onClose}>
       <DrawerContent className="glass-card">
@@ -138,59 +243,12 @@ export default function TipModal({
             </div>
             <div className="flex flex-col gap-2">
               <Label>Recipient</Label>
-              <div className="relative">
-                {/* Use shadcn/ui Select properly */}
-
-                {recipients.length > 0 ? (
-                  <Select
-                    value={recipient?.fid.toString() ?? ""}
-                    onValueChange={(val: string) => {
-                      const found = recipients.find(
-                        (r) => r?.fid === Number(val),
-                      );
-                      setRecipient(found ?? null);
-                    }}
-                    disabled={status === "loading"}
-                  >
-                    <SelectTrigger
-                      className={cn(
-                        "w-full border border-primary/30 rounded-xl px-4 py-3 font-sora text-base bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary transition",
-                      )}
-                      aria-label="Select recipient"
-                    />
-                    <SelectContent>
-                      {recipients.map((r) => (
-                        <SelectItem
-                          key={r?.fid}
-                          value={r?.fid?.toString() ?? ""}
-                          className="font-sora text-base"
-                        >
-                          <div className="flex items-center gap-2">
-                            {r?.pfpUrl && (
-                              <Image
-                                src={r?.pfpUrl}
-                                alt={r?.name}
-                                width={24}
-                                height={24}
-                                className="w-6 h-6 rounded-full"
-                              />
-                            )}
-                            <span>{r?.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="text-sm text-primary">
-                    No recipients found.
-                  </div>
-                )}
-              </div>
+              <RecipientSelect />
             </div>
             <div className="text-destructive text-sm font-sora">{error}</div>
             {status === "success" && (
-              <div className="text-green-600 text-sm font-sora">
+              <div className="text-green-600 text-sm font-sora flex items-center gap-2">
+                <Check className="w-4 h-4" />
                 Tip sent successfully!
               </div>
             )}

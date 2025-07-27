@@ -70,7 +70,6 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
 
   // Use the sender's tipping preferences for token and chain
   const tokenAddress = fromUser.tippingPreferences.token;
-  const chainId = fromUser.tippingPreferences.chainId;
 
   // --- Blockchain interaction ---
   const publicClient = await getPublicClient();
