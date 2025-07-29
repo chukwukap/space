@@ -1,7 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { getAddress } from "viem/utils";
 import { getPublicClient, getSpenderWalletClient } from "@/lib/wallet";
 import { Address, erc20Abi, parseUnits } from "viem";
 import prisma from "@/lib/prisma";

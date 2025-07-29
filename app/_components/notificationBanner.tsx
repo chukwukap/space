@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,7 +12,7 @@ export default function NotificationBanner() {
     if (!context) return;
     (async () => {
       const hasToken = await fetch(
-        `/api/notifications?fid=${(context as any).client.fid}`,
+        `/api/notifications?fid=${(context as unknown as { client: { fid: string } }).client.fid}`,
       ).then((r) => r.ok);
       setShow(!hasToken);
     })();
@@ -24,7 +23,9 @@ export default function NotificationBanner() {
   const handleEnable = async () => {
     try {
       const details = await (
-        context as any
+        context as unknown as {
+          client: { notifications: { requestPush: () => Promise<unknown> } };
+        }
       )?.client?.notifications.requestPush();
       if (!details) return;
       await fetch("/api/notifications", {

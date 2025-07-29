@@ -9,6 +9,13 @@ import { MotionProvider } from "./motionProvider";
 import { Toaster } from "sonner";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 
+/**
+ * Providers
+ * Smooth, professional UI for Tipspace.
+ * - Dark/light mode, smooth transitions.
+ * - Mobile-first, no flickering.
+ * - No extra dependencies; just Next.js and Tailwind.
+ */
 export function Providers(props: { children: ReactNode }) {
   return (
     <ThemeProvider>

@@ -12,6 +12,10 @@ import { Address, formatUnits } from "viem";
 import { toBigInt } from "@/lib/utils";
 // Sora font is already set in globals.css
 
+/**
+ * SpendLimit
+ * A component that allows users to approve a spending limit for Tipspace on farcaster.
+ */
 export default function SpendLimit() {
   const { user } = useUser();
 

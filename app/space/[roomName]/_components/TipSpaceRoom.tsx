@@ -38,7 +38,6 @@ import { toast } from "sonner";
 
 import { useLowCPUOptimizer } from "@/app/hooks/usePerfomanceOptimiser";
 import { KeyboardShortcuts } from "@/lib/KeyboardShortcuts";
-import { RecordingIndicator } from "@/lib/RecordingIndicator";
 import { CustomParticipantTile } from "./participantTiile";
 
 import MobileHeader from "@/app/_components/mobileHeader";
@@ -133,7 +132,6 @@ export default function TipSpaceRoom(props: {
         />
         <KeyboardShortcuts />
         <TipSpaceRoomLayout />
-        <RecordingIndicator />
         <RoomAudioRenderer />
       </RoomContext.Provider>
     </div>
