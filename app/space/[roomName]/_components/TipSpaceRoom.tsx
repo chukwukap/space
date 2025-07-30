@@ -327,6 +327,7 @@ export function TipSpaceRoomLayout() {
           fid: speakerMetadata?.fcContext?.farcasterUser.fid ?? null,
           name,
           pfpUrl: speakerMetadata?.fcContext?.farcasterUser.pfpUrl,
+          address: speakerMetadata?.fcContext?.farcasterUser.address,
         };
       })
       .filter(

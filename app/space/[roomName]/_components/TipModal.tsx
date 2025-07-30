@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Drawer,
   DrawerContent,
@@ -8,14 +8,14 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { TipRecipient } from "@/lib/types";
-import { sendTipAction } from "@/actions/tip";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { NavArrowDown, Check, User, Xmark } from "iconoir-react";
+import { pay } from "@base-org/account";
+import { BasePayButton } from "@base-org/account-ui/react";
 
 /**
  * TipModalProps defines the props for the TipModal component.
@@ -36,10 +36,8 @@ export default function TipModal({
   onClose,
   recipients,
   onTipSuccess,
-  senderFid,
-  spaceId,
 }: TipModalProps) {
-  const [amount, setAmount] = useState(0);
+  const [amount, setAmount] = useState<number | "">(0);
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -48,6 +46,7 @@ export default function TipModal({
     recipients.length > 0 ? recipients[0] : null,
   );
   const [showRecipientList, setShowRecipientList] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string>("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -65,27 +64,48 @@ export default function TipModal({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showRecipientList]);
 
-  /**
-   * Handles the tip action, integrating the server action for tipping.
-   * Security: Ensures the connected wallet matches the tipperWalletAddress.
-   */
-  const handleTip = async () => {
-    if (!recipient) return;
+  // One-tap USDC payment using the pay() function
+  const handlePayment = async () => {
+    if (!recipient) {
+      setError("Please select a recipient.");
+      return;
+    }
+    if (!amount || Number(amount) <= 0) {
+      setError("Please enter a valid amount.");
+      return;
+    }
     setStatus("loading");
     setError(null);
+    setPaymentStatus("");
     try {
-      if (!senderFid) return;
-      // Call the server action to send the tip
-      const res = await sendTipAction({
-        senderFid,
-        recipientFid: recipient.fid,
-        amount,
-        spaceId,
+      // You must provide the recipient's address here.
+      // We'll assume recipient.address exists and is a valid EVM address.
+      if (!recipient.address) {
+        setStatus("error");
+        setError("Recipient does not have a valid address.");
+        return;
+      }
+      // Amount must be a string in USD (e.g. "0.01")
+      const { success } = await pay({
+        amount: String(amount),
+        to: recipient.address,
+        testnet:
+          process.env.NEXT_PUBLIC_BASEPAY_TESTNET === "true" ? true : false,
+        payerInfo: {
+          callbackURL: "https://tipspace.xyz/api/payer-info",
+          requests: [
+            {
+              type: "email",
+              optional: true,
+            },
+          ],
+        },
       });
-
-      if (res.ok) {
+      if (success) {
+        setPaymentStatus(
+          'Payment initiated! Click "Check Status" to see the result.',
+        );
         setStatus("success");
-        toast.success("Tip sent successfully!");
         if (onTipSuccess) onTipSuccess();
         setTimeout(() => {
           setStatus("idle");
@@ -94,18 +114,17 @@ export default function TipModal({
         }, 1200);
       } else {
         setStatus("error");
-        setError(res.error || "Failed to send tip.");
-        toast.error(res.error || "Failed to send tip.");
+        setError("Payment failed: No transaction ID returned.");
+        setPaymentStatus("Payment failed");
       }
-    } catch (err: unknown) {
-      setStatus("error");
-      if (err instanceof Error) {
-        setError(err.message);
-        toast.error(err.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message);
       } else {
-        setError("Unknown error");
-        toast.error("Unknown error");
+        setError("An unknown error occurred");
       }
+      setStatus("error");
+      setPaymentStatus("Payment failed");
     }
   };
 
@@ -219,15 +238,21 @@ export default function TipModal({
               <div className="flex items-center gap-2">
                 <Input
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  inputMode="decimal"
+                  pattern="[0-9.]*"
                   className={cn(
                     "w-full rounded-lg border border-input bg-background px-3 py-2 text-lg font-semibold text-center outline-none focus:ring-2 focus:ring-primary transition",
                     "placeholder:text-muted-foreground",
                   )}
                   placeholder="0"
                   value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
+                  onChange={(e) => {
+                    // Only allow numbers and decimals
+                    const val = e.target.value;
+                    if (/^\d*\.?\d*$/.test(val)) {
+                      setAmount(val === "" ? "" : Number(val));
+                    }
+                  }}
                   aria-label="Tip amount"
                   disabled={status === "loading"}
                   style={{ fontFamily: "Sora, sans-serif" }}
@@ -257,8 +282,13 @@ export default function TipModal({
                 Tip sent!
               </div>
             )}
+            {paymentStatus && (
+              <div className="text-xs font-sora flex items-center gap-2 bg-muted/40 rounded px-2 py-1">
+                {paymentStatus}
+              </div>
+            )}
           </div>
-          <DrawerFooter className="flex flex-row gap-2 mt-2 px-0">
+          <DrawerFooter className="flex flex-row gap-2 mt-2 px-0 justify-center items-center">
             <Button
               variant="ghost"
               onClick={onClose}
@@ -267,48 +297,7 @@ export default function TipModal({
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleTip}
-              disabled={
-                status === "loading" || !amount || amount <= 0 || !recipient
-              }
-              className="flex-1 text-sm font-bold min-w-0 px-2"
-              style={{
-                maxWidth: "100%",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.25rem",
-              }}
-            >
-              {status === "loading" ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin inline-block w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
-                  Sending...
-                </span>
-              ) : (
-                <>
-                  <span>Tip</span>
-                  {recipient?.name && (
-                    <span
-                      className="truncate max-w-[7.5rem] text-ellipsis"
-                      style={{
-                        display: "inline-block",
-                        verticalAlign: "bottom",
-                        overflow: "hidden",
-                        whiteSpace: "nowrap",
-                        maxWidth: "7.5rem",
-                      }}
-                    >
-                      {recipient.name}
-                    </span>
-                  )}
-                </>
-              )}
-            </Button>
+            <BasePayButton colorScheme="light" onClick={handlePayment} />
           </DrawerFooter>
         </div>
       </DrawerContent>
