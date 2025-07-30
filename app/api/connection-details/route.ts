@@ -1,23 +1,26 @@
 import { randomString } from "@/lib/client-utils";
 import { getLiveKitURL } from "@/lib/getLiveKitURL";
 import { ConnectionDetails, ParticipantMetadata } from "@/lib/types";
+import { NextRequest, NextResponse } from "next/server";
+import { Role } from "@/lib/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
 import {
   AccessToken,
   AccessTokenOptions,
   TrackSource,
   VideoGrant,
 } from "livekit-server-sdk";
-import { NextRequest, NextResponse } from "next/server";
-// Use generated Prisma client
-import { Role } from "@/lib/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
 
-const API_KEY = process.env.LIVEKIT_API_KEY;
-const API_SECRET = process.env.LIVEKIT_API_SECRET;
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
 
 const COOKIE_KEY = "random-participant-postfix";
 
+/**
+ * API Route: /api/connection-details
+ * Returns LiveKit connection details for a participant, ensuring user/space/participant security.
+ */
 export async function GET(request: NextRequest) {
   try {
     // Parse query parameters
@@ -34,7 +37,7 @@ export async function GET(request: NextRequest) {
       ? getLiveKitURL(LIVEKIT_URL, region)
       : LIVEKIT_URL;
     let randomParticipantPostfix = request.cookies.get(COOKIE_KEY)?.value;
-    if (livekitServerUrl === undefined) {
+    if (!livekitServerUrl) {
       throw new Error("Invalid region");
     }
 
@@ -55,7 +58,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Parse metadata and extract fid/address if present
+    // Parse metadata and extract address if present
     let parsedMetadata: ParticipantMetadata;
     try {
       parsedMetadata = JSON.parse(metadata);
@@ -65,25 +68,18 @@ export async function GET(request: NextRequest) {
 
     // Security: Only allow known users to join or create spaces
     let user;
-    if (parsedMetadata.fcContext.farcasterUser.fid) {
+    if (parsedMetadata.address) {
       user = await prisma.user.findUnique({
-        where: { fid: parsedMetadata.fcContext.farcasterUser.fid },
-      });
-    } else if (parsedMetadata.fcContext.farcasterUser.address) {
-      user = await prisma.user.findFirst({
-        where: { address: parsedMetadata.fcContext.farcasterUser.address },
-      });
-    } else if (parsedMetadata.fcContext.farcasterUser.username) {
-      user = await prisma.user.findFirst({
-        where: { username: parsedMetadata.fcContext.farcasterUser.username },
+        where: { address: parsedMetadata.address },
       });
     }
+
     if (!user) {
       return new NextResponse("User not found in database", { status: 403 });
     }
 
     let space;
-    let effectiveIsHost = isHost; // This will be used for token and metadata
+    let effectiveIsHost = isHost;
 
     if (isHost) {
       // Host: Create the space if it doesn't exist, else do not overwrite host
@@ -112,9 +108,9 @@ export async function GET(request: NextRequest) {
         // Ensure host is a participant in the space
         await prisma.participant.upsert({
           where: {
-            spaceId_fid: {
+            spaceId_address: {
               spaceId: space.id,
-              fid: user.fid!,
+              address: user.address,
             },
           },
           update: {
@@ -122,7 +118,7 @@ export async function GET(request: NextRequest) {
           },
           create: {
             spaceId: space.id,
-            fid: user.fid!,
+            address: user.address,
             role: Role.HOST,
           },
         });
@@ -133,9 +129,9 @@ export async function GET(request: NextRequest) {
           // User is the host, ensure participant role is HOST
           await prisma.participant.upsert({
             where: {
-              spaceId_fid: {
+              spaceId_address: {
                 spaceId: space.id,
-                fid: user.fid!,
+                address: user.address,
               },
             },
             update: {
@@ -143,7 +139,7 @@ export async function GET(request: NextRequest) {
             },
             create: {
               spaceId: space.id,
-              fid: user.fid!,
+              address: user.address,
               role: Role.HOST,
             },
           });
@@ -153,15 +149,15 @@ export async function GET(request: NextRequest) {
           // Ensure user is a participant (add if not present) as LISTENER
           await prisma.participant.upsert({
             where: {
-              spaceId_fid: {
+              spaceId_address: {
                 spaceId: space.id,
-                fid: user.fid!,
+                address: user.address,
               },
             },
             update: {},
             create: {
               spaceId: space.id,
-              fid: user.fid!,
+              address: user.address,
               role: Role.LISTENER,
             },
           });
@@ -179,15 +175,15 @@ export async function GET(request: NextRequest) {
       // Ensure user is a participant (add if not present)
       await prisma.participant.upsert({
         where: {
-          spaceId_fid: {
+          spaceId_address: {
             spaceId: space.id,
-            fid: user.fid!,
+            address: user.address,
           },
         },
         update: {},
         create: {
           spaceId: space.id,
-          fid: user.fid!,
+          address: user.address,
           role: Role.LISTENER,
         },
       });
@@ -202,7 +198,7 @@ export async function GET(request: NextRequest) {
       title: space.title,
     };
 
-    // Generate participant token
+    // Generate participant token using minikit's LiveKit wrapper
     if (!randomParticipantPostfix) {
       randomParticipantPostfix = randomString(4);
     }
@@ -253,7 +249,7 @@ function createParticipantToken(
   roomName: string,
   host: boolean,
 ) {
-  const at = new AccessToken(API_KEY, API_SECRET, userInfo);
+  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, userInfo);
   at.ttl = "5m";
   const grant: VideoGrant = {
     room: roomName,

@@ -5,12 +5,15 @@ import { getPublicClient, getSpenderWalletClient } from "@/lib/wallet";
 import { Address, erc20Abi, parseUnits } from "viem";
 import prisma from "@/lib/prisma";
 
-// --- Zod schema for input validation ---
+/**
+ * Zod schema for input validation.
+ * senderAddress and recipientAddress are required, as we no longer use Farcaster FIDs.
+ */
 const tipSchema = z.object({
-  senderFid: z.number().int().positive(),
-  recipientFid: z.number().int().positive(),
+  senderAddress: z.string().min(1, "Sender address required"),
+  recipientAddress: z.string().min(1, "Recipient address required"),
   amount: z.number().refine((val) => val > 0, "Amount must be positive"),
-  spaceId: z.string().min(1),
+  spaceId: z.string().min(1, "Space ID required"),
 });
 
 /**
@@ -25,21 +28,21 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.message };
   }
-  const { senderFid, recipientFid, amount, spaceId } = parsed.data;
+  const { senderAddress, recipientAddress, amount, spaceId } = parsed.data;
 
   // Security: Check for self-tipping
-  if (senderFid === recipientFid) {
+  if (senderAddress.toLowerCase() === recipientAddress.toLowerCase()) {
     return { ok: false, error: "You cannot tip yourself." };
   }
 
-  // Fetch users by fid from the database, including their addresses and tipping preferences
+  // Fetch users by address from the database, including their tipping preferences
   const [fromUser, toUser] = await Promise.all([
     prisma.user.findUnique({
-      where: { fid: senderFid },
+      where: { address: senderAddress.toLowerCase() },
       include: { tippingPreferences: true },
     }),
     prisma.user.findUnique({
-      where: { fid: recipientFid },
+      where: { address: recipientAddress.toLowerCase() },
       include: { tippingPreferences: true },
     }),
   ]);
@@ -53,7 +56,7 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
     return { ok: false, error: "Minimum tip is 0.01." };
   }
 
-  // Security: Check for valid addresses
+  // Security: Check for valid addresses and tipping preferences
   if (
     !fromUser.address ||
     !toUser.address ||
@@ -140,8 +143,8 @@ export async function sendTipAction(input: z.infer<typeof tipSchema>) {
     const tip = await prisma.tip.create({
       data: {
         spaceId,
-        fromFid: senderFid,
-        toFid: recipientFid,
+        fromAddress: fromUser.address,
+        toAddress: toUser.address,
         amount: amount,
         tokenSymbol,
         txHash: txHash2!, // The final transfer to tippee

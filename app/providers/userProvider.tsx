@@ -1,8 +1,7 @@
 "use client";
 import { createContext, useContext, ReactNode } from "react";
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
-import { FCContext, UserWithRelations } from "@/lib/types";
+import { UserWithRelations } from "@/lib/types";
 import { useCurrentUser } from "@/app/hooks/useCurrentUser";
 import { useFarcasterOnboard } from "@/app/hooks/useFarcasterOnboard";
 import { useWalletSync } from "@/app/hooks/useWalletSync";
@@ -18,7 +17,6 @@ import { useWalletSync } from "@/app/hooks/useWalletSync";
  */
 interface UserContextType {
   user: UserWithRelations | null;
-  farcasterContext: FCContext | null;
   userLoading: boolean;
   userError: string | null;
   refreshUser: () => Promise<void>;
@@ -37,7 +35,6 @@ const UserContext = createContext<UserContextType>({
   user: null,
   userLoading: false,
   userError: null,
-  farcasterContext: null,
   refreshUser: async () => {},
 });
 
@@ -51,17 +48,14 @@ const UserContext = createContext<UserContextType>({
  * - refreshUser: A function to refresh the user.
  */
 export function UserProvider({ children }: { children: ReactNode }) {
-  const { context } = useMiniKit();
   const { address } = useAccount();
 
   const {
     user,
     userLoading,
-    farcasterContext,
     userError,
     refreshUser: swrRefresh,
   } = useCurrentUser({
-    context: context ?? null,
     address: address ?? null,
   });
 
@@ -70,8 +64,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   useFarcasterOnboard({
-    user,
-    farcasterContext,
+    address: address ?? null,
+    user: user ?? null,
     mutate: refreshUser,
   });
   useWalletSync({ user, walletAddress: address ?? null, mutate: refreshUser });
@@ -82,7 +76,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         user,
         userLoading,
         userError,
-        farcasterContext,
         refreshUser,
       }}
     >

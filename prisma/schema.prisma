@@ -35,21 +35,19 @@ enum ReactionType {
 }
 
 model User {
-  id                             Int                 @id @default(autoincrement())
-  farcasterClientIdOnboardedFrom Int?
-  fid                            Int?                @unique
-  address                        String?
-  displayName                    String?
-  username                       String? // @handle
-  avatarUrl                      String?
-  createdAt                      DateTime            @default(now())
-  tippingPreferences             TippingPreferences? // 1:1 relation
+  id                 Int                 @id @default(autoincrement())
+  address            String              @unique
+  displayName        String?
+  username           String? // @handle
+  avatarUrl          String?
+  createdAt          DateTime            @default(now())
+  tippingPreferences TippingPreferences? // 1:1 relation
   // Relations
-  hostedSpaces                   Space[]             @relation("HostedSpaces")
-  participants                   Participant[]
-  tipsSent                       Tip[]               @relation("tipsSent")
-  tipsReceived                   Tip[]               @relation("tipsReceived")
-  reactions                      Reaction[]
+  hostedSpaces       Space[]             @relation("HostedSpaces")
+  participants       Participant[]
+  tipsSent           Tip[]               @relation("tipsSent")
+  tipsReceived       Tip[]               @relation("tipsReceived")
+  reactions          Reaction[]
 }
 
 model TippingPreferences {
@@ -97,25 +95,25 @@ model Space {
 model Participant {
   id       String    @id @default(uuid())
   spaceId  String
-  fid      Int
+  address  String
   role     Role
   joinedAt DateTime  @default(now())
   leftAt   DateTime?
 
   // Relations
   space Space @relation(fields: [spaceId], references: [id])
-  user  User  @relation(fields: [fid], references: [fid])
+  user  User  @relation(fields: [address], references: [address])
 
-  @@unique([spaceId, fid])
+  @@unique([spaceId, address])
   @@index([spaceId])
-  @@index([fid])
+  @@index([address])
 }
 
 model Tip {
   id          String   @id @default(uuid())
   spaceId     String
-  fromFid     Int
-  toFid       Int
+  fromAddress String
+  toAddress   String
   amount      Decimal  @db.Decimal(18, 6)
   tokenSymbol String // e.g. "USDC", "ETH"
   txHash      String   @unique
@@ -123,13 +121,13 @@ model Tip {
 
   // Relations
   space    Space     @relation(fields: [spaceId], references: [id])
-  from     User      @relation("tipsSent", fields: [fromFid], references: [fid])
-  to       User      @relation("tipsReceived", fields: [toFid], references: [fid])
+  from     User      @relation("tipsSent", fields: [fromAddress], references: [address])
+  to       User      @relation("tipsReceived", fields: [toAddress], references: [address])
   reaction Reaction?
 
   @@index([spaceId])
-  @@index([fromFid])
-  @@index([toFid])
+  @@index([fromAddress])
+  @@index([toAddress])
 }
 
 model Reaction {

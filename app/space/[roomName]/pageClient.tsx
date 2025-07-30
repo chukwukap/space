@@ -3,9 +3,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { LocalUserChoices } from "@livekit/components-react";
 import { useUser } from "@/app/providers/userProvider";
-import { ConnectionDetails, FCContext, ParticipantMetadata } from "@/lib/types";
+import { ConnectionDetails, ParticipantMetadata } from "@/lib/types";
 import TipSpaceRoom from "./_components/TipSpaceRoom";
 import { Button } from "@/components/ui/button";
+import { Address } from "viem";
+import { useConnect } from "wagmi";
 
 /**
  * This page is tightly coupled to the /api/connection-details route.
@@ -15,13 +17,13 @@ import { Button } from "@/components/ui/button";
 
 // Helper: Build a valid ParticipantMetadata object, filling required fields
 function buildParticipantMetadata(
-  farcasterContext: FCContext | null,
+  address: Address | null,
   isHost: boolean,
   title?: string,
 ): ParticipantMetadata | null {
-  if (!farcasterContext) return null;
+  if (!address) return null;
   return {
-    fcContext: farcasterContext,
+    address,
     isHost,
     title,
     // TODO: add identity on the backend
@@ -36,7 +38,8 @@ export default function PageClientImpl(props: {
   title?: string;
   host?: boolean;
 }) {
-  const { farcasterContext } = useUser();
+  const { user } = useUser();
+  const { connect, connectors, isPending: isConnecting } = useConnect();
 
   // State for connection details and loading/error
   const [connectionDetails, setConnectionDetails] =
@@ -47,17 +50,19 @@ export default function PageClientImpl(props: {
   // Prepare pre-join choices for LiveKit
   const preJoinChoices = useMemo(() => {
     return {
-      username:
-        farcasterContext?.farcasterUser?.username ||
-        farcasterContext?.farcasterUser?.displayName ||
-        "Guest",
+      username: user?.username || user?.displayName || "Guest",
       videoEnabled: false,
       audioEnabled: true,
     } as LocalUserChoices;
-  }, [farcasterContext]);
+  }, [user]);
 
   // Handles join/host action, fetches connection details securely
   const handlePreJoin = useCallback(async () => {
+    // If hosting, require user to be connected
+    if (props.host && (!user || !user.address)) {
+      setError("Please connect your wallet to host a space.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -65,15 +70,13 @@ export default function PageClientImpl(props: {
       url.searchParams.append("roomName", props.roomName);
       url.searchParams.append(
         "participantName",
-        farcasterContext?.farcasterUser?.username ||
-          farcasterContext?.farcasterUser?.displayName?.replace(/ /g, "_") ||
-          "Guest",
+        user?.username || user?.displayName?.replace(/ /g, "_") || "Guest",
       );
       url.searchParams.append(
         "metadata",
         JSON.stringify(
           buildParticipantMetadata(
-            farcasterContext,
+            user?.address as Address | null,
             props.host ?? false,
             props.title,
           ),
@@ -97,14 +100,14 @@ export default function PageClientImpl(props: {
     } finally {
       setLoading(false);
     }
-  }, [props.roomName, props.region, farcasterContext, props.host, props.title]);
+  }, [props.roomName, props.region, user, props.host, props.title]);
 
   // Auto-join if user is host and all required info is present
   useEffect(() => {
     if (
       props.host &&
       props.title &&
-      farcasterContext &&
+      user &&
       !connectionDetails &&
       !loading &&
       !error
@@ -112,7 +115,7 @@ export default function PageClientImpl(props: {
       handlePreJoin();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.host, props.title, farcasterContext]);
+  }, [props.host, props.title, user]);
 
   // UI: Show join/host, loading, error, or the room
   return (
@@ -130,20 +133,37 @@ export default function PageClientImpl(props: {
               {error}
             </div>
           )}
-          <Button
-            onClick={handlePreJoin}
-            disabled={loading}
-            className="w-32"
-            aria-busy={loading}
-          >
-            {loading
-              ? props.host
-                ? "Creating..."
-                : "Joining..."
-              : props.host
-                ? "Host Space"
-                : "Start Listening"}
-          </Button>
+          {props.host && (!user || !user.address) ? (
+            <Button
+              onClick={() => {
+                // Use the first available connector for simplicity
+                if (connectors && connectors.length > 0) {
+                  connect({ connector: connectors[0] });
+                }
+              }}
+              className="w-32"
+              aria-busy={isConnecting}
+              data-testid="connect-wallet-btn"
+              disabled={isConnecting}
+            >
+              {isConnecting ? "Connecting..." : "Connect to Host"}
+            </Button>
+          ) : (
+            <Button
+              onClick={handlePreJoin}
+              disabled={loading}
+              className="w-32"
+              aria-busy={loading}
+            >
+              {loading
+                ? props.host
+                  ? "Creating..."
+                  : "Joining..."
+                : props.host
+                  ? "Host Space"
+                  : "Start Listening"}
+            </Button>
+          )}
         </div>
       ) : (
         <TipSpaceRoom

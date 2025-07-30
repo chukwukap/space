@@ -16,10 +16,11 @@ import { cn } from "@/lib/utils";
 import { NavArrowDown, Check, User, Xmark } from "iconoir-react";
 import { pay } from "@base-org/account";
 import { BasePayButton } from "@base-org/account-ui/react";
+import { Address } from "viem";
 
 /**
  * TipModalProps defines the props for the TipModal component.
- * - userFid: tipper's Farcaster fid
+ * - senderAddress: tipper's address
  * - spaceId: string, e.g. LiveKit room id
  */
 interface TipModalProps {
@@ -27,7 +28,7 @@ interface TipModalProps {
   onClose: () => void;
   recipients: TipRecipient[];
   onTipSuccess?: () => void;
-  senderFid: number | undefined;
+  senderAddress: Address | null;
   spaceId: string;
 }
 
@@ -141,9 +142,9 @@ export default function TipModal({
           onClick={() => setShowRecipientList((v) => !v)}
           disabled={status === "loading"}
         >
-          {recipient?.pfpUrl ? (
+          {recipient?.address ? (
             <Image
-              src={recipient.pfpUrl}
+              src={`https://avatar.tobi.sh/${recipient.address}`}
               alt={recipient.name}
               width={28}
               height={28}
@@ -172,11 +173,11 @@ export default function TipModal({
           >
             {recipients.map((r) => (
               <button
-                key={r.fid}
+                key={r.address}
                 type="button"
                 className={cn(
                   "flex items-center gap-3 w-full px-3 py-2 font-sora text-base transition focus:bg-primary/10",
-                  recipient?.fid === r.fid
+                  recipient?.address === r.address
                     ? "bg-primary/10"
                     : "hover:bg-primary/5",
                 )}
@@ -186,9 +187,9 @@ export default function TipModal({
                 }}
                 disabled={status === "loading"}
               >
-                {r.pfpUrl ? (
+                {r.address ? (
                   <Image
-                    src={r.pfpUrl}
+                    src={`https://avatar.tobi.sh/${r.address}`}
                     alt={r.name}
                     width={28}
                     height={28}
@@ -200,7 +201,7 @@ export default function TipModal({
                   </div>
                 )}
                 <span className="flex-1 truncate text-left">{r.name}</span>
-                {recipient?.fid === r.fid && (
+                {recipient?.address === r.address && (
                   <Check className="w-5 h-5 text-primary" />
                 )}
               </button>

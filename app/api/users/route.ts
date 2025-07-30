@@ -16,34 +16,39 @@ function sanitizeString(value: unknown): string | undefined {
 /* ------------------------------------------------------------------ */
 /* GET /api/user                                                      */
 /* ------------------------------------------------------------------ */
-// Query params supported: id, fid, address, username
+// Query params supported: id, address, username
 export async function GET(req: NextRequest) {
   try {
     const params = req.nextUrl.searchParams;
     const id = sanitizeString(params.get("id"));
-    const fid = sanitizeString(params.get("fid"));
     const address = sanitizeString(params.get("address"));
     const username = sanitizeString(params.get("username"));
 
     // Log all query param values
     console.log("[GET /api/user] Query Params:", {
       id,
-      fid,
       address,
       username,
     });
 
-    if (!id && !fid && !address && !username) {
+    if (!id && !address && !username) {
       console.log("[GET /api/user] No identifier provided");
       return NextResponse.json(
-        { error: "Provide one of id, fid, address or username" },
+        { error: "Provide one of id, address or username" },
         { status: 400 },
       );
     }
 
+    if (address) {
+      prisma.user.upsert({
+        where: { address: address },
+        update: { address: address },
+        create: { address: address },
+      });
+    }
+
     const ors: Prisma.UserWhereInput[] = [];
     if (id) ors.push({ id: Number(id) });
-    if (fid) ors.push({ fid: Number(fid) });
     if (address) ors.push({ address: address });
     if (username)
       ors.push({
@@ -86,29 +91,21 @@ export async function GET(req: NextRequest) {
 /* ------------------------------------------------------------------ */
 /* POST /api/user                                                     */
 /* ------------------------------------------------------------------ */
-// Upsert user. Accepts: fid, address, username, avatarUrl, displayName
+// Upsert user. Accepts: address, username, avatarUrl, displayName
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      fid,
-      address,
-      username,
-      pfpUrl,
-      displayName,
-      farcasterClientIdOnboardedFrom,
-    } = body;
+    const { address, username, pfpUrl, displayName } = body;
 
     // Log all incoming POST body values
     console.log("[POST /api/user] Body:", {
-      fid,
       address,
       username,
       pfpUrl,
       displayName,
     });
 
-    if (!fid && !address && !username) {
+    if (!address && !username) {
       console.log("[POST /api/user] No unique identifier provided");
       return NextResponse.json(
         {
@@ -120,7 +117,6 @@ export async function POST(req: NextRequest) {
     }
 
     const ors2: Prisma.UserWhereInput[] = [];
-    if (fid) ors2.push({ fid: Number(fid) });
     if (address) ors2.push({ address });
     if (username)
       ors2.push({
@@ -161,11 +157,8 @@ export async function POST(req: NextRequest) {
     } else {
       user = await prisma.user.create({
         data: {
-          fid: Number(fid),
           address: address,
           username: username,
-          farcasterClientIdOnboardedFrom:
-            farcasterClientIdOnboardedFrom ?? null,
           displayName: sanitizeString(displayName),
           avatarUrl: sanitizeString(pfpUrl),
         },

@@ -170,9 +170,9 @@ export const CustomParticipantTile = forwardRef<
         }`}
         tabIndex={0}
       >
-        {participantMetadata?.fcContext?.farcasterUser?.pfpUrl && (
+        {participantMetadata?.address && (
           <Image
-            src={participantMetadata?.fcContext?.farcasterUser?.pfpUrl}
+            src={`https://avatar.tobi.sh/${participantMetadata?.address}`}
             alt={p?.identity ?? "Participant"}
             className="object-cover w-full h-full rounded-full"
             width={64}

@@ -42,6 +42,7 @@ import { CustomParticipantTile } from "./participantTiile";
 
 import MobileHeader from "@/app/_components/mobileHeader";
 import PendingRequestToSpeak from "./pendingRequestToSpeak";
+import { Address } from "viem";
 
 /**
  * ReactionMap: { [participantSid]: { emoji: string, timestamp: number } }
@@ -314,9 +315,7 @@ export function TipSpaceRoomLayout() {
         const speakerMetadata: ParticipantMetadata = JSON.parse(
           s.metadata ?? "{}",
         ) as ParticipantMetadata;
-        const name =
-          speakerMetadata?.fcContext?.farcasterUser.displayName ||
-          `Speaker ${s.name}`;
+        const name = speakerMetadata?.address || `Speaker ${s.name}`;
         console.log("[TipSpaceRoomLayout] s", s);
         console.log(
           "[TipSpaceRoomLayout] speakerMetadata",
@@ -324,15 +323,13 @@ export function TipSpaceRoomLayout() {
           s.metadata,
         );
         return {
-          fid: speakerMetadata?.fcContext?.farcasterUser.fid ?? null,
           name,
-          pfpUrl: speakerMetadata?.fcContext?.farcasterUser.pfpUrl,
-          address: speakerMetadata?.fcContext?.farcasterUser.address,
+          address: speakerMetadata?.address,
         };
       })
       .filter(
-        (r) => r.fid,
-        // r.fid !== localParticipantMetadata?.fcContext?.farcasterUser.fid,
+        (r) => r.address,
+        // r.address !== localParticipantMetadata?.address,
       );
     console.log("[TipSpaceRoomLayout] recipients", recipients);
     return recipients;
@@ -447,7 +444,7 @@ export function TipSpaceRoomLayout() {
           open={tipModalOpen}
           onClose={() => setTipModalOpen(false)}
           recipients={recipients}
-          senderFid={user?.fid ?? undefined}
+          senderAddress={user?.address as Address | null}
           onTipSuccess={() => {
             setTipModalOpen(false);
             if (toast) toast.success("Tip sent!");

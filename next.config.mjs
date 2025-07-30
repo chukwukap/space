@@ -10,7 +10,13 @@ const nextConfig = {
   images: {
     remotePatterns: [
       {
+        hostname: "avatar.tobi.sh",
+      },
+      {
         hostname: "imagedelivery.net",
+      },
+      {
+        hostname: "api.dicebear.com",
       },
     ],
   },

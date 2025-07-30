@@ -1,22 +1,19 @@
 import { useEffect, useRef } from "react";
-import { FCContext, UserWithRelations } from "@/lib/types";
+import { UserWithRelations } from "@/lib/types";
+import { Address } from "viem";
 
 interface Params {
   user: UserWithRelations | null;
-  farcasterContext: FCContext | null;
+  address: Address | null;
   mutate: () => Promise<void> | void;
 }
 
-export function useFarcasterOnboard({
-  user,
-  farcasterContext,
-  mutate,
-}: Params) {
+export function useFarcasterOnboard({ user, address, mutate }: Params) {
   const postedRef = useRef(false);
 
   useEffect(() => {
     if (postedRef.current) return;
-    if (!farcasterContext) return; // user not logged in
+    if (!address) return; // user not logged in
 
     if (user) return; // already onboarded
 
@@ -26,13 +23,8 @@ export function useFarcasterOnboard({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            fid: farcasterContext.farcasterUser.fid,
-            username: farcasterContext.farcasterUser.username ?? null,
-            pfpUrl: farcasterContext.farcasterUser.pfpUrl ?? null,
-            address: farcasterContext?.farcasterUser.address ?? null,
-            displayName: farcasterContext.farcasterUser.displayName ?? null,
-            farcasterClientIdOnboardedFrom:
-              farcasterContext.farcasterClient.clientFid,
+            username: address,
+            address: address,
           }),
         });
         postedRef.current = true;
@@ -41,5 +33,5 @@ export function useFarcasterOnboard({
         console.error("[useFarcasterOnboard] error", err);
       }
     })();
-  }, [farcasterContext, user, mutate]);
+  }, [address, user, mutate]);
 }

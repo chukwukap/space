@@ -1,6 +1,5 @@
-import { Address } from "viem";
+import { type Address } from "viem";
 import { Prisma, ReactionType } from "@/lib/generated/prisma";
-import { Context } from "@farcaster/frame-sdk";
 import { Room } from "livekit-server-sdk";
 
 export type UserWithRelations = Prisma.UserGetPayload<{
@@ -20,18 +19,8 @@ export type TipPreference = {
   allowance: bigint;
 };
 
-export type FCContext = {
-  farcasterUser: Context.UserContext & {
-    address: string;
-  };
-  farcasterClient: {
-    clientFid: number;
-    added: boolean;
-  };
-};
-
 export type ParticipantMetadata = {
-  fcContext: FCContext;
+  address: Address;
   isHost?: boolean;
   title?: string;
   identity?: string;
@@ -124,10 +113,8 @@ export type SpendPermissionWithSignature = {
 };
 
 export type TipRecipient = {
-  fid: number;
   name: string;
-  address: string;
-  pfpUrl?: string;
+  address: Address;
 };
 
 export type Tip = {

@@ -11,27 +11,25 @@ function sanitizeString(value: unknown): string | undefined {
 
 /**
  * GET /api/users/[id]
- * Supports lookup by id, fid, or username via query params (?id=, ?fid=, ?username=)
+ * Supports lookup by id or username via query params (?id=, ?username=)
  */
 export async function GET(req: NextRequest) {
   try {
     const params = req.nextUrl.searchParams;
     const id = sanitizeString(params.get("id"));
-    const fid = sanitizeString(params.get("fid"));
     const username = sanitizeString(params.get("username"));
 
-    if (!id && !fid && !username) {
+    if (!id && !username) {
       return NextResponse.json(
-        { error: "Provide one of id, fid, or username" },
+        { error: "Provide one of id or username" },
         { status: 400 },
       );
     }
 
-    // Build OR query for id, fid, or username
+    // Build OR query for id or username
     const ors: Prisma.UserWhereInput[] = [];
 
     if (id) ors.push({ id: Number(id) });
-    if (fid) ors.push({ fid: Number(fid) });
     if (username)
       ors.push({
         username: {
@@ -66,29 +64,27 @@ export async function GET(req: NextRequest) {
 
 /**
  * PATCH /api/users/[id]
- * Allows updating user by id, fid, or username (must provide at least one as query param)
+ * Allows updating user by id or username (must provide at least one as query param)
  * Accepts: address, avatarUrl, displayName, username in body
  */
 export async function PATCH(req: NextRequest) {
   try {
     const params = req.nextUrl.searchParams;
     const id = sanitizeString(params.get("id"));
-    const fid = sanitizeString(params.get("fid"));
     const usernameParam = sanitizeString(params.get("username"));
     const body = await req.json();
     const { address, avatarUrl, displayName, username } = body;
 
-    if (!id && !fid && !usernameParam) {
+    if (!id && !usernameParam) {
       return NextResponse.json(
-        { error: "Provide one of id, fid, or username as query param" },
+        { error: "Provide one of id or username as query param" },
         { status: 400 },
       );
     }
 
-    // Build OR query for id, fid, or username
+    // Build OR query for id or username
     const ors: Prisma.UserWhereInput[] = [];
     if (id) ors.push({ id: Number(id) });
-    if (fid) ors.push({ fid: Number(fid) });
     if (usernameParam)
       ors.push({
         username: {
