@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useAccount, useConnect } from "wagmi";
 
 /**
  * Prefab: SpacePreviewDrawer
@@ -31,11 +32,19 @@ function SpacePreviewDrawer({
   onOpenChange,
   space,
   onStartListening,
+  isConnected,
+  connect,
+  connectors,
+  isConnecting,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   space: RoomWithMetadata | null;
   onStartListening: (space: RoomWithMetadata) => void;
+  isConnected: boolean;
+  connect: ReturnType<typeof useConnect>["connect"];
+  connectors: ReturnType<typeof useConnect>["connectors"];
+  isConnecting: boolean;
 }) {
   if (!space) return null;
 
@@ -45,6 +54,19 @@ function SpacePreviewDrawer({
     space.metadata.host.avatarUrl ||
     "https://api.dicebear.com/7.x/shapes/svg?seed=" +
       encodeURIComponent(hostName);
+
+  // Handler for "Start Listening" button
+  const handleStartListeningClick = () => {
+    if (!isConnected) {
+      // Call connect from wagmi as soon as possible
+      if (connectors && connectors.length > 0) {
+        connect({ connector: connectors[0] });
+      }
+      return;
+    }
+    onOpenChange(false);
+    onStartListening(space);
+  };
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -98,13 +120,15 @@ function SpacePreviewDrawer({
         <DrawerFooter>
           <Button
             className="w-full text-lg py-3 rounded-full bg-primary text-primary-foreground font-bold shadow-lg"
-            onClick={() => {
-              onOpenChange(false);
-              onStartListening(space);
-            }}
+            onClick={handleStartListeningClick}
             aria-label="Start listening"
+            disabled={isConnecting}
           >
-            Start Listening
+            {isConnected
+              ? "Start Listening"
+              : isConnecting
+                ? "Connecting..."
+                : "Connect to Listen"}
           </Button>
           <DrawerClose asChild>
             <Button
@@ -134,6 +158,11 @@ export default function LandingPageClient() {
   const router = useRouter();
   const addFrame = useAddFrame();
   const [frameAdded, setFrameAdded] = useState(false);
+
+  // Wagmi hooks for wallet connection
+  const { isConnected } = useAccount();
+  const { connect, connectors, status } = useConnect();
+  const isConnecting = status === "pending";
 
   // Drawer state for space preview
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -266,6 +295,10 @@ export default function LandingPageClient() {
         }}
         space={selectedSpace}
         onStartListening={handleStartListening}
+        isConnected={isConnected}
+        connect={connect}
+        connectors={connectors}
+        isConnecting={isConnecting}
       />
     </div>
   );
