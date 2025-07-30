@@ -15,6 +15,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 /**
+ * Generates a high-entropy, professional room name for Sonic Space.
+ * Uses crypto.getRandomValues for secure randomness and a readable prefix.
+ */
+function generateRoomName() {
+  // 16 bytes = 128 bits of entropy, base36 for compactness
+  const arr = new Uint8Array(16);
+  if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(arr);
+  } else {
+    // Fallback for environments without crypto (shouldn't happen in browser)
+    for (let i = 0; i < arr.length; i++)
+      arr[i] = Math.floor(Math.random() * 256);
+  }
+  // Convert to base36 string for compact, URL-safe, and mostly unique names
+  const randomPart = Array.from(arr)
+    .map((b) => b.toString(36).padStart(2, "0"))
+    .join("")
+    .slice(0, 24);
+  return `${randomPart}`;
+}
+
+/**
  * NewSpaceDrawer is hidden on space details (live room) pages.
  * Uses Sora font and Nebula palette from globals.css for a mobile-first, branded look.
  */
@@ -34,7 +56,8 @@ export default function NewSpaceDrawer() {
   async function handleCreateSpace() {
     if (!title.trim()) return;
 
-    const roomName = `Tipspace-${Date.now()}`;
+    // Use high-entropy, professional room name
+    const roomName = generateRoomName();
     const path = `/space/${roomName}?host=true&title=${encodeURIComponent(title)}`;
     router.push(path);
   }
