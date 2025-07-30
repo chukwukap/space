@@ -91,15 +91,6 @@ export default function TipModal({
         to: recipient.address,
         testnet:
           process.env.NEXT_PUBLIC_BASEPAY_TESTNET === "true" ? true : false,
-        payerInfo: {
-          callbackURL: "https://tipspace.xyz/api/payer-info",
-          requests: [
-            {
-              type: "email",
-              optional: true,
-            },
-          ],
-        },
       });
       if (success) {
         setPaymentStatus(
