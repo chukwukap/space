@@ -1,7 +1,7 @@
 # 🎙️ TipSpace
 
 **Talk. Earn. Own it.**  
-TipSpace lets you host live audio shows inside Farcaster, turn applause into crypto tips, and grow an audience you truly own.
+TipSpace lets you host live audio shows inside Farcaster, just like a typical twitter Space would and you get tipped by audience directly. Every reaction is a tip of varying amount depending on the reaction and what the audience configured.
 
 ---
 
@@ -13,7 +13,7 @@ TipSpace lets you host live audio shows inside Farcaster, turn applause into cry
 
 ## Oneliner
 
-**TipSpace is the live audio playground for Farcaster—where creators and communities connect, tip, and thrive in real time.**
+**TipSpace is the live audio miniapp for Farcaster—where anyone can host a live space and get tipped by audience directly.**
 
 ---
 
