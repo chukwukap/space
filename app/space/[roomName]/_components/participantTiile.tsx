@@ -149,8 +149,8 @@ export const CustomParticipantTile = forwardRef<
   return (
     <div
       ref={ref}
-      className="flex flex-col items-center gap-1"
-      style={{ width: 64 }}
+      className="flex flex-col items-center gap-1 snap-start"
+      style={{ width: 72 }}
     >
       <div
         className="relative flex items-center justify-center rounded-full text-primary-foreground font-semibold shadow-lg transition-shadow"
@@ -216,9 +216,16 @@ export const CustomParticipantTile = forwardRef<
           </span>
         )}
 
-        {/* Highlight local participant */}
+        {/* Highlight local participant with animated ring */}
         {p?.isLocal && (
-          <span className="absolute inset-0 rounded-full ring-2 ring-cyan-400 pointer-events-none animate-pulse" />
+          <span className="absolute inset-[-3px] rounded-full pointer-events-none"
+            style={{
+              boxShadow:
+                "0 0 0 2px rgba(34,211,238,0.9), 0 0 20px rgba(34,211,238,0.4)",
+              animation: "pulseRing 1.8s ease-in-out infinite",
+              borderRadius: 9999,
+            }}
+          />
         )}
 
         {/* Host/Mod controls: Only visible to host/mod, not for self or other hosts */}
@@ -275,6 +282,7 @@ export const CustomParticipantTile = forwardRef<
           </span>
         )}
       </div>
+      {/* Role + identity label */}
       <span className="text-[10px] text-muted-foreground flex items-center gap-1 leading-none">
         <span
           className={`inline-block w-1 h-1 rounded-full ${
@@ -287,7 +295,18 @@ export const CustomParticipantTile = forwardRef<
             ? "Speaker"
             : "Listener"}
       </span>
+      {/* Display participant name if present (truncated) */}
+      <span className="text-[10px] max-w-[72px] truncate text-foreground/80">
+        {participantMetadata?.fcContext?.farcasterUser?.displayName ||
+          p?.name ||
+          ""}
+      </span>
       <style jsx global>{`
+        @keyframes pulseRing {
+          0% { box-shadow: 0 0 0 2px rgba(34,211,238,0.9), 0 0 10px rgba(34,211,238,0.2) }
+          50% { box-shadow: 0 0 0 2px rgba(34,211,238,0.6), 0 0 20px rgba(34,211,238,0.5) }
+          100% { box-shadow: 0 0 0 2px rgba(34,211,238,0.9), 0 0 10px rgba(34,211,238,0.2) }
+        }
         @keyframes reaction-pop {
           0% {
             transform: scale(0.7) translateY(10px);
