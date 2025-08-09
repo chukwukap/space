@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { LocalUserChoices } from "@livekit/components-react";
 import { useUser } from "@/app/providers/userProvider";
 import { ConnectionDetails, FCContext, ParticipantMetadata } from "@/lib/types";
-import TipSpaceRoom from "./_components/TipSpaceRoom";
+import TipSpaceRoom from "./_components/tipSpaceRoom";
 import { Button } from "@/components/ui/button";
 
 /**
