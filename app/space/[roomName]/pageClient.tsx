@@ -118,32 +118,45 @@ export default function PageClientImpl(props: {
   return (
     <main data-lk-theme="default" style={{ height: "100%" }}>
       {!connectionDetails ? (
-        <div className="flex flex-col items-center justify-center h-full">
-          <h1 className="text-2xl font-bold">
-            {props.host ? "Host a Space" : "Join Space"}
-          </h1>
-          <p className="text-sm text-muted-foreground mb-2">
-            {props.title ? decodeURIComponent(props.title) : props.roomName}
-          </p>
-          {error && (
-            <div className="text-red-500 text-sm mb-2 max-w-xs text-center">
-              {error}
+        <div className="h-full w-full flex flex-col">
+          {/* Minimal branded header */}
+          <div className="p-4">
+            <div className="relative rounded-2xl overflow-hidden">
+              <div className="aurora-bg h-24 w-full" />
+              <div className="absolute inset-0 p-4 flex flex-col justify-end">
+                <h1 className="text-lg font-bold">
+                  {props.host ? "Host a Space" : "Join Space"}
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  {props.title ? decodeURIComponent(props.title) : props.roomName}
+                </p>
+              </div>
             </div>
-          )}
-          <Button
-            onClick={handlePreJoin}
-            disabled={loading}
-            className="w-32"
-            aria-busy={loading}
-          >
-            {loading
-              ? props.host
-                ? "Creating..."
-                : "Joining..."
-              : props.host
-                ? "Host Space"
-                : "Start Listening"}
-          </Button>
+          </div>
+          {/* CTA */}
+          <div className="flex-1 flex items-center justify-center px-6">
+            <div className="flex flex-col items-center gap-3 max-w-sm w-full">
+              {error && (
+                <div className="text-destructive text-sm text-center">
+                  {error}
+                </div>
+              )}
+              <Button
+                onClick={handlePreJoin}
+                disabled={loading}
+                className="w-full max-w-[220px]"
+                aria-busy={loading}
+              >
+                {loading
+                  ? props.host
+                    ? "Creating..."
+                    : "Joining..."
+                  : props.host
+                    ? "Host Space"
+                    : "Start Listening"}
+              </Button>
+            </div>
+          </div>
         </div>
       ) : (
         <TipSpaceRoom
