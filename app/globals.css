@@ -144,6 +144,15 @@ body {
     animation: aurora 8s ease-in-out infinite;
   }
 
+  /* Hide default scrollbar for horizontal carousels */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
   /* -------------------------------------------------- */
   /* Glass card & glow hover utilities                 */
   /* -------------------------------------------------- */
