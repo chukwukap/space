@@ -224,7 +224,7 @@ export default function BottomBar({
             </button>
           </div>
           {/* Emoji picker popover */}
-          {(emojiOpen || emojiPickerAnim) && (
+            {(emojiOpen || emojiPickerAnim) && (
             <div
               ref={emojiPickerRef}
               className={cn(
@@ -240,10 +240,10 @@ export default function BottomBar({
                 justifyContent: "center",
                 alignItems: "center",
                 boxShadow: "0 8px 32px 0 rgba(0,0,0,0.18)",
-                bottom: "calc(100% + 8px)",
+                  bottom: "calc(100% + 10px)",
                 left: "50%",
                 transform: "translateX(-50%)",
-                padding: "6px 8px",
+                  padding: "8px 10px",
                 zIndex: 100,
               }}
             >
@@ -258,10 +258,10 @@ export default function BottomBar({
                     fontFamily: "Sora, sans-serif",
                     border: "none",
                     outline: "none",
-                    fontSize: 18 + i,
+                      fontSize: 18 + i,
                     filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.10))",
-                    minWidth: 28,
-                    minHeight: 28,
+                      minWidth: 30,
+                      minHeight: 30,
                     margin: "0 1px",
                     touchAction: "manipulation",
                   }}
@@ -275,7 +275,7 @@ export default function BottomBar({
                   <span
                     style={{
                       display: "inline-block",
-                      transform: `scale(${1 + i * 0.03}) rotate(${i % 2 === 0 ? 0 : 2}deg)`,
+                        transform: `scale(${1 + i * 0.04}) rotate(${i % 2 === 0 ? 0 : 2}deg)`,
                       transition: "transform 0.15s",
                     }}
                   >
