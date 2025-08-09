@@ -32,7 +32,7 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 
-import TipModal from "./TipModal";
+import TipModal from "./tipModal";
 import BottomBar from "./bottomBar";
 import { toast } from "sonner";
 
@@ -149,6 +149,14 @@ export function TipSpaceRoomLayout() {
   const participants = useParticipants();
   const sortedParticipants = useSortedParticipants(participants);
 
+  // Derive simple participant metrics for the header
+  const speakersCount = useMemo(
+    () => sortedParticipants.filter((p) => p.permissions?.canPublish).length,
+    [sortedParticipants],
+  );
+  const totalCount = participants.length;
+  const listenersCount = Math.max(totalCount - speakersCount, 0);
+
   const { localParticipant } = useLocalParticipant();
 
   const localParticipantMetadata = localParticipant?.metadata
@@ -219,6 +227,13 @@ export function TipSpaceRoomLayout() {
         return;
       }
       try {
+        // Find participant by sid to get their identity (required by backend)
+        const target = participants.find((p) => p.sid === participantSid);
+        if (!target) {
+          toast.error("Participant not found");
+          return;
+        }
+
         const res = await fetch("/api/room/invite", {
           method: "POST",
           headers: {
@@ -226,7 +241,7 @@ export function TipSpaceRoomLayout() {
           },
           body: JSON.stringify({
             roomName: room.name,
-            identity: participantSid,
+            identity: target.identity,
           }),
         });
 
@@ -243,7 +258,7 @@ export function TipSpaceRoomLayout() {
         toast.error("Failed to send invite");
       }
     },
-    [localParticipantMetadata, room.name],
+    [localParticipantMetadata, room.name, participants],
   );
 
   /**
@@ -399,21 +414,38 @@ export function TipSpaceRoomLayout() {
             </DisconnectButton>
           }
         />
-        {/* Room Title Area */}
-        <section className=" bg-background mt-5 mx-2">
-          <h1
-            className="text-xl font-bold leading-tight truncate max-w-full"
-            data-testid="space-title"
-            style={{ fontFamily: "Sora, sans-serif" }}
-            title={localParticipantMetadata?.title ?? ""}
-          >
-            {localParticipantMetadata?.title ?? ""}
-          </h1>
+        {/* Header: Title + audience metrics */}
+        <section className="mt-14 mx-3">
+          <div className="relative rounded-2xl overflow-hidden">
+            <div className="aurora-bg h-24 w-full" />
+            <div className="absolute inset-0 p-4 flex flex-col justify-between">
+              <h1
+                className="text-lg font-bold leading-tight truncate max-w-full drop-shadow-sm"
+                data-testid="space-title"
+                style={{ fontFamily: "Sora, sans-serif" }}
+                title={localParticipantMetadata?.title ?? ""}
+              >
+                {localParticipantMetadata?.title ?? ""}
+              </h1>
+              <div className="flex items-center gap-2">
+                <span className="text-xs bg-background/70 dark:bg-white/10 px-2 py-1 rounded-full">
+                  {totalCount} live
+                </span>
+                <span className="text-xs bg-background/70 dark:bg-white/10 px-2 py-1 rounded-full">
+                  {speakersCount} speakers
+                </span>
+                <span className="text-xs bg-background/70 dark:bg-white/10 px-2 py-1 rounded-full">
+                  {listenersCount} listeners
+                </span>
+              </div>
+            </div>
+          </div>
         </section>
+
         <div className="flex flex-col gap-6 mx-2">
           {/* Host & Speakers horizontal list */}
           <div
-            className="w-full px-4 flex gap-4 items-center"
+            className="w-full pl-4 pr-1 flex gap-4 items-center overflow-x-auto snap-x snap-mandatory scrollbar-none"
             data-testid="speakers-row"
           >
             {sortedParticipants.map((sp) => (

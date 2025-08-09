@@ -218,7 +218,8 @@ export const CustomParticipantTile = forwardRef<
 
         {/* Highlight local participant with animated ring */}
         {p?.isLocal && (
-          <span className="absolute inset-[-3px] rounded-full pointer-events-none"
+          <span
+            className="absolute inset-[-3px] rounded-full pointer-events-none"
             style={{
               boxShadow:
                 "0 0 0 2px rgba(34,211,238,0.9), 0 0 20px rgba(34,211,238,0.4)",
@@ -303,9 +304,21 @@ export const CustomParticipantTile = forwardRef<
       </span>
       <style jsx global>{`
         @keyframes pulseRing {
-          0% { box-shadow: 0 0 0 2px rgba(34,211,238,0.9), 0 0 10px rgba(34,211,238,0.2) }
-          50% { box-shadow: 0 0 0 2px rgba(34,211,238,0.6), 0 0 20px rgba(34,211,238,0.5) }
-          100% { box-shadow: 0 0 0 2px rgba(34,211,238,0.9), 0 0 10px rgba(34,211,238,0.2) }
+          0% {
+            box-shadow:
+              0 0 0 2px rgba(34, 211, 238, 0.9),
+              0 0 10px rgba(34, 211, 238, 0.2);
+          }
+          50% {
+            box-shadow:
+              0 0 0 2px rgba(34, 211, 238, 0.6),
+              0 0 20px rgba(34, 211, 238, 0.5);
+          }
+          100% {
+            box-shadow:
+              0 0 0 2px rgba(34, 211, 238, 0.9),
+              0 0 10px rgba(34, 211, 238, 0.2);
+          }
         }
         @keyframes reaction-pop {
           0% {

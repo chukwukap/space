@@ -128,7 +128,9 @@ export default function PageClientImpl(props: {
                   {props.host ? "Host a Space" : "Join Space"}
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  {props.title ? decodeURIComponent(props.title) : props.roomName}
+                  {props.title
+                    ? decodeURIComponent(props.title)
+                    : props.roomName}
                 </p>
               </div>
             </div>
