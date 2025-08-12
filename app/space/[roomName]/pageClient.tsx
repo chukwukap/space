@@ -6,6 +6,8 @@ import { useUser } from "@/app/providers/userProvider";
 import { ConnectionDetails, FCContext, ParticipantMetadata } from "@/lib/types";
 import TipSpaceRoom from "./_components/TipSpaceRoom";
 import { Button } from "@/components/ui/button";
+import MobileHeader from "@/app/_components/mobileHeader";
+import { motion, AnimatePresence } from "framer-motion";
 
 /**
  * This page is tightly coupled to the /api/connection-details route.
@@ -116,34 +118,80 @@ export default function PageClientImpl(props: {
 
   // UI: Show join/host, loading, error, or the room
   return (
-    <main data-lk-theme="default" style={{ height: "100%" }}>
+    <main data-lk-theme="default" className="h-full">
       {!connectionDetails ? (
-        <div className="flex flex-col items-center justify-center h-full">
-          <h1 className="text-2xl font-bold">
-            {props.host ? "Host a Space" : "Join Space"}
-          </h1>
-          <p className="text-sm text-muted-foreground mb-2">
-            {props.title ? decodeURIComponent(props.title) : props.roomName}
-          </p>
-          {error && (
-            <div className="text-red-500 text-sm mb-2 max-w-xs text-center">
-              {error}
+        <div className="h-full w-full">
+          <MobileHeader showBack lowerVisible title={props.roomName} />
+          <div className="pt-12 h-full">
+            <div className="h-full flex flex-col">
+              <div className="flex-1 flex items-center justify-center px-4 py-6">
+                <motion.div
+                  className="w-full max-w-sm rounded-2xl border border-border/60 bg-background/70 backdrop-blur p-5 shadow-sm"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ fontFamily: "Sora, var(--font-sora), sans-serif" }}
+                >
+                  <div className="flex flex-col gap-2 text-center">
+                    <h1 className="text-lg font-bold">
+                      {props.host ? "Host this Space" : "Join this Space"}
+                    </h1>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {props.title
+                        ? decodeURIComponent(props.title)
+                        : props.roomName}
+                    </p>
+                  </div>
+                  <div className="mt-4 rounded-xl bg-muted/40 border border-border/60 p-3 text-xs text-muted-foreground">
+                    <ul className="space-y-1">
+                      <li>• Live audio uses your mic while in the room</li>
+                      <li>• You can tip hosts and speakers in-app</li>
+                      <li>• Leave anytime — rejoin with a tap</li>
+                    </ul>
+                  </div>
+
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div
+                        key="join-error"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        className="mt-3 text-destructive text-xs text-center"
+                        role="alert"
+                        aria-live="polite"
+                      >
+                        {error}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="mt-5">
+                    <Button
+                      onClick={handlePreJoin}
+                      disabled={loading}
+                      aria-busy={loading}
+                      className="w-full h-11 text-sm font-medium"
+                    >
+                      {loading ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="inline-block h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                          {props.host ? "Creating" : "Joining"}
+                        </span>
+                      ) : props.host ? (
+                        "Host Space"
+                      ) : (
+                        "Start Listening"
+                      )}
+                    </Button>
+                    <p className="mt-2 text-[11px] text-center text-muted-foreground">
+                      You can change mic access in the room settings.
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
             </div>
-          )}
-          <Button
-            onClick={handlePreJoin}
-            disabled={loading}
-            className="w-32"
-            aria-busy={loading}
-          >
-            {loading
-              ? props.host
-                ? "Creating..."
-                : "Joining..."
-              : props.host
-                ? "Host Space"
-                : "Start Listening"}
-          </Button>
+          </div>
         </div>
       ) : (
         <TipSpaceRoom
