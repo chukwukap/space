@@ -3,9 +3,7 @@ import "@coinbase/onchainkit/styles.css";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import { BottomNav } from "./_components/bottomNav";
 import NewSpaceDrawer from "./_components/newSpaceDrawer";
-// import { BottomNav } from "./components/bottomNav";
 
 // Font configuration for Spaces: five standout Google Fonts for a polished, modern app experience.
 // This would be in font.ts and exported for use throughout the app.
@@ -135,8 +133,7 @@ export default function RootLayout({
               </style>
               {children}
             </main>
-            {/* Sticky, auto-hiding bottom navigation bar */}
-            <BottomNav />
+
             <NewSpaceDrawer />
           </div>
         </Providers>

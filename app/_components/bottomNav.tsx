@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Home, Settings } from "iconoir-react";
+import { Home } from "iconoir-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -46,11 +46,6 @@ export function BottomNav() {
       href: "/",
       label: "Home",
       icon: Home,
-    },
-    {
-      href: "/settings",
-      label: "Settings",
-      icon: Settings,
     },
   ];
 
