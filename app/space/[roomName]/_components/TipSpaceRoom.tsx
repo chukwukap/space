@@ -48,6 +48,7 @@ import PendingRequestToSpeak from "./pendingRequestToSpeak";
  * Used to track which participant is currently showing which reaction.
  */
 type ReactionMap = Record<string, { emoji: string; timestamp: number }>;
+//
 
 export default function TipSpaceRoom(props: {
   userChoices: LocalUserChoices;
