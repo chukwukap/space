@@ -18,6 +18,7 @@ import {
 import { REACTION_EMOJIS } from "@/lib/constants";
 import { useClickOutside } from "@/app/hooks/useClickOutside";
 import { Track } from "livekit-client";
+import { toast } from "sonner";
 
 /**
  * Props for the BottomBar component.
@@ -81,15 +82,18 @@ export default function BottomBar({
     try {
       if (navigator.share) {
         await navigator.share({ title: "Join my Space", url });
+        toast.success("Share sheet opened");
         return;
       }
       await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard");
     } catch (err) {
       console.error("[ShareError]", err);
       try {
         await navigator.clipboard.writeText(url);
+        toast.success("Link copied to clipboard");
       } catch (e) {
-        // noop
+        toast.error("Could not share. Please copy the link manually.");
       }
     }
   }, [roomName]);
@@ -211,6 +215,8 @@ export default function BottomBar({
                 emojiOpen ? "ring-2 ring-primary/60" : "",
               )}
               aria-label="Open emoji reactions"
+              aria-expanded={emojiOpen}
+              aria-controls="emoji-popover"
               type="button"
               style={{
                 fontFamily: "Sora, sans-serif",
@@ -227,7 +233,7 @@ export default function BottomBar({
               }}
               onClick={() => setEmojiOpen((v) => !v)}
             >
-              <EmojiIcon className="w-5 h-5" />
+              <EmojiIcon className="w-5 h-5" aria-hidden />
               <span className="text-[10px] mt-0.5 font-semibold">React</span>
             </button>
           </div>
@@ -242,6 +248,8 @@ export default function BottomBar({
                   : "opacity-0 scale-95 pointer-events-none",
                 "transition-all duration-200 ease-out",
               )}
+              id="emoji-popover"
+              role="menu"
               style={{
                 fontFamily: "Sora, sans-serif",
                 minWidth: 140,
@@ -262,6 +270,7 @@ export default function BottomBar({
                     "rounded-full bg-primary/10 px-1 py-1 text-xl shadow-md transition active:scale-90",
                     "border border-primary/20",
                   )}
+                    role="menuitem"
                   style={{
                     fontFamily: "Sora, sans-serif",
                     border: "none",
@@ -276,6 +285,7 @@ export default function BottomBar({
                   onClick={() => {
                     onSendReaction(emoji);
                     setEmojiOpen(false);
+                      if (navigator.vibrate) navigator.vibrate(10);
                   }}
                   aria-label={`Send ${emoji} reaction`}
                   type="button"
