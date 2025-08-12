@@ -76,13 +76,21 @@ export default function BottomBar({
   );
 
   // Share handler
-  const handleShare = React.useCallback(() => {
+  const handleShare = React.useCallback(async () => {
+    const url = `${window.location.origin}/space/${roomName}`;
     try {
-      navigator.clipboard.writeText(
-        `${window.location.origin}/space/${roomName}`,
-      );
+      if (navigator.share) {
+        await navigator.share({ title: "Join my Space", url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
     } catch (err) {
-      console.error("[ClipboardError]", err);
+      console.error("[ShareError]", err);
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch (e) {
+        // noop
+      }
     }
   }, [roomName]);
 

@@ -32,29 +32,26 @@ const PendingRequestToSpeak: React.FC<PendingRequestToSpeakProps> = ({
   if (!requests || requests.length === 0) return null;
 
   return (
-    <div className="px-6 py-2 mt-4 bg-muted rounded shadow">
-      <h2 className="font-semibold mb-2">Pending Requests</h2>
-      <ul>
+    <div className="mx-2 mt-3 rounded-xl border border-border/60 bg-card/70 backdrop-blur p-3 shadow-sm">
+      <h2 className="text-sm font-semibold mb-2">Pending requests</h2>
+      <ul className="space-y-2">
         {requests.map((req) => (
           <li
             key={req.sid}
-            className="flex items-center justify-between mb-2"
+            className="flex items-center justify-between gap-2"
             data-testid={`pending-request-${req.sid}`}
           >
-            <span>
-              {/* Display user name, fallback to "Unknown" if missing */}
-              {req.user?.name || "Unknown"}{" "}
-              <span className="text-xs text-muted-foreground">
-                (
+            <div className="min-w-0">
+              <p className="text-sm truncate">{req.user?.name || "Unknown"}</p>
+              <p className="text-[11px] text-muted-foreground">
                 {req.timestamp
                   ? new Date(req.timestamp).toLocaleTimeString()
                   : "Unknown time"}
-                )
-              </span>
-            </span>
-            <div className="flex gap-2">
+              </p>
+            </div>
+            <div className="flex gap-2 shrink-0">
               <button
-                className="px-2 py-1 bg-green-600 text-white rounded text-xs"
+                className="px-2.5 h-8 bg-emerald-600 text-white rounded-md text-xs active:scale-[0.98]"
                 onClick={() => onApprove(req.sid)}
                 aria-label={`Approve request from ${req.user?.name || "Unknown"}`}
                 type="button"
@@ -62,7 +59,7 @@ const PendingRequestToSpeak: React.FC<PendingRequestToSpeakProps> = ({
                 Approve
               </button>
               <button
-                className="px-2 py-1 bg-red-600 text-white rounded text-xs"
+                className="px-2.5 h-8 bg-rose-600 text-white rounded-md text-xs active:scale-[0.98]"
                 onClick={() => onReject(req.sid)}
                 aria-label={`Reject request from ${req.user?.name || "Unknown"}`}
                 type="button"

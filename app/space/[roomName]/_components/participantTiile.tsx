@@ -170,7 +170,7 @@ export const CustomParticipantTile = forwardRef<
         }`}
         tabIndex={0}
       >
-        {participantMetadata?.fcContext?.farcasterUser?.pfpUrl && (
+        {participantMetadata?.fcContext?.farcasterUser?.pfpUrl ? (
           <Image
             src={participantMetadata?.fcContext?.farcasterUser?.pfpUrl}
             alt={p?.identity ?? "Participant"}
@@ -181,6 +181,10 @@ export const CustomParticipantTile = forwardRef<
             priority
             unoptimized
           />
+        ) : (
+          <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center text-primary text-lg">
+            {(p?.identity || "?")?.toString().slice(0, 1)}
+          </div>
         )}
 
         {/* Show mic status only for participants who have publish permission */}
@@ -209,8 +213,12 @@ export const CustomParticipantTile = forwardRef<
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="eq-bar"
-                style={{ animationDelay: `${i * 0.2}s` }}
+                className="inline-block w-1 bg-emerald-400 rounded-sm"
+                style={{
+                  height: 6 + i * 3,
+                  animation: "vu 1s ease-in-out infinite",
+                  animationDelay: `${i * 0.12}s`,
+                }}
               />
             ))}
           </span>
@@ -288,6 +296,10 @@ export const CustomParticipantTile = forwardRef<
             : "Listener"}
       </span>
       <style jsx global>{`
+        @keyframes vu {
+          0%, 100% { transform: scaleY(0.5); opacity: 0.7; }
+          50% { transform: scaleY(1.2); opacity: 1; }
+        }
         @keyframes reaction-pop {
           0% {
             transform: scale(0.7) translateY(10px);

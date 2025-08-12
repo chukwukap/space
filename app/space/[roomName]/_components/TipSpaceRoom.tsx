@@ -316,13 +316,8 @@ export function TipSpaceRoomLayout() {
         ) as ParticipantMetadata;
         const name =
           speakerMetadata?.fcContext?.farcasterUser.displayName ||
-          `Speaker ${s.name}`;
-        console.log("[TipSpaceRoomLayout] s", s);
-        console.log(
-          "[TipSpaceRoomLayout] speakerMetadata",
-          speakerMetadata,
-          s.metadata,
-        );
+          s.name ||
+          "Speaker";
         return {
           fid: speakerMetadata?.fcContext?.farcasterUser.fid ?? null,
           name,
@@ -330,11 +325,7 @@ export function TipSpaceRoomLayout() {
           address: speakerMetadata?.fcContext?.farcasterUser.address,
         };
       })
-      .filter(
-        (r) => r.fid,
-        // r.fid !== localParticipantMetadata?.fcContext?.farcasterUser.fid,
-      );
-    console.log("[TipSpaceRoomLayout] recipients", recipients);
+      .filter((r) => r.fid);
     return recipients;
   }, [sortedParticipants]);
 
@@ -400,7 +391,7 @@ export function TipSpaceRoomLayout() {
           }
         />
         {/* Room Title Area */}
-        <section className=" bg-background mt-5 mx-2">
+        <section className=" bg-background pt-12 mx-2">
           <h1
             className="text-xl font-bold leading-tight truncate max-w-full"
             data-testid="space-title"
@@ -409,6 +400,13 @@ export function TipSpaceRoomLayout() {
           >
             {localParticipantMetadata?.title ?? ""}
           </h1>
+          <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-2">
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"
+              aria-hidden
+            />
+            <span>Live • {sortedParticipants.length} participating</span>
+          </div>
         </section>
         <div className="flex flex-col gap-6 mx-2">
           {/* Host & Speakers horizontal list */}
