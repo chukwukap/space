@@ -32,7 +32,7 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 
-import TipModal from "./TipModal";
+import TipModal from "./tipModal";
 import BottomBar from "./bottomBar";
 import { toast } from "sonner";
 
