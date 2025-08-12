@@ -297,8 +297,15 @@ export const CustomParticipantTile = forwardRef<
       </span>
       <style jsx global>{`
         @keyframes vu {
-          0%, 100% { transform: scaleY(0.5); opacity: 0.7; }
-          50% { transform: scaleY(1.2); opacity: 1; }
+          0%,
+          100% {
+            transform: scaleY(0.5);
+            opacity: 0.7;
+          }
+          50% {
+            transform: scaleY(1.2);
+            opacity: 1;
+          }
         }
         @keyframes reaction-pop {
           0% {

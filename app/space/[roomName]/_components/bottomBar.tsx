@@ -270,7 +270,7 @@ export default function BottomBar({
                     "rounded-full bg-primary/10 px-1 py-1 text-xl shadow-md transition active:scale-90",
                     "border border-primary/20",
                   )}
-                    role="menuitem"
+                  role="menuitem"
                   style={{
                     fontFamily: "Sora, sans-serif",
                     border: "none",
@@ -285,7 +285,7 @@ export default function BottomBar({
                   onClick={() => {
                     onSendReaction(emoji);
                     setEmojiOpen(false);
-                      if (navigator.vibrate) navigator.vibrate(10);
+                    if (navigator.vibrate) navigator.vibrate(10);
                   }}
                   aria-label={`Send ${emoji} reaction`}
                   type="button"

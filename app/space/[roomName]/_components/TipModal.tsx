@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from "react";
 import {
   Drawer,
@@ -16,12 +18,15 @@ import { cn } from "@/lib/utils";
 import { NavArrowDown, Check, User, Xmark } from "iconoir-react";
 import { pay } from "@base-org/account";
 import { BasePayButton } from "@base-org/account-ui/react";
+import { erc20Abi, isAddress, parseUnits, type Address, type Hex } from "viem";
+import {
+  useAccount,
+  useConnect,
+  usePublicClient,
+  useWalletClient,
+} from "wagmi";
+import { USDC_ADDRESS_BASE } from "@/lib/constants";
 
-/**
- * TipModalProps defines the props for the TipModal component.
- * - userFid: tipper's Farcaster fid
- * - spaceId: string, e.g. LiveKit room id
- */
 interface TipModalProps {
   open: boolean;
   onClose: () => void;
@@ -49,7 +54,12 @@ export default function TipModal({
   const [paymentStatus, setPaymentStatus] = useState<string>("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  // wagmi hooks for wallet-based payment option
+  const { address } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
+
   useEffect(() => {
     if (!showRecipientList) return;
     function handleClick(e: MouseEvent) {
@@ -64,8 +74,7 @@ export default function TipModal({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showRecipientList]);
 
-  // One-tap USDC payment using the pay() function
-  const handlePayment = async () => {
+  const handleBasePay = async () => {
     if (!recipient) {
       setError("Please select a recipient.");
       return;
@@ -78,14 +87,11 @@ export default function TipModal({
     setError(null);
     setPaymentStatus("");
     try {
-      // You must provide the recipient's address here.
-      // We'll assume recipient.address exists and is a valid EVM address.
       if (!recipient.address) {
         setStatus("error");
         setError("Recipient does not have a valid address.");
         return;
       }
-      // Amount must be a string in USD (e.g. "0.01")
       const { success } = await pay({
         amount: String(amount),
         to: recipient.address,
@@ -119,7 +125,73 @@ export default function TipModal({
     }
   };
 
-  // --- Recipient Select UI ---
+  const handleWalletTransfer = async () => {
+    if (!recipient) {
+      setError("Please select a recipient.");
+      return;
+    }
+    if (!amount || Number(amount) <= 0) {
+      setError("Please enter a valid amount.");
+      return;
+    }
+    if (!recipient.address || !isAddress(recipient.address as Address)) {
+      setError("Recipient address is invalid.");
+      return;
+    }
+    if (!address) {
+      if (connectors && connectors.length > 0) {
+        try {
+          await connect({ connector: connectors[0] });
+        } catch (error) {
+          console.error("[WalletTransfer] error", error);
+          setError("Please connect your wallet to continue.");
+          return;
+        }
+      } else {
+        setError("No wallet connector available.");
+        return;
+      }
+    }
+    if (!walletClient || !publicClient) {
+      setError("Wallet client not available. Please try again.");
+      return;
+    }
+
+    setStatus("loading");
+    setError(null);
+    setPaymentStatus("");
+    try {
+      const value = parseUnits(String(amount), 6);
+      const txHash = await walletClient.writeContract({
+        address: USDC_ADDRESS_BASE,
+        abi: erc20Abi,
+        functionName: "transfer",
+        args: [recipient.address as Address, value],
+        account: address as Address,
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash: txHash as Hex });
+
+      setPaymentStatus("Payment confirmed on-chain.");
+      setStatus("success");
+      if (onTipSuccess) onTipSuccess();
+      setTimeout(() => {
+        setStatus("idle");
+        setAmount(0);
+        onClose();
+      }, 1200);
+    } catch (error: unknown) {
+      console.error("[WalletTransfer] error", error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Wallet transfer failed. Please try again.");
+      }
+      setStatus("error");
+      setPaymentStatus("Payment failed");
+    }
+  };
+
   function RecipientSelect() {
     if (recipients.length === 0) {
       return (
@@ -238,7 +310,6 @@ export default function TipModal({
                   placeholder="0"
                   value={amount}
                   onChange={(e) => {
-                    // Only allow numbers and decimals
                     const val = e.target.value;
                     if (/^\d*\.?\d*$/.test(val)) {
                       setAmount(val === "" ? "" : Number(val));
@@ -288,7 +359,15 @@ export default function TipModal({
             >
               Cancel
             </Button>
-            <BasePayButton colorScheme="light" onClick={handlePayment} />
+            <BasePayButton colorScheme="light" onClick={handleBasePay} />
+            <Button
+              variant="default"
+              onClick={handleWalletTransfer}
+              disabled={status === "loading"}
+              className="flex-1 text-sm"
+            >
+              Pay with Wallet
+            </Button>
           </DrawerFooter>
         </div>
       </DrawerContent>
